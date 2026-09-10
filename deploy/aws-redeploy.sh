@@ -14,12 +14,13 @@ fi
 source_ref="${1:-main}"
 git fetch --depth 1 origin "$source_ref"
 git checkout --detach FETCH_HEAD
+public_url="$(python3 deploy/aws-public-url.py)"
 sh deploy/aws-compose.sh config --quiet
 sh deploy/aws-compose.sh up --build -d
-# Nginx resolves upstream container addresses when it starts.
+# Reload the gateway after application container replacement.
 sh deploy/aws-compose.sh restart gateway
 sh deploy/aws-compose.sh up -d --wait --wait-timeout 600
-curl -fsS http://127.0.0.1/backend/health
+curl -fsS --retry 30 --retry-delay 3 --retry-all-errors "$public_url/backend/health"
 git rev-parse HEAD
 sh deploy/aws-compose.sh ps
 }

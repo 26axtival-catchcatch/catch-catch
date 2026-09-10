@@ -1,7 +1,15 @@
 services:
   gateway:
+    image: caddy:2.11.4-alpine@sha256:5f5c8640aae01df9654968d946d8f1a56c497f1dd5c5cda4cf95ab7c14d58648
+    environment:
+      PUBLIC_IP: ${PUBLIC_IP:?Run deploy/aws-public-url.py on EC2}
     ports: !override
-      - "0.0.0.0:80:8080"
+      - "0.0.0.0:80:80"
+      - "0.0.0.0:443:443"
+    volumes: !override
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
   langfuse-web:
     ports: !override
       - "0.0.0.0:3210:3000"
@@ -12,3 +20,7 @@ services:
   minio:
     ports: !override
       - "0.0.0.0:3290:9000"
+
+volumes:
+  caddy-data:
+  caddy-config:
