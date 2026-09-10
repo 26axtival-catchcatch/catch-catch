@@ -59,11 +59,17 @@ export function CatchingScreen({
   const active = activeIndex < 0 ? null : session.stages[activeIndex];
   const graphTopology = useMemo(() => createAgentTopology(topologyEvents), [topologyEvents]);
   const { stats: graphStats } = graphTopology;
+  const isConnecting = topologyEvents.length === 0;
+  const isAssigningRoles = !isConnecting && activities.length === 0;
 
   const lead = flatline
     ? "연결 문제로 분석이 잠시 멈췄어요"
     : session.clarification
       ? "분석 기준을 정확히 맞추기 위해 확인이 필요해요"
+      : isConnecting
+        ? "질문을 분석 공간에 연결하고 있어요"
+        : isAssigningRoles
+          ? "분석 목표를 정하고 역할을 나누고 있어요"
       : active?.key === "analyze" || active?.key === "verify"
         ? "여러 데이터에서 찾은 내용을 근거와 함께 확인하고 있어요"
         : (active?.label ?? "확인된 결과를 정리하고 있어요");
@@ -109,7 +115,9 @@ export function CatchingScreen({
                 </p>
               </div>
               <span className={styles.count}>
-                역할 {graphStats.agents}개 · 도구 호출 {graphStats.tools}회 · <b>확정 {graphStats.catches}건</b>
+                {isConnecting
+                  ? "실행 흐름 연결 중"
+                  : <>역할 {graphStats.agents}개 · 도구 호출 {graphStats.tools}회 · <b>확정 {graphStats.catches}건</b></>}
               </span>
             </div>
 

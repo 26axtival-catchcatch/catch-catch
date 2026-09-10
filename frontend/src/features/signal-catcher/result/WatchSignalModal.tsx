@@ -50,6 +50,12 @@ interface WatchSignalModalProps {
 
 const client = new SignalClient();
 
+interface PreparedRules {
+  registrations: RegisteredSignal[];
+  revisions: Record<string, number>;
+  rules: RuleDraft[];
+}
+
 function displayUnit(unit: string): string {
   const normalized = unit.toLowerCase();
   if (normalized === "customers") return "명";
@@ -145,6 +151,55 @@ function ruleDraftsOf(
   });
 }
 
+async function readyRecommendations(
+  registration: RegisteredSignal,
+  signal?: AbortSignal,
+): Promise<AlertRecommendationSet> {
+  const current = registration.alertRecommendations;
+  if (current?.status === "ready") return current;
+  return client.generateAlertRecommendations(registration.signalId, signal);
+}
+
+async function prepareRuleDrafts(
+  selectedMetrics: ProposalMetricDraft[],
+  signal?: AbortSignal,
+): Promise<PreparedRules> {
+  const proposalIds = [...new Set(selectedMetrics.flatMap(
+    (metric) => metric.proposalId ? [metric.proposalId] : [],
+  ))];
+  if (!proposalIds.length) {
+    throw new Error("등록 가능한 추적 후보가 아직 없어요. 잠시 후 모달을 다시 열어 주세요.");
+  }
+
+  const registrations = await Promise.all(
+    proposalIds.map((proposalId) => client.registerProposal(proposalId, signal)),
+  );
+  const prepared = await Promise.all(registrations.map(async (registration) => {
+    const [recommendations, existing] = await Promise.all([
+      readyRecommendations(registration, signal),
+      client.getAlertRules(registration.signalId, signal),
+    ]);
+    if (recommendations.status !== "ready") {
+      throw new Error(recommendations.reason ?? "AI 감지 기준을 준비하지 못했습니다.");
+    }
+    const keys = new Set(selectedMetrics
+      .filter((metric) => metric.proposalId === registration.proposalId)
+      .map((metric) => metric.key));
+    return { registration, recommendations, existing, keys };
+  }));
+  const rules = prepared.flatMap(({ registration, recommendations, existing, keys }) =>
+    ruleDraftsOf(registration, recommendations, existing, keys));
+  if (!rules.length) throw new Error("선택한 지표에 맞는 AI 감지 기준이 없어요.");
+
+  return {
+    registrations,
+    revisions: Object.fromEntries(prepared.map(
+      ({ registration, existing }) => [registration.signalId, existing.revision],
+    )),
+    rules,
+  };
+}
+
 export function WatchSignalModal({
   runId,
   fallbackMetrics,
@@ -152,7 +207,7 @@ export function WatchSignalModal({
   onSaved,
   onGoHome,
 }: WatchSignalModalProps) {
-  const [step, setStep] = useState<"metrics" | "rules" | "done">("metrics");
+  const [step, setStep] = useState<"metrics" | "rules" | "done">("rules");
   const [metrics, setMetrics] = useState<ProposalMetricDraft[]>([]);
   const [rules, setRules] = useState<RuleDraft[]>([]);
   const [registrations, setRegistrations] = useState<RegisteredSignal[]>([]);
@@ -174,9 +229,14 @@ export function WatchSignalModal({
     const controller = new AbortController();
     const fallback = fallbackDrafts(fallbackMetrics);
     setLoading(true);
-    client.listProposals(runId, controller.signal)
-      .then((proposals) => {
-        const fromApi = usefulDrafts(proposals);
+    setStep("rules");
+    setSubmitError(null);
+
+    async function loadSuggestedRules() {
+      let fromApi: ProposalMetricDraft[] = [];
+      try {
+        const proposals = await client.listProposals(runId, controller.signal);
+        fromApi = usefulDrafts(proposals);
         if (!fromApi.length) {
           setLoadNote("아직 등록할 수 있는 추적 후보가 없어 분석 지표만 보여드려요.");
         } else {
@@ -184,15 +244,38 @@ export function WatchSignalModal({
           setLoadNote(limitations.length ? `측정 참고: ${limitations.join(" ")}` : null);
         }
         setMetrics(fromApi.length ? fromApi : fallback);
-      })
-      .catch((error: unknown) => {
+      } catch (error: unknown) {
         if (error instanceof DOMException && error.name === "AbortError") return;
         setMetrics(fallback);
         setLoadNote("추적 후보를 불러오지 못해 분석 지표만 보여드려요. 잠시 후 다시 열어 주세요.");
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) setLoading(false);
-      });
+        setStep("metrics");
+        return;
+      }
+
+      if (!fromApi.length) {
+        setStep("metrics");
+        return;
+      }
+
+      try {
+        const prepared = await prepareRuleDrafts(
+          fromApi.filter((metric) => metric.selected),
+          controller.signal,
+        );
+        if (controller.signal.aborted) return;
+        setRegistrations(prepared.registrations);
+        setRevisions(prepared.revisions);
+        setRules(prepared.rules);
+      } catch (error: unknown) {
+        if (error instanceof DOMException && error.name === "AbortError") return;
+        setSubmitError(error instanceof Error ? error.message : "AI 감지 기준을 불러오지 못했습니다.");
+        setStep("metrics");
+      }
+    }
+
+    void loadSuggestedRules().finally(() => {
+      if (!controller.signal.aborted) setLoading(false);
+    });
     return () => controller.abort();
   }, [fallbackMetrics, runId]);
 
@@ -242,45 +325,18 @@ export function WatchSignalModal({
     setRules((current) => current.map((rule) => rule.id === id ? { ...rule, ...patch } : rule));
   }
 
-  async function readyRecommendations(registration: RegisteredSignal): Promise<AlertRecommendationSet> {
-    const current = registration.alertRecommendations;
-    if (current?.status === "ready") return current;
-    return client.generateAlertRecommendations(registration.signalId);
-  }
-
   async function prepareRules() {
     if (!selectedMetrics.length) {
       setSubmitError("계속 볼 지표를 하나 이상 선택해 주세요.");
       return;
     }
-    const proposalIds = [...new Set(selectedMetrics.flatMap((metric) => metric.proposalId ? [metric.proposalId] : []))];
-    if (!proposalIds.length) {
-      setSubmitError("등록 가능한 추적 후보가 아직 없어요. 잠시 후 모달을 다시 열어 주세요.");
-      return;
-    }
     setSaving(true);
     setSubmitError(null);
     try {
-      const registered = await Promise.all(proposalIds.map((proposalId) => client.registerProposal(proposalId)));
-      const prepared = await Promise.all(registered.map(async (registration) => {
-        const [recommendations, existing] = await Promise.all([
-          readyRecommendations(registration),
-          client.getAlertRules(registration.signalId),
-        ]);
-        if (recommendations.status !== "ready") {
-          throw new Error(recommendations.reason ?? "AI 감지 기준을 준비하지 못했습니다.");
-        }
-        const keys = new Set(selectedMetrics
-          .filter((metric) => metric.proposalId === registration.proposalId)
-          .map((metric) => metric.key));
-        return { registration, recommendations, existing, keys };
-      }));
-      const nextRules = prepared.flatMap(({ registration, recommendations, existing, keys }) =>
-        ruleDraftsOf(registration, recommendations, existing, keys));
-      if (!nextRules.length) throw new Error("선택한 지표에 맞는 AI 감지 기준이 없어요.");
-      setRegistrations(registered);
-      setRevisions(Object.fromEntries(prepared.map(({ registration, existing }) => [registration.signalId, existing.revision])));
-      setRules(nextRules);
+      const prepared = await prepareRuleDrafts(selectedMetrics);
+      setRegistrations(prepared.registrations);
+      setRevisions(prepared.revisions);
+      setRules(prepared.rules);
       setStep("rules");
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : "AI 감지 기준을 불러오지 못했습니다.");
@@ -390,7 +446,7 @@ export function WatchSignalModal({
 
               <div className={styles.body}>
                 {loading ? (
-                  <div className={styles.loading} role="status"><i />분석에서 추적할 수치를 고르고 있어요</div>
+                  <div className={styles.loading} role="status"><i />AI가 첫 감지 기준을 제안하고 있어요</div>
                 ) : step === "metrics" && metrics.length ? (
                   <ul className={styles.metricList}>
                     {metrics.map((metric) => (

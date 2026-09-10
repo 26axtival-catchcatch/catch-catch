@@ -76,7 +76,7 @@ describe("TopologyActivityStream", () => {
       />,
     );
 
-    expect(screen.getByText("agent_activity 이벤트를 기다리고 있어요.")).toBeInTheDocument();
+    expect(screen.getByText("분석 공간을 연결하고 있어요")).toBeInTheDocument();
     expect(screen.queryByRole("listitem")).not.toBeInTheDocument();
     expect(screen.getByText("실행 준비")).toBeInTheDocument();
   });

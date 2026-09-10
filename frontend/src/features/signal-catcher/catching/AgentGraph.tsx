@@ -259,26 +259,47 @@ function AgentGraphCanvas({ topology, halted, speed }: AgentGraphProps) {
     [topology, halted, speed, direction],
   );
   const focusNodes = useMemo(() => focusWindow(nodes), [nodes]);
-  const focusKey = `${direction}|${focusNodes.map((node) => `${node.id}:${node.data.state}:${node.data.lastEventId}`).join(",")}`;
+  const cameraTarget = useMemo(() => {
+    if (!focusNodes.length) return null;
+    return {
+      bounds: focusBounds(focusNodes),
+      // 상태 이벤트만 추가될 때는 카메라를 다시 움직이지 않는다. 노드 구성이나
+      // 레이아웃이 실제로 달라질 때만 새 화면 범위를 계산한다.
+      key: `${direction}|${focusNodes.map((node) => [
+        node.id,
+        Math.round(node.position.x),
+        Math.round(node.position.y),
+        node.data.category,
+      ].join(":"))}`,
+    };
+  }, [direction, focusNodes]);
+  const cameraTargetRef = useRef(cameraTarget);
+  cameraTargetRef.current = cameraTarget;
   const { setViewport } = useReactFlow<AgentFlowNode, SignalFlowEdge>();
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas || focusNodes.length === 0) return;
+    if (!canvas || !cameraTargetRef.current) return;
 
     let frame = 0;
     const refit = () => {
       window.cancelAnimationFrame(frame);
       frame = window.requestAnimationFrame(() => {
+        const target = cameraTargetRef.current;
+        const width = canvas.clientWidth;
+        const height = canvas.clientHeight;
+        if (!target || width <= 0 || height <= 0) return;
         const viewport = getViewportForBounds(
-          focusBounds(focusNodes),
-          canvas.clientWidth,
-          canvas.clientHeight,
+          target.bounds,
+          width,
+          height,
           0.66,
           1.05,
           0.28,
         );
-        void setViewport(viewport, { duration: 420 });
+        // SSE가 몰릴 때 연속 카메라 애니메이션이 서로 덮어써 빈 화면처럼
+        // 보이지 않도록 안정된 위치로 즉시 맞춘다.
+        void setViewport(viewport);
       });
     };
     const observer = new ResizeObserver(refit);
@@ -289,7 +310,7 @@ function AgentGraphCanvas({ topology, halted, speed }: AgentGraphProps) {
       observer.disconnect();
       window.cancelAnimationFrame(frame);
     };
-  }, [focusKey, focusNodes, setViewport]);
+  }, [cameraTarget?.key, setViewport]);
 
   return (
     <div
@@ -317,7 +338,11 @@ function AgentGraphCanvas({ topology, halted, speed }: AgentGraphProps) {
           preventScrolling={false}
         />
       ) : (
-        <p className={styles.graphEmpty}>에이전트 실행 이벤트를 기다리고 있어요.</p>
+        <div className={styles.graphEmpty} role="status">
+          <i aria-hidden="true" />
+          <strong>분석 역할을 연결하고 있어요</strong>
+          <span>첫 실행 흐름이 도착하면 여기에 바로 펼쳐져요.</span>
+        </div>
       )}
     </div>
   );

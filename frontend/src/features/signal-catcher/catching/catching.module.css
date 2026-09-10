@@ -648,13 +648,45 @@
 .graphEmpty {
   position: absolute;
   inset: 0;
-  display: grid;
-  place-items: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 0.28rem;
   margin: 0;
   color: var(--fog-dim);
   font-size: 0.74rem;
   line-height: 1.6;
   text-align: center;
+}
+
+.graphEmpty i,
+.activityEmpty i {
+  width: 1.15rem;
+  height: 1.15rem;
+  margin-bottom: 0.35rem;
+  border: 2px solid color-mix(in srgb, var(--signal) 25%, transparent);
+  border-top-color: var(--signal);
+  border-radius: 50%;
+  animation: warmupSpin 0.9s linear infinite;
+}
+
+.graphEmpty strong,
+.activityEmpty strong {
+  color: var(--fog);
+  font-size: 0.76rem;
+  font-weight: 600;
+}
+
+.graphEmpty span,
+.activityEmpty span {
+  max-width: 18rem;
+  color: var(--fog-dim);
+  font-size: 0.64rem;
+}
+
+@keyframes warmupSpin {
+  to { transform: rotate(360deg); }
 }
 
 .canvas :global(.react-flow__pane) {
@@ -1298,6 +1330,10 @@
 }
 
 .activityEmpty {
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  gap: 0.28rem;
   padding: 2.2rem 0.75rem;
   color: var(--fog-dim);
   font-size: 0.76rem;
@@ -1355,7 +1391,9 @@
   }
 
   .liveCount[data-active="true"]::before,
-  .activityRow[data-status="started"] .activityMark {
+  .activityRow[data-status="started"] .activityMark,
+  .graphEmpty i,
+  .activityEmpty i {
     animation: none;
   }
 }

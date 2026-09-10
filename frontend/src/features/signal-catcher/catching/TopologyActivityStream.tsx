@@ -242,7 +242,11 @@ export function TopologyActivityStream({ activities, halted }: TopologyActivityS
             ))}
           </div>
         ) : (
-          <p className={styles.activityEmpty}>agent_activity 이벤트를 기다리고 있어요.</p>
+          <div className={styles.activityEmpty} role="status">
+            <i aria-hidden="true" />
+            <strong>분석 공간을 연결하고 있어요</strong>
+            <span>질문과 데이터 범위를 넘긴 뒤 첫 활동을 바로 보여드릴게요.</span>
+          </div>
         )}
       </div>
     </section>

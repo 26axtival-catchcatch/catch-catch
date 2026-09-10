@@ -1,6 +1,12 @@
 .wrap { position: relative; }
 .trigger { display: inline-flex; align-items: center; gap: .35rem; border: 1px solid var(--line); border-radius: var(--radius-lg); padding: .35rem .7rem; background: var(--card); color: var(--fog); font: inherit; font-size: .7rem; }
 .trigger svg { fill: var(--signal); }
+.trigger:not([data-active="true"]) svg {
+  fill: transparent;
+  stroke: var(--signal);
+  stroke-linejoin: round;
+  stroke-width: 8px;
+}
 .trigger[data-active="true"] { border-color: var(--signal); color: var(--chalk); }
 .trigger b { min-width: 1rem; border-radius: 1rem; background: var(--signal); color: white; font: 500 .58rem var(--font-mono); }
 .panel { position: absolute; z-index: 40; top: calc(100% + .65rem); right: 0; width: min(22rem, calc(100vw - 2rem)); overflow: hidden; border: 1px solid color-mix(in srgb, var(--signal) 34%, var(--line)); border-radius: var(--radius); background: var(--raise); box-shadow: var(--shadow); }

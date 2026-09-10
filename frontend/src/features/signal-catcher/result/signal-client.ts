@@ -464,15 +464,17 @@ export class SignalClient {
     return payload.items.map((item, index) => proposalOf(item, `signal-proposals.items[${index}]`));
   }
 
-  async registerProposal(proposalId: string): Promise<RegisteredSignal> {
+  async registerProposal(proposalId: string, signal?: AbortSignal): Promise<RegisteredSignal> {
     let response: Response;
     try {
       response = await this.fetchImpl(`${this.apiBaseUrl}/api/signals`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ proposal_id: proposalId }),
+        ...(signal ? { signal } : {}),
       });
-    } catch {
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") throw error;
       throw new SignalClientError("변화 캐치를 시작하지 못했습니다.");
     }
     if (!response.ok) throw new SignalClientError(await errorMessage(response), response.status);
@@ -487,23 +489,27 @@ export class SignalClient {
     };
   }
 
-  async getAlertRules(signalId: string): Promise<AlertRules> {
+  async getAlertRules(signalId: string, signal?: AbortSignal): Promise<AlertRules> {
     const response = await this.request(
       `/api/signals/${encodeURIComponent(signalId)}/alert-rules`,
+      signal ? { signal } : undefined,
     );
     return rulesOf(await response.json(), "alert-rules");
   }
 
-  async getAlertRecommendations(signalId: string): Promise<AlertRecommendationSet | null> {
-    const response = await this.request(`/api/signals/${encodeURIComponent(signalId)}/alert-recommendations`);
+  async getAlertRecommendations(signalId: string, signal?: AbortSignal): Promise<AlertRecommendationSet | null> {
+    const response = await this.request(
+      `/api/signals/${encodeURIComponent(signalId)}/alert-recommendations`,
+      signal ? { signal } : undefined,
+    );
     const payload: unknown = await response.json();
     return payload === null ? null : recommendationSetOf(payload, "alert-recommendations");
   }
 
-  async generateAlertRecommendations(signalId: string): Promise<AlertRecommendationSet> {
+  async generateAlertRecommendations(signalId: string, signal?: AbortSignal): Promise<AlertRecommendationSet> {
     const response = await this.request(
       `/api/signals/${encodeURIComponent(signalId)}/alert-recommendations`,
-      { method: "POST" },
+      { method: "POST", ...(signal ? { signal } : {}) },
     );
     return recommendationSetOf(await response.json(), "alert-recommendations");
   }
