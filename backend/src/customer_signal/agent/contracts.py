@@ -43,6 +43,7 @@ type ToolName = PrimitiveName
 type EventEmitter = Callable[[RunnerEvent], Awaitable[None] | None]
 type ReportValidator = Callable[[InsightReport, "RunFacts"], InsightReport | None]
 type AnalysisEventType = Literal[
+    "agent_activity",
     "goal_created",
     "clarification_required",
     "unsupported_analysis",

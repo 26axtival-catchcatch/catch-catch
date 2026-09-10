@@ -24,6 +24,7 @@ function isGenericWorkspace(state: RunState, networkError: boolean) {
     state.clarification
   ) return true;
   return state.events.some((event) =>
+    event.type === "agent_activity" ||
     event.type === "run_started" ||
     event.type === "goal_created" ||
     event.type === "clarification_required" ||

@@ -15,6 +15,8 @@ from pydantic import (
     model_validator,
 )
 
+from customer_signal.investigation.activity import AgentActivityPayload
+
 from customer_signal.domain.analysis import (
     AnalysisGoal,
     AnalysisNote,
@@ -37,6 +39,7 @@ type RunnerEventType = Literal[
     "fallback",
 ]
 type GenericRunnerEventType = Literal[
+    "agent_activity",
     "run_started",
     "goal_created",
     "clarification_required",
@@ -160,6 +163,11 @@ class DonePayload(GenericEventContract):
         return self
 
 
+class AgentActivityEvent(GenericEventContract):
+    type: Literal["agent_activity"]
+    payload: AgentActivityPayload
+
+
 class RunStartedEvent(GenericEventContract):
     type: Literal["run_started"]
     payload: RunStartedPayload
@@ -226,7 +234,8 @@ class DoneEvent(GenericEventContract):
 
 
 type GenericRunnerEvent = Annotated[
-    RunStartedEvent
+    AgentActivityEvent
+    | RunStartedEvent
     | GoalCreatedEvent
     | ClarificationRequiredEvent
     | PlanCreatedEvent
@@ -242,6 +251,19 @@ type GenericRunnerEvent = Annotated[
     Field(discriminator="type"),
 ]
 GENERIC_EVENT_ADAPTER = TypeAdapter(GenericRunnerEvent)
+
+
+class RunEventEnvelope(GenericEventContract):
+    """JSON in each SSE data line; the SSE id is the replay cursor."""
+
+    run_id: str
+    type: GenericRunnerEventType
+    payload: (
+        AgentActivityPayload | RunStartedPayload | GoalCreatedPayload | ClarificationRequired
+        | PlanCreatedPayload | StepStartedPayload | FactCreatedPayload | AnalysisNoteCreatedPayload
+        | StepCompletedPayload | ReportValidatingPayload | ResultPayload | PublicRunError | DonePayload
+    )
+
 
 
 def validate_generic_event(

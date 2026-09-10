@@ -16,6 +16,7 @@ from langsmith import tracing_context
 from pydantic import BaseModel, ConfigDict, Field, SecretStr, ValidationError
 
 from customer_signal.agent.generic_gemini import _is_typed_not_found
+from customer_signal.investigation.activity import ActivityDetails, operation, tool_details
 from customer_signal.investigation.contracts import InvestigationResult, Verification
 from customer_signal.investigation.data import InvestigationData
 from customer_signal.observability.langfuse import build_langfuse_config, public_observation
@@ -213,14 +214,17 @@ class GeminiInvestigationModel:
                 )
             for call in response.tool_calls:
                 name, arguments = call["name"], call["args"]
-                output = await self._run_tool(
-                    name=name,
-                    arguments=arguments,
-                    data=data,
-                    result_type=result_type,
-                    task_id=task_id,
-                    context=context,
-                )
+                async with operation("tool", name if name in _TOOL_CONTRACTS else "unknown_tool") as activity:
+                    output = await self._run_tool(
+                        name=name,
+                        arguments=arguments,
+                        data=data,
+                        result_type=result_type,
+                        task_id=task_id,
+                        context=context,
+                    )
+                    activity.details = tool_details(name, output)
+                    activity.failed = activity.details.error_code is not None
                 if isinstance(output, BaseModel):
                     return output
                 messages.append(
@@ -370,11 +374,18 @@ class GeminiInvestigationModel:
         config["metadata"].update(
             task_id=task_id, round_index=round_index, role=role, model=model_name
         )
-        async with asyncio.timeout(self._timeout_seconds):
-            # Investigation uses Langfuse callbacks even if legacy LangSmith flags
-            # remain enabled in the process environment. Restore the caller's context.
-            with tracing_context(enabled=False):
-                return await chain.ainvoke(messages, config=config)
+        async with operation("model", "generation", model=model_name) as activity:
+            async with asyncio.timeout(self._timeout_seconds):
+                # Keep Langfuse callbacks while disabling legacy LangSmith tracing.
+                with tracing_context(enabled=False):
+                    response = await chain.ainvoke(messages, config=config)
+            if isinstance(response, AIMessage):
+                usage = response.usage_metadata or {}
+                activity.details = ActivityDetails(
+                    tool_count=len(response.tool_calls),
+                    input_tokens=usage.get("input_tokens"), output_tokens=usage.get("output_tokens"),
+                )
+            return response
 
     def _create_model(self, model_name: str):
         return self._model_factory(

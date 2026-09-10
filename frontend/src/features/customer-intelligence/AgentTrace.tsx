@@ -116,6 +116,13 @@ function eventView(event: AnyRunStreamEvent) {
         detail: `${event.data.step_id} · ${Math.round(event.data.duration_ms)}ms · Result ${event.data.result_ids.length}개`,
         state: event.data.status === "failed" ? "error" : "done",
       };
+    case "agent_activity":
+      return {
+        title: event.data.display_text,
+        detail: `${event.data.role} / ${event.data.name} / ${event.data.task_id} / 회차 ${event.data.round_index}`,
+        state: event.data.status === "failed" || event.data.status === "cancelled"
+          ? "error" : event.data.status === "completed" ? "done" : "active",
+      };
     case "report_validating":
       return {
         title: "최종 보고서를 검증하고 있습니다",

@@ -808,3 +808,21 @@ describe("RunClient", () => {
     });
   });
 });
+
+it("retains agent activity without breaking the existing result stream", async () => {
+  const activity = {
+    schema_version: 1, node_id: "agent-1", parent_node_id: null,
+    depends_on: [], kind: "agent", role: "investigator", task_id: "task-search",
+    round_index: 0, status: "started", name: "investigator", display_text: "가설 조사",
+    occurred_at: "2026-09-10T00:00:00Z", duration_ms: null, model: null,
+    details: { candidates: [], decisions: [], limitations: [] },
+  };
+  const client = new RunClient({ fetchImpl: vi.fn().mockResolvedValue(responseStream([
+    frame("run-1", 1, "agent_activity", activity),
+    frame("run-1", 2, "result", { agent_mode: "fixture", report: validReport }),
+    frame("run-1", 3, "done", { status: "completed" }),
+  ])) });
+  const events = await consume(client);
+  expect(events.map(e => e.type)).toEqual(["agent_activity", "result", "done"]);
+  expect(events[0].data).toEqual(activity);
+});
