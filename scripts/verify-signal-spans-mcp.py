@@ -17,11 +17,14 @@ async def main():
     parser.add_argument("--config", type=Path, default=Path.home() / ".codex/config.toml")
     parser.add_argument("--server", default="langfuse_local")
     parser.add_argument("--trace-id")
+    parser.add_argument("--trace-tree", action="store_true", help="Read all observation metadata in one trace")
     parser.add_argument("--backend-credentials", action="store_true",
                         help="Use LANGFUSE_* from the process environment for the Backend project")
     parser.add_argument("--age", type=int, default=180)
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
+    if args.trace_tree and not args.trace_id:
+        parser.error("--trace-tree requires --trace-id")
     cfg = tomllib.loads(args.config.read_text())["mcp_servers"][args.server]
     environment = {**os.environ, **cfg.get("env", {})}
     if args.backend_credentials:
@@ -42,7 +45,11 @@ async def main():
         async with stdio_client(parameters, errlog=errors) as (read, write):
             async with ClientSession(read, write) as session:
                 await session.initialize()
-                result = await session.call_tool("fetch_observations", query)
+                result = await session.call_tool(
+                    "fetch_trace" if args.trace_tree else "fetch_observations",
+                    {"trace_id": args.trace_id, "include_observations": True,
+                     "output_mode": "full_json_string"} if args.trace_tree else query,
+                )
                 if result.isError:
                     raise RuntimeError("Langfuse MCP observation lookup failed")
                 raw = (result.structuredContent or {}).get("result")
@@ -50,7 +57,11 @@ async def main():
                     raw = next(item.text for item in result.content if item.type == "text")
                 while isinstance(raw, str):
                     raw = json.loads(raw)
-                observations = raw.get("data", []) if isinstance(raw, dict) else raw
+                if args.trace_tree:
+                    trace = raw.get("data", raw)
+                    observations = trace.get("observations", [])
+                else:
+                    observations = raw.get("data", []) if isinstance(raw, dict) else raw
     safe = []
     for observation in observations:
         metadata = observation.get("metadata") or {}
@@ -62,14 +73,22 @@ async def main():
             }.items()},
             "metadata": {key: metadata.get(key) for key in (
                 "entity_type", "operation", "signal_id", "proposal_id", "candidate_id",
-                "task_id", "source_run_id", "run_id", "measurement_id"
+                "task_id", "source_run_id", "run_id", "measurement_id", "title", "verdict"
             ) if key in metadata},
         })
     summary = {"server": args.server, "count": len(safe), "observations": safe}
     if args.output:
         args.output.parent.mkdir(parents=True, exist_ok=True)
         args.output.write_text(json.dumps(summary, ensure_ascii=False, indent=2))
-    print(json.dumps(summary, ensure_ascii=False, indent=2))
+    display = summary
+    if args.trace_tree:
+        from collections import Counter
+        display = {"server": args.server, "count": len(safe),
+                   "types": dict(Counter(o["type"] for o in safe)),
+                   "signal_observations": [o for o in safe if o["name"] in {
+                       "customer_signal.turn", "customer_signal.signals", "customer_signal.signal"
+                   }]}
+    print(json.dumps(display, ensure_ascii=False, indent=2))
 
 
 if __name__ == "__main__":

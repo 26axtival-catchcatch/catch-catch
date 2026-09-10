@@ -110,18 +110,24 @@ Fixture 모드는 기존 보고서 동작을 유지하며 자동 시그널 제�
 
 ## Langfuse에서 시그널 찾기
 
-관측 이름은 `customer_signal.signal`, 유형은 `SPAN`입니다. 도구 이름을 일일이 찾아 열 필요 없이
+발화 하나의 분석은 `customer_signal.turn` trace 하나로 기록합니다. 조사·검증·보고와 같은 trace 안에
+`customer_signal.signals` 묶음 span을 두고, 그 아래 발견한 패턴마다 `customer_signal.signal` span을 둡니다.
+유형은 `SPAN`입니다. 확정뿐 아니라 미확정·기각 패턴의 판정과 사유도 남깁니다. 도구 이름을 일일이 찾아 열 필요 없이
 Observations에서 해당 이름으로 필터링합니다. metadata의 `entity_type=signal`도 같은 용도로 사용할 수 있습니다.
 관측/metadata 필터 기능은 [Langfuse 공식 안내](https://langfuse.com/docs/observability/features/metadata)를 참고합니다.
 설치 버전에 따라 메뉴 이름은 다를 수 있으며, Trace 상세에서도 같은 이름의 span을 찾을 수 있습니다.
 
-- `operation`: 후보 확정, 등록 또는 재측정 작업 구분
+- `operation`: `collection`(패턴 묶음), `pattern`(개별 패턴), `registration`(선택 등록), `measurement`(재측정), `direct_registration`(직접 등록)
 - `proposal_id`, `candidate_id`, `task_id`: 등록 전 발견 패턴과 조사 출처
 - `signal_id`: 등록 이후 개별 시그널의 등록·재측정 연결
 - `measurement_id`: 저장된 수치와 측정 이력 연결
 
-span의 Input에서 정의·기간을, Output에서 식별자·측정 수치를 확인합니다.
-기존 분석 trace에는 새 span을 소급 추가하지 않습니다. 적용 후 후보 확정·등록·재측정부터 생성됩니다.
+패턴 span의 Input에서 이름·정의를, Output에서 판정·근거·측정 수치를 확인합니다.
+새 후보 응답의 `trace_id`, `observation_id`가 원래 분석 trace와 해당 패턴 span을 가리킵니다.
+사용자가 이 후보를 등록하면 원래 패턴 span 아래에 등록 span을 추가합니다. 새 발화 trace는 만들지 않습니다.
+기존 후보에 `observation_id`가 없으면 분석 trace에 연결하며, 과거 패턴 span을 소급 생성하지 않습니다.
+분석과 연결되지 않는 직접 정의 등록과 별도 기간의 수동 재측정은 각각 독립 API 작업 trace입니다.
+과거 분석의 패턴 span은 소급 생성하지 않습니다. 새 분석에서는 패턴 span을 남기고, 이후 선택 등록을 같은 trace에 연결합니다.
 이 span은 실행 관측이며 시계열 데이터의 원장은 시그널 DB와 측정 이력 API입니다.
 
 ## 후속 로드맵
@@ -129,7 +135,8 @@ span의 Input에서 정의·기간을, Output에서 식별자·측정 수치를 
 등록·측정 경로를 정기 실행에 연결하고 정기 리포트를 작성한 다음, 이력 API를 이용해 변화 추이 화면을 구현합니다.
 시그널 정의 편집과 버전 교체, 유사 시그널 병합, 지표별 알림 기준은 별도 설계 대상입니다.
 
-등록·재측정의 성공 응답 헤더 `X-Langfuse-Trace-Id`는 **이번 API 호출**의 trace ID입니다.
+성공 응답 헤더 `X-Langfuse-Trace-Id`는 해당 작업을 기록한 trace ID입니다.
+후보 선택 등록은 **원래 분석 trace**, 직접 정의 등록·수동 재측정은 **이번 API 작업 trace**를 반환합니다.
 CORS에서도 이 헤더를 읽을 수 있습니다. 중복 요청이 기존 측정을 재사용하면
 본문의 `measurement.trace_id`는 최초 저장 당시 trace를 유지하므로 두 ID는 다를 수 있습니다.
 Langfuse MCP로는 `fetch_observations(type="SPAN", name="customer_signal.signal", age=180)`으로
@@ -142,4 +149,18 @@ Langfuse MCP로는 `fetch_observations(type="SPAN", name="customer_signal.signal
 env -u LANGFUSE_SECRET_KEY -u LANGFUSE_PUBLIC_KEY -u LANGFUSE_BASE_URL \
   uv run --env-file .env --project backend python scripts/verify-signal-spans-mcp.py \
   --backend-credentials --trace-id <ID>
+```
+
+## 에이전트와 등록 책임
+
+코디네이터는 조사 업무를 나눕니다. 조사 에이전트는 한 업무에서 여러 패턴과 지표를 제안할 수 있고,
+검증 에이전트가 독립 측정과 근거 확인을 맡습니다. 별도 등록 에이전트는 없습니다.
+등록은 사용자의 선택을 받은 SignalService/API가 결정된 정의를 DB에 저장하는 작업입니다.
+
+발화 전체의 관측 구조는 다음 MCP 명령으로 확인할 수 있습니다.
+
+```sh
+env -u LANGFUSE_SECRET_KEY -u LANGFUSE_PUBLIC_KEY -u LANGFUSE_BASE_URL \
+  uv run --env-file .env --project backend python scripts/verify-signal-spans-mcp.py \
+  --backend-credentials --trace-id <분석 Run ID에서 하이픈을 뺀 ID> --trace-tree
 ```

@@ -256,6 +256,8 @@ def test_one_run_groups_workflow_model_and_tool_under_one_trace(monkeypatch) -> 
         "customer_signal.tool.match_sequence",
     ]
     assert client.calls[0]["trace_context"] == {"trace_id": bound.trace_id}
+    # The workflow also wraps fixture/Bedrock runs; it is owned by the server.
+    assert client.calls[0]["metadata"]["provider"] == "server"
     assert config["callbacks"][0].trace_context == {
         "trace_id": bound.trace_id,
         "parent_span_id": "span-1",
@@ -376,3 +378,27 @@ def test_signal_span_without_observability_does_not_block_work(monkeypatch) -> N
     monkeypatch.setattr(tracing, "_get_client", lambda: None)
     with tracing.signal_observation(operation="register", input={}) as observation:
         observation.update(output={"signal_id": "signal-1"})
+
+
+def test_pattern_collection_and_later_registration_share_utterance_trace(role_client):
+    context = LangfuseRunContext("utterance-run", "generic", "질문", ("voc",))
+    with bind_langfuse_run(context):
+        with tracing.signal_observation(operation="collection", input={}) as collection:
+            assert collection.id == "span-2"
+            with tracing.signal_observation(operation="pattern", input={"title": "반복 검색"}) as pattern:
+                pattern_id = pattern.id
+                pattern.update(output={"verdict": "pending"})
+    with tracing.bind_langfuse_trace(
+        tracing.replace(context, parent_observation_id=pattern_id)
+    ):
+        with tracing.signal_observation(operation="registration", input={}) as registered:
+            registered.update(output={"signal_id": "signal-1"})
+    assert [call["name"] for call in role_client.calls] == [
+        "customer_signal.turn", "customer_signal.signals", "customer_signal.signal",
+        "customer_signal.signal",
+    ]
+    assert {call["trace_context"]["trace_id"] for call in role_client.calls} == {context.trace_id}
+    assert role_client.calls[-1]["trace_context"]["parent_span_id"] == pattern_id
+    assert role_client.calls[2]["metadata"]["title"] == "반복 검색"
+    assert role_client.spans[2].updates[-1]["metadata"]["verdict"] == "pending"
+    assert tracing.current_run_id() is None

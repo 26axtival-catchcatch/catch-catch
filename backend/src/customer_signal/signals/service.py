@@ -10,6 +10,7 @@ from customer_signal.agent.contracts import RunRequest
 from customer_signal.observability.langfuse import (
     LangfuseRunContext,
     bind_langfuse_run,
+    bind_langfuse_trace,
     public_observation,
     signal_observation,
 )
@@ -70,9 +71,15 @@ class SignalService:
         return result.model_copy(update={"trace_id": trace_id})
 
     def register_proposal(self, proposal: Proposal, *, trace_run_id: str | None = None) -> Signal:
-        trace = self._trace(f"시그널 등록: {proposal.title}", proposal.definition, trace_run_id)
+        trace = LangfuseRunContext(
+            run_id=proposal.run_id,
+            run_kind="generic",
+            question=f"시그널 등록: {proposal.title}",
+            source_ids=tuple(proposal.definition.source_ids),
+            parent_observation_id=proposal.observation_id,
+        )
         with (
-            bind_langfuse_run(trace),
+            bind_langfuse_trace(trace),
             signal_observation(
                 operation="registration",
                 proposal_id=proposal.proposal_id,
@@ -81,6 +88,7 @@ class SignalService:
                 input={
                     "definition": proposal.definition.model_dump(mode="json"),
                     "source_run_id": proposal.run_id,
+                    "request_id": trace_run_id,
                 },
             ) as observation,
         ):

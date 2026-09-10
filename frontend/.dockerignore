@@ -1,0 +1,9 @@
+**
+!package.json
+!package-lock.json
+!next.config.ts
+!next-env.d.ts
+!tsconfig.json
+!src/
+!src/**
+!Dockerfile
