@@ -20,6 +20,9 @@ from customer_signal.signals.schedule_contracts import DailyResults, DailySchedu
 from customer_signal.signals.scheduling import ScheduleBusy, ScheduleStore
 from customer_signal.signals.alert_api import create_alert_router
 from customer_signal.signals.alert_recommendations import fixture_recommendations
+from customer_signal.signals.fast_forward import (
+    FastForwardConflict, FastForwardRequest, FastForwardResult, FastForwardService,
+)
 
 
 class RequestModel(BaseModel):
@@ -92,6 +95,7 @@ def create_router(
     router = APIRouter(tags=["signals"])
     service = SignalService(store=store, load_data=load_data, recommend=recommend)
     schedules = ScheduleStore(store)
+    fast_forward_service = FastForwardService(service)
     # Alert router declares the shared tag itself; avoid duplicate inherited tags.
     alert_router = create_alert_router(service=service)
 
@@ -196,6 +200,17 @@ def create_router(
             next_offset=next_offset if next_offset < total else None,
         )
 
+    @router.post("/api/signals/fast-forward", summary="등록 시그널을 다음 일자로 빨리감기 분석")
+    def fast_forward(request: FastForwardRequest) -> FastForwardResult:
+        try:
+            return fast_forward_service.run(request)
+        except KeyError:
+            raise HTTPException(404, "시그널을 찾을 수 없습니다.") from None
+        except FastForwardConflict as error:
+            raise HTTPException(409, str(error)) from None
+        except ScheduleBusy:
+            raise HTTPException(409, "측정 실행 중입니다. 같은 request_id로 재시도할 수 있습니다.") from None
+
     @router.get("/api/signals/{signal_id}", summary="등록된 시그널 정의 조회")
     def detail(signal_id: str) -> Signal:
         return signal_or_404(signal_id)
@@ -203,7 +218,11 @@ def create_router(
     @router.patch("/api/signals/{signal_id}", summary="시그널 추적 상태 변경")
     def update(signal_id: str, request: UpdateSignal) -> Signal:
         signal_or_404(signal_id)
-        return store.set_status(signal_id, request.status)
+        try:
+            with schedules.lock(signal_id):
+                return store.set_status(signal_id, request.status)
+        except ScheduleBusy:
+            raise HTTPException(409, "측정 실행 중에는 추적 상태를 변경할 수 없습니다.") from None
 
     @router.post(
         "/api/signals/{signal_id}/measurements", summary="고정 시그널 정의로 지정 기간 재측정"
@@ -212,9 +231,14 @@ def create_router(
         signal = signal_or_404(signal_id)
         trace_run_id = str(uuid4())
         response.headers["X-Langfuse-Trace-Id"] = trace_run_id.replace("-", "")
-        return service.measure(
-            signal, start_at=request.start_at, end_at=request.end_at, trace_run_id=trace_run_id
-        )
+        try:
+            with schedules.lock(signal_id):
+                return service.measure(
+                    signal, start_at=request.start_at, end_at=request.end_at,
+                    trace_run_id=trace_run_id,
+                )
+        except ScheduleBusy:
+            raise HTTPException(409, "측정 실행 중입니다. 잠시 후 재시도할 수 있습니다.") from None
 
     @router.get(
         "/api/signals/{signal_id}/measurements", summary="시그널 측정 이력과 기간별 최신 값 조회"

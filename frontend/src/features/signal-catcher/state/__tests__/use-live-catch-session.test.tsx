@@ -213,7 +213,7 @@ describe("useLiveCatchSession", () => {
     act(() => result.current.start("헤맨 고객 찾아줘", {
       enabledSources: ["hackathon_search_history"],
       startAt: "2026-09-04",
-      endAt: "2026-09-18",
+      endAt: "2026-09-11",
     }));
 
     await waitFor(() => expect(result.current.session.phase).toBe("result"), {

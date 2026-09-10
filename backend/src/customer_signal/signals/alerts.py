@@ -186,7 +186,8 @@ def evaluate_measurement(db, signal: Signal, measurement: Measurement) -> None:
     # not bypassed by searching further back: it must not silently become a stale baseline.
     row = db.execute(
         "SELECT payload FROM signal_measurements WHERE signal_id=? AND status='success' "
-        "AND end_at<=? AND measurement_id!=? ORDER BY end_at DESC, rowid DESC LIMIT 1",
+        "AND end_at<=? AND measurement_id!=? ORDER BY end_at DESC, "
+        "(julianday(end_at)-julianday(start_at)=1) DESC, rowid DESC LIMIT 1",
         (signal.signal_id, measurement.start_at.isoformat(), measurement.measurement_id),
     ).fetchone()
     baseline = Measurement.model_validate_json(row[0]) if row else None

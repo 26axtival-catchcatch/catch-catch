@@ -3,6 +3,31 @@ import { describe, expect, it, vi } from "vitest";
 import { SignalClient } from "../signal-client";
 
 describe("SignalClient", () => {
+  it("advances real daily analysis with a caller-owned idempotency key", async () => {
+    const measurement = {
+      measurement_id: "m-next", start_at: "2026-09-10T15:00:00Z", end_at: "2026-09-11T15:00:00Z",
+      measured_at: "2026-09-10T13:00:00Z", status: "success", reason: null,
+      values: [{ key: "affected_customer_count", label: "대상 고객 수", value: 28, unit: "customers" }],
+    };
+    const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue(Response.json({
+      request_id: "request-1", days: 1, timezone: "Asia/Seoul", items: [{
+        signal_id: "s-1", status: "completed", reason: null,
+        start_at: measurement.start_at, end_at: measurement.end_at, baseline_measurement: null,
+        daily_results: [{ execution_id: "job-1", start_at: measurement.start_at, end_at: measurement.end_at,
+          status: "success", measurement }], alert_events: [],
+      }],
+    }));
+    const client = new SignalClient({ apiBaseUrl: "http://api.test", fetchImpl });
+    await expect(client.fastForward("request-1")).resolves.toMatchObject({
+      requestId: "request-1", items: [{ signalId: "s-1", dailyResults: [{
+        measurement: { measurementId: "m-next", values: [{ value: 28 }] },
+      }] }],
+    });
+    expect(fetchImpl).toHaveBeenCalledWith("http://api.test/api/signals/fast-forward", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ request_id: "request-1", days: 1 }),
+    });
+  });
   it("reads measured proposal metrics for a completed run", async () => {
     const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue(Response.json({
       items: [{

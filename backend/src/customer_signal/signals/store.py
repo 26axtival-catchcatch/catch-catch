@@ -318,7 +318,9 @@ class SignalStore:
             raise ValueError("measurement_id already belongs to a different measurement")
         return Measurement.model_validate_json(row[0])
 
-    def add_measurement(self, signal_id: str, measurement: Measurement) -> Measurement:
+    def add_measurement(
+        self, signal_id: str, measurement: Measurement, *, evaluate_alerts: bool = True,
+    ) -> Measurement:
         with self._connection() as db:
             db.execute("BEGIN IMMEDIATE")
             signal = self._read(db, "signals", "signal_id", signal_id, Signal)
@@ -329,7 +331,8 @@ class SignalStore:
             ):
                 raise ValueError("measurement does not match the registered definition")
             persisted = self._insert_measurement(db, signal_id, measurement)
-            evaluate_measurement(db, signal, persisted)
+            if evaluate_alerts:
+                evaluate_measurement(db, signal, persisted)
             return persisted
 
     def list_measurements(self, signal_id: str) -> list[Measurement]:

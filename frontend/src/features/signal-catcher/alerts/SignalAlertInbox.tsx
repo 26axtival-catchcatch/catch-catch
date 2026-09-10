@@ -4,12 +4,14 @@ import { useState } from "react";
 
 import { HeartMark } from "../brand/Brand";
 import type { AlertEvent } from "../result/signal-client";
+import { BrowserNotificationSettings } from "./BrowserNotificationSettings";
 
 import styles from "./signal-alerts.module.css";
 
 interface SignalAlertInboxProps {
   events: AlertEvent[];
   error: string | null;
+  notificationError?: string | null;
   onOpenSignal: (signalId: string) => void;
   onClear: () => void;
 }
@@ -21,9 +23,8 @@ function unitOf(unit: string): string {
   return unit;
 }
 
-export function SignalAlertInbox({ events, error, onOpenSignal, onClear }: SignalAlertInboxProps) {
+export function SignalAlertInbox({ events, error, notificationError, onOpenSignal, onClear }: SignalAlertInboxProps) {
   const [open, setOpen] = useState(false);
-  const canRequest = typeof Notification !== "undefined" && Notification.permission === "default";
 
   return (
     <div className={styles.wrap}>
@@ -61,11 +62,8 @@ export function SignalAlertInbox({ events, error, onOpenSignal, onClear }: Signa
           ) : (
             <p>{error ? "알림 연결을 다시 시도하고 있어요." : "새로 캐치한 변화가 없어요."}</p>
           )}
-          {canRequest ? (
-            <button type="button" className={styles.permission} onClick={() => void Notification.requestPermission()}>
-              브라우저 알림 켜기
-            </button>
-          ) : null}
+          {notificationError ? <p role="alert">{notificationError}</p> : null}
+          <BrowserNotificationSettings />
         </section>
       ) : null}
     </div>

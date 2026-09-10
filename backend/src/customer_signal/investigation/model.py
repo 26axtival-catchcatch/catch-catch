@@ -73,7 +73,7 @@ _TOOL_CONTRACTS = {
     ),
     "query_data": (
         _QueryArgs,
-        "Run one read-only DuckDB SELECT across the authorized data space. Returns a query_id, row count and at most 100 preview rows.",
+        "Run one read-only DuckDB SELECT across the authorized data space. Returns a query_id, full row count and a bounded preview. Full rows remain available through read_query_result.",
     ),
     "read_query_result": (
         _QueryPageArgs,
@@ -177,6 +177,23 @@ confirm merely to finish quickly. Do not request reinvestigation for optional en
 Keep reasons and limitations concise and cite the decisive query IDs, not every exploratory ID.
 """
 
+_INVESTIGATOR_PROMPT = """
+Minimize remote model round trips while keeping the assignment's evidence complete.
+Request all currently independent checks in the SAME response: cohort and normal-group aggregates,
+intent/ordering/resolution evidence, and representative journeys whose customer IDs are known.
+After reading those results, request dependent checks together. Prefer grouped aggregates to
+raw-row enumeration, and do not repeat a successful count or journey already in the history.
+For each supported pattern, execute its full SELECT DISTINCT customer_id with query_data and
+retain that returned query_id for finish. measure_signal returns measurement_id and metric values;
+its internal SQL runs belong to a separate data space and cannot supply finish query IDs.
+Measure independent signal definitions in the same response, then propose them using the returned
+measurement IDs. Once the cohort, representative journeys, normal comparison and final resolution
+support a candidate, finish with concise decisive evidence. Continue only for an unresolved issue
+that could change the conclusion or a failed query/definition needing correction. Do not add
+optional examples just to enrich a supported pattern, or invent evidence to finish sooner.
+Missing evidence stays an explicit limitation or an unsupported candidate; do not force a result.
+"""
+
 
 class GeminiInvestigationError(RuntimeError):
     """A bounded public failure without provider or database details."""
@@ -252,7 +269,10 @@ class GeminiInvestigationModel:
             raise self._error("not_configured", "API Key가 설정되지 않았습니다.")
         messages: list[BaseMessage] = [
             SystemMessage(
-                content=_SYSTEM_PROMPT + (_VERIFIER_PROMPT if role == "verifier" else "")
+                content=_SYSTEM_PROMPT + (
+                    _VERIFIER_PROMPT if role == "verifier" else
+                    _INVESTIGATOR_PROMPT if role == "investigator" else ""
+                )
             ),
             HumanMessage(
                 content=json.dumps(
@@ -346,7 +366,7 @@ class GeminiInvestigationModel:
                     activity.failed = activity.details.error_code is not None
                 if isinstance(output, BaseModel):
                     return output
-                if role == "verifier":
+                if role in {"investigator", "verifier"}:
                     output = tool_preview(name, output)
                 messages.append(
                     ToolMessage(
@@ -432,6 +452,8 @@ class GeminiInvestigationModel:
                     options = (
                         {"preview_limit": VERIFIER_PREVIEW_ROWS, "expose_cohort": True}
                         if result_type is Verification
+                        else {"preview_limit": VERIFIER_PREVIEW_ROWS}
+                        if result_type is InvestigationResult
                         else {}
                     )
                     output = await asyncio.to_thread(data.query, validated.sql, **options)

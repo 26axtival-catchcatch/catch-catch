@@ -144,7 +144,7 @@ describe("Signal Catcher live adapter", () => {
     expect(mapped.metrics.map((metric) => metric.metric_key)).toContain(
       "candidate_customer_count",
     );
-    expect(mapped.periodLabel).toBe("2026.09.04 – 2026.09.17");
+    expect(mapped.periodLabel).toBe("2026.09.04 – 2026.09.10");
     expect(mapped.score.durationMs).toBe(180_000);
     expect(mapped.journey.map((event) => event.event_id)).toEqual([
       "event-1",
