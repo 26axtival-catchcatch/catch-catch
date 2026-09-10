@@ -10,6 +10,7 @@ from fastapi import APIRouter, HTTPException, Query, Response
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, model_validator
 
 from customer_signal.observability.langfuse import LangfuseRunContext
+from customer_signal.signals.briefing import SignalBriefingList, briefing_card
 from customer_signal.signals.contracts import Measurement, Proposal, Signal, SignalDefinition
 from customer_signal.signals.service import MeasurementUnavailable, SignalService
 from customer_signal.signals.comparison import (
@@ -167,6 +168,26 @@ def create_router(*, store, is_completed: Callable[[str], bool], load_data: Call
     @router.get("/api/signals", summary="등록된 시그널 목록 조회")
     def signals() -> SignalList:
         return SignalList(items=store.list_signals())
+
+    @router.get("/api/signals/briefing", summary="메인 브리핑의 시그널 카드 목록과 지표 조회")
+    def briefing(
+        status: Literal["active", "paused", "archived", "all"] = Query(
+            default="active", description="추적 상태 필터, all은 모든 상태",
+        ),
+        limit: int = Query(default=20, ge=1, le=100, description="페이지당 시그널 수"),
+        offset: int = Query(default=0, ge=0, description="등록 역순 목록에서 건너뛸 시그널 수"),
+    ) -> SignalBriefingList:
+        total, rows = store.list_briefing_data(
+            status=None if status == "all" else status, limit=limit, offset=offset,
+        )
+        next_offset = offset + len(rows)
+        return SignalBriefingList(
+            items=[briefing_card(signal, measurements) for signal, measurements in rows],
+            total=total,
+            limit=limit,
+            offset=offset,
+            next_offset=next_offset if next_offset < total else None,
+        )
 
     @router.get("/api/signals/{signal_id}", summary="등록된 시그널 정의 조회")
     def detail(signal_id: str) -> Signal:
