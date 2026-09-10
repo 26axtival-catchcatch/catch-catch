@@ -6,4 +6,6 @@
 !tsconfig.json
 !src/
 !src/**
+!public/
+!public/**
 !Dockerfile

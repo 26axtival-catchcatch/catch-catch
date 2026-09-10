@@ -97,7 +97,7 @@ services:
 
   langfuse-web:
     # Pin the existing v3 integration to immutable images; upgrade both together.
-    image: langfuse/langfuse:3@sha256:018a38c957d8cb51094bd28154a8cb0b0fb587e5bf4e00df75602b7ebe7933fa
+    image: langfuse/langfuse:3.225.7@sha256:a27fe525f52984fa6d36fd34e8b8c6e5ae4af43f34134cafc833b467fa9580ae
     depends_on: *langfuse-deps
     ports:
       - "127.0.0.1:${LANGFUSE_PORT:-3210}:3000"
@@ -127,7 +127,7 @@ services:
     restart: unless-stopped
 
   langfuse-worker:
-    image: langfuse/langfuse-worker:3@sha256:0e7a6d86db72e804f8422af2b15d9b443aa67d33a5193941ddf7b5babd4fd518
+    image: langfuse/langfuse-worker:3.225.7@sha256:93207bd67d2e789ea55fa3d47eeba065dd6b1869187127ab24201784c52b96bc
     depends_on: *langfuse-deps
     environment: *langfuse-env
     restart: unless-stopped

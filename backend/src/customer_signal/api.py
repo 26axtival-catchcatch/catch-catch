@@ -251,10 +251,11 @@ def _default_dependencies(settings: Settings) -> ApiDependencies:
         )
     generic_bedrock_loop = None
     bedrock_key = settings.aws_bearer_token_bedrock
-    if bedrock_key and bedrock_key.get_secret_value().strip():
+    # Explicit Bedrock mode also supports the SDK credential chain (EC2 IAM roles).
+    if (bedrock_key and bedrock_key.get_secret_value().strip()) or settings.agent_mode == "bedrock":
         generic_bedrock_loop = InvestigationRunner(
             model=BedrockInvestigationModel(
-                api_key=bedrock_key.get_secret_value(),
+                api_key=bedrock_key.get_secret_value() if bedrock_key else None,
                 model=settings.bedrock_model,
                 investigator_model=settings.bedrock_investigator_model,
                 verifier_model=settings.bedrock_verifier_model,
