@@ -9,6 +9,10 @@ from customer_signal.config import Settings
 def clear_settings_environment(monkeypatch: pytest.MonkeyPatch) -> None:
     for variable_name in (
         "AGENT_MODE",
+        "AWS_BEARER_TOKEN_BEDROCK",
+        "AWS_REGION",
+        "AWS_DEFAULT_REGION",
+        "BEDROCK_MODEL",
         "GEMINI_API_KEY",
         "GOOGLE_API_KEY",
         "GEMINI_MODEL",
@@ -26,7 +30,9 @@ def test_settings_defaults(monkeypatch: pytest.MonkeyPatch) -> None:
 
     settings = Settings(_env_file=None)
 
-    assert settings.agent_mode == "auto"
+    assert settings.agent_mode == "bedrock"
+    assert settings.resolved_agent_mode == "bedrock"
+    assert settings.bedrock_model == "us.anthropic.claude-opus-4-6-v1"
     assert settings.gemini_api_key is None
     assert settings.gemini_model == "gemini-3.7-flash"
     assert settings.gemini_fallback_model == "gemini-3.6-flash"
@@ -45,7 +51,7 @@ def test_auto_mode_stays_fixture_without_usable_gemini_key(
     if gemini_api_key is not None:
         monkeypatch.setenv("GEMINI_API_KEY", gemini_api_key)
 
-    settings = Settings(_env_file=None)
+    settings = Settings(agent_mode="auto", _env_file=None)
 
     assert settings.resolved_agent_mode == "fixture"
 
@@ -56,7 +62,7 @@ def test_gemini_api_key_from_environment_activates_gemini(
     clear_settings_environment(monkeypatch)
     monkeypatch.setenv("GEMINI_API_KEY", "gemini-test-key")
 
-    settings = Settings(_env_file=None)
+    settings = Settings(agent_mode="auto", _env_file=None)
 
     assert isinstance(settings.gemini_api_key, SecretStr)
     assert settings.gemini_api_key.get_secret_value() == "gemini-test-key"
@@ -89,7 +95,7 @@ def test_google_api_key_remains_a_legacy_alias(monkeypatch: pytest.MonkeyPatch) 
     clear_settings_environment(monkeypatch)
     monkeypatch.setenv("GOOGLE_API_KEY", "legacy-key")
 
-    settings = Settings(_env_file=None)
+    settings = Settings(agent_mode="auto", _env_file=None)
 
     assert settings.gemini_api_key.get_secret_value() == "legacy-key"
     assert settings.resolved_agent_mode == "gemini"
@@ -102,7 +108,7 @@ def test_gemini_api_key_takes_priority_over_legacy_alias(
     monkeypatch.setenv("GEMINI_API_KEY", "preferred-key")
     monkeypatch.setenv("GOOGLE_API_KEY", "legacy-key")
 
-    settings = Settings(_env_file=None)
+    settings = Settings(agent_mode="auto", _env_file=None)
 
     assert settings.gemini_api_key.get_secret_value() == "preferred-key"
 

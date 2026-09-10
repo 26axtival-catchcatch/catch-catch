@@ -261,3 +261,27 @@ async def test_overlapping_patterns_reuse_public_journey_and_evidence(tmp_path):
     assert all(finding.evidence_ids for finding in outcome.report.findings)
     assert sum(f.primitive == "get_customer_journey" for f in outcome.facts) == 1
     assert outcome.report.metrics[0].value == 1
+
+
+async def test_reinvestigation_continues_until_verifier_finishes_without_round_cap(tmp_path):
+    class MoreRounds(ScriptedModel):
+        async def run_role(self, **kwargs):
+            result = await super().run_role(**kwargs)
+            if kwargs["role"] == "verifier" and kwargs.get("round_index", 0) < 3:
+                result = result.model_copy(update={"decisions": [
+                    d.model_copy(update={"verdict": "reinvestigate"})
+                    for d in result.decisions
+                ]})
+            return result
+
+    model = MoreRounds()
+    request = RunRequest(question="헤맨 고객", start_at="2026-09-04T00:00:00Z",
+        end_at="2026-09-11T00:00:00Z", enabled_sources=["app"])
+    runner = InvestigationRunner(model=model, data_factory=make_data, artifact_directory=tmp_path)
+    async def emit(e):
+        pass
+    outcome = await runner.run(request, emit=emit)
+    assert outcome.status == "completed"
+    assert ("verifier", 3) in model.calls
+    assert len(outcome.report.findings) == 1
+    assert runner.total_seconds is None and runner.investigation_seconds is None

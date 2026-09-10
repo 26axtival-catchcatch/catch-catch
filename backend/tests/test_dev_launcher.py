@@ -46,6 +46,8 @@ def test_frontend_launchers_strip_provider_and_tracing_settings() -> None:
     assert '-u LANGFUSE_SECRET_KEY' in makefile
     assert '-u LANGFUSE_PUBLIC_KEY' in makefile
     assert '-u LANGFUSE_BASE_URL' in makefile
+    assert '-u AWS_BEARER_TOKEN_BEDROCK' in launcher
+    assert '-u AWS_BEARER_TOKEN_BEDROCK' in makefile
 
 
 def test_backend_launchers_prefer_selected_langfuse_env_file() -> None:

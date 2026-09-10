@@ -87,10 +87,12 @@ class CustomerSignalPack:
         *,
         fixture_loop: AnalysisLoop,
         gemini_loop: _GenericLoop | None = None,
+        bedrock_loop: _GenericLoop | None = None,
     ) -> None:
         self._loops: dict[str, _GenericLoop | None] = {
             "fixture": fixture_loop,
             "gemini": gemini_loop,
+            "bedrock": bedrock_loop,
         }
         self._outcomes: dict[UUID, GenericRunnerOutcome] = {}
 
@@ -147,7 +149,7 @@ class CustomerSignalPack:
     def _select_loop(self, context: PackContext) -> _GenericLoop:
         mode = cast(str, context.options.get("mode", "auto"))
         if mode == "auto":
-            mode = "gemini" if self.has_gemini else "fixture"
+            mode = "bedrock" if self._loops["bedrock"] else ("gemini" if self.has_gemini else "fixture")
         loop = self._loops.get(mode)
         if loop is None:
             raise PackDomainError("generic_run_failed", _RUN_FAILED_MESSAGE)

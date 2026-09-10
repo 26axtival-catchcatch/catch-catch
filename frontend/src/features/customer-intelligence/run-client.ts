@@ -103,7 +103,7 @@ class ContractValidationError extends Error {
   }
 }
 
-const AGENT_MODES = ["fixture", "gemini"] as const;
+const AGENT_MODES = ["fixture", "gemini", "bedrock"] as const;
 const RUN_STATUSES = [
   "queued",
   "running",

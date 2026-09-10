@@ -130,10 +130,23 @@ LANGFUSE_TRACING_ENVIRONMENT=development
 
 | 실행 | 동작 |
 | --- | --- |
-| `make dev` | 키 누락과 Provider 실패를 명시적 Run 오류로 표시하는 Gemini 전용 모드 (기본, `make dev-gemini`와 동일) |
-| `make dev-auto` | 키가 있으면 Gemini를 사용하고 Provider 또는 검증 실패 시 공개 전환 이벤트를 남긴 뒤 Fixture로 전환하는 `auto` 모드 |
+| `make dev` | Bedrock Claude Opus 4.6 전용 모드 (기본, `make dev-bedrock`과 동일) |
+| `make dev-auto` | Bedrock 토큰 → Gemini 키 → Fixture 순서로 선택. 선택한 모델의 실패를 Run 오류로 표시 |
 | `make dev-fixture` | API 키와 외부 네트워크가 필요 없는 결정론적 Fixture 모드 |
 | `make dev-gemini` | 키 누락과 Provider 실패를 명시적 Run 오류로 표시하는 Gemini 전용 모드 |
+| `make dev-bedrock` | Bedrock Converse로 조사·검증·보고 수행. 다른 모델로 자동 전환하지 않음 |
+
+Bedrock을 사용하려면 루트 `.env`에 다음을 설정하고 `make dev-bedrock` 또는 `make dev`를 실행합니다.
+
+```dotenv
+AWS_BEARER_TOKEN_BEDROCK=your_bedrock_api_key
+AWS_REGION=us-east-1
+BEDROCK_MODEL=us.anthropic.claude-opus-4-6-v1
+```
+
+토큰은 Backend에만 전달하며 Frontend 실행 환경에서는 제거합니다.
+`AWS_DEFAULT_REGION`도 리전 별칭으로 지원합니다.
+실제 호출 결과와 선택 근거는 [Bedrock 검증 기록](docs/verification/live-bedrock-smoke.md)에 있습니다.
 
 Gemini 기본 모델은 `gemini-3.7-flash`입니다. 기본 모델이 Tool 호출 전에
 `NOT_FOUND`를 반환할 때만 대체 모델 `gemini-3.6-flash`를 시도합니다.
@@ -167,7 +180,7 @@ export 전에 마스킹합니다. 화면과 Trace에는 내부 chain-of-thought 
 | --- | --- |
 | `make setup` | `uv sync`, `npm ci`, Playwright Chromium 설치 |
 | `make seed` | `seed=20260819` 데이터로 DuckDB 원자적 재생성 |
-| `make dev` | Gemini Backend `8000`, Frontend `3000` 실행 (기본) |
+| `make dev` | Bedrock Backend `8000`, Frontend `3000` 실행 (기본) |
 | `make dev-auto` | Auto Backend `8000`, Frontend `3000` 실행 |
 | `make dev-fixture` | Fixture Backend `8000`, Frontend `3000` 실행 |
 | `make dev-gemini` | Gemini Backend `8000`, Frontend `3000` 실행 |

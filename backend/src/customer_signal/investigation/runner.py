@@ -50,10 +50,11 @@ class InvestigationRunner:
         model,
         data_factory: Callable,
         artifact_directory: Path,
-        investigation_seconds: float = 680.0,
-        total_seconds: float = 870.0,
+        investigation_seconds: float | None = None,
+        total_seconds: float | None = None,
     ):
         self.model = model
+        self.agent_mode = getattr(model, "agent_mode", "gemini")
         self.data_factory = data_factory
         self.artifact_directory = Path(artifact_directory)
         self.investigation_seconds = investigation_seconds
@@ -62,6 +63,10 @@ class InvestigationRunner:
     async def run(self, request, *, emit):
         run_id = current_run_id() or str(uuid4())
         started = monotonic()
+
+        def remaining(limit, reserve=0.0):
+            return None if limit is None else max(0.001, limit - (monotonic() - started) - reserve)
+
         goal, plan = goal_and_plan(request)
         data = None
         audit = {
@@ -297,7 +302,7 @@ class InvestigationRunner:
 
                 try:
                     async with asyncio.timeout(
-                        max(1.0, self.investigation_seconds - (monotonic() - started))
+                        remaining(self.investigation_seconds)
                     ):
                         coordination = await role(
                             "coordinator",
@@ -314,19 +319,17 @@ class InvestigationRunner:
                                 candidates.append(candidate)
                         if candidates:
                             decisions = await verify(0)
-                            followups = [d for d in decisions if d.verdict == "reinvestigate"][:3]
-                            if (
-                                followups
-                                and monotonic() - started < self.investigation_seconds - 120
-                            ):
+                            round_index = 0
+                            while followups := [d for d in decisions if d.verdict == "reinvestigate"]:
+                                round_index += 1
                                 revised = await asyncio.gather(
                                     *(
                                         investigate(
                                             Task(
-                                                task_id=f"task-followup-{i}",
+                                                task_id=f"task-followup-{round_index}-{i}",
                                                 question=f"기존 후보 ID {d.candidate_id}를 유지하세요. {d.followup_question or d.reason}",
                                             ),
-                                            1,
+                                            round_index,
                                         )
                                         for i, d in enumerate(followups)
                                     )
@@ -334,8 +337,8 @@ class InvestigationRunner:
                                 by_id = {c.candidate_id: c for c in candidates}
                                 for candidate in (c for batch in revised for c in batch):
                                     by_id[candidate.candidate_id] = candidate
-                                candidates = list(by_id.values())[:18]
-                                decisions = await verify(1)
+                                candidates = list(by_id.values())
+                                decisions = await verify(round_index)
                 except TimeoutError:
                     limitations.append(
                         "조사 시간 한계에 도달해 확보한 근거로 부분 결과를 정리했습니다. 미확정 후보는 추가 조사가 필요합니다."
@@ -357,7 +360,7 @@ class InvestigationRunner:
                 )
                 try:
                     async with asyncio.timeout(
-                        max(0.001, min(90.0, self.total_seconds - (monotonic() - started) - 5.0))
+                        remaining(self.total_seconds, reserve=5.0)
                     ):
                         narrative = await role(
                             "reporter",
@@ -384,11 +387,12 @@ class InvestigationRunner:
                     narrative=narrative,
                     limitations=limitations,
                     model_name=self.model.model_name,
+                    agent_mode=self.agent_mode,
                 )
                 for fact, note in zip(projection.facts[1:], projection.notes[1:], strict=True):
                     await publish_fact(fact, note)
                 await event(
-                    "result", report=outcome.report.model_dump(mode="json"), agent_mode="gemini"
+                    "result", report=outcome.report.model_dump(mode="json"), agent_mode=self.agent_mode
                 )
                 audit["limitations"] = outcome.limitations
                 return outcome
@@ -404,7 +408,7 @@ class InvestigationRunner:
                 goal=goal,
                 plan=plan,
                 error=public,
-                agent_mode="gemini",
+                agent_mode=self.agent_mode,
                 model=self.model.model_name,
             )
         finally:

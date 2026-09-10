@@ -191,7 +191,7 @@ async def test_tool_loop_runs_authorized_data_queries_off_thread_and_finishes():
         "finish",
     }
     assert provider.models[0]["retries"] == 1
-    assert provider.models[0]["request_timeout"] <= 55
+    assert provider.models[0]["request_timeout"] is None
     config = provider.calls[0]["config"]
     assert config["run_name"] == "customer_signal.research"
     assert config["metadata"]["stage"] == "research"
@@ -273,25 +273,23 @@ async def test_fallback_only_on_typed_not_found_and_safe_provider_errors(error, 
         assert len(provider.models) == 1
 
 
-async def test_role_turn_budget_is_bounded_and_forces_finish_on_final_three_calls():
-    provider = ScriptedProvider({"primary": [AIMessage(content="진행 중") for _ in range(32)]})
+async def test_role_can_query_past_old_budget_and_repair_finish_without_forcing():
+    provider = ScriptedProvider({"primary": [
+        *[call("query_data", sql="SELECT customer_id FROM events") for _ in range(40)],
+        call("finish", document='{"headline":"제목"}'),
+        call("query_data", sql="SELECT customer_id FROM events"),
+        finish(),
+    ]})
     model = GeminiInvestigationModel(
-        api_key="test-key",
-        primary_model="primary",
-        fallback_model="fallback",
+        api_key="test-key", primary_model="primary", fallback_model="fallback",
         model_factory=provider,
     )
-    with pytest.raises(GeminiInvestigationError) as caught:
-        await run(model)
-    assert caught.value.code == "gemini_turn_limit"
-    assert len(provider.calls) == 32
-    assert all(record["binding"] == {} for record in provider.calls[:29])
-    for record in provider.calls[-3:]:
-        assert "finish" in record["messages"][-1].content
-        assert record["binding"] == {"tool_choice": "finish"}
+    assert isinstance(await run(model), Narrative)
+    assert len(provider.calls) == 43
+    assert all(record["binding"] == {} for record in provider.calls)
 
 
-async def test_last_turn_can_repair_finish_after_extended_investigation():
+async def test_finish_can_be_repaired_after_extended_investigation():
     provider = ScriptedProvider(
         {
             "primary": [
@@ -309,7 +307,7 @@ async def test_last_turn_can_repair_finish_after_extended_investigation():
     )
     assert isinstance(await run(model), Narrative)
     assert len(provider.calls) == 32
-    feedback = json.loads(provider.calls[-1]["messages"][-2].content)
+    feedback = json.loads(next(m for m in reversed(provider.calls[-1]["messages"]) if isinstance(m, ToolMessage)).content)
     assert feedback["issues"] == [
         {"loc": ["summary"], "type": "missing", "message": "Required field is missing."}
     ]

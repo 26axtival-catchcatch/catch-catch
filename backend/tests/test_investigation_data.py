@@ -87,3 +87,12 @@ def test_scope_rejected_and_query_results_cannot_invent_cohort(space):
     fake = space.query("SELECT 'invented' AS customer_id")
     with pytest.raises(ValueError, match="customer"):
         space.cohort(fake["query_id"])
+
+
+def test_query_keeps_complete_results_past_old_row_and_sql_length_limits(space):
+    sql = "SELECT range AS n FROM range(50001) /*" + "x" * 16001 + "*/"
+    result = space.query(sql)
+    assert result["row_count"] == 50001
+    assert len(result["rows"]) == 100
+    assert result["truncated"] is True
+    assert len(space.queries[result["query_id"]]["rows"]) == 50001

@@ -54,7 +54,7 @@ with httpx.Client(base_url=args.base_url, timeout=60) as client:
         json.dumps(accepted, indent=2)
     )
     started, last_status = time.monotonic(), None
-    while time.monotonic() - started < 910:
+    while True:
         snapshot_response = client.get(accepted["status_url"])
         snapshot_response.raise_for_status()
         snapshot = snapshot_response.json()

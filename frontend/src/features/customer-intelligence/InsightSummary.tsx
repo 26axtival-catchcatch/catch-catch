@@ -239,7 +239,7 @@ export function InsightSummary({
             <span
               className={`mode-badge ${phase === "degraded" ? "mode-degraded" : ""}`}
             >
-              {agentMode === "gemini" ? "Gemini Agent" : "Fixture Replay"}
+              {agentMode === "bedrock" ? "Bedrock Agent" : agentMode === "gemini" ? "Gemini Agent" : "Fixture Replay"}
             </span>
             <span className="verified-badge">근거 검증 완료</span>
           </div>

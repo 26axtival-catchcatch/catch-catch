@@ -90,6 +90,22 @@ function responseStream(chunks: string[]): Response {
 }
 
 describe("RunClient", () => {
+  it("accepts Bedrock result events and persisted artifacts", async () => {
+    const client = new RunClient({
+      apiBaseUrl: "http://api.test",
+      fetchImpl: async (input) => String(input).endsWith("/events")
+        ? responseStream([
+            frame("run-1", 1, "result", { agent_mode: "bedrock", report: genericReport }),
+            frame("run-1", 2, "done", { status: "completed" }),
+          ])
+        : Response.json({ ...genericArtifact, versions: { ...genericArtifact.versions, agent_mode: "bedrock", model_version: "us.anthropic.claude-opus-4-6-v1" } }),
+    });
+    const events = await consume(client);
+    expect(events[0]).toMatchObject({ type: "result", data: { agent_mode: "bedrock" } });
+    expect((await client.getRunArtifact(genericArtifact.run_id)).versions.agent_mode).toBe("bedrock");
+    expect((await client.getRunArtifact(genericArtifact.run_id)).versions.model_version).toBe("us.anthropic.claude-opus-4-6-v1");
+  });
+
   afterEach(() => {
     vi.unstubAllEnvs();
     vi.unstubAllGlobals();

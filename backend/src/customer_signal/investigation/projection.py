@@ -227,7 +227,7 @@ class InvestigationProjection:
         )
         return self.add(payload, "catalog")
 
-    def finish(self, *, candidates, decisions, narrative, limitations, model_name):
+    def finish(self, *, candidates, decisions, narrative, limitations, model_name, agent_mode="gemini"):
         decision_by_id = {d.candidate_id: d for d in decisions}
         confirmed, pending, verified_customers = [], [], set()
         for candidate in candidates:
@@ -416,6 +416,6 @@ class InvestigationProjection:
             notes=self.notes,
             report=report,
             limitations=limits,
-            agent_mode="gemini",
+            agent_mode=agent_mode,
             model=model_name,
         )

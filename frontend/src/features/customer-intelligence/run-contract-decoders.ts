@@ -900,6 +900,11 @@ function decodeClarification(value: unknown, path: string): ClarificationRecord 
 function decodeVersions(value: unknown, path: string): RunVersions {
   const record = expectRecord(value, path);
   return {
+    agent_mode: decodeOptionalNullable(
+      record.agent_mode,
+      `${path}.agent_mode`,
+      (value, field) => expectOneOf(value, ["fixture", "gemini", "bedrock"] as const, field),
+    ),
     dataset_versions: expectIdArray(
       record.dataset_versions,
       `${path}.dataset_versions`,

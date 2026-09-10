@@ -4,18 +4,25 @@ from typing import Literal
 from pydantic import AliasChoices, Field, SecretStr, computed_field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-AgentMode = Literal["auto", "fixture", "gemini"]
-ResolvedAgentMode = Literal["fixture", "gemini"]
+AgentMode = Literal["auto", "fixture", "gemini", "bedrock"]
+ResolvedAgentMode = Literal["fixture", "gemini", "bedrock"]
 
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore", populate_by_name=True)
 
-    agent_mode: AgentMode = "auto"
+    agent_mode: AgentMode = "bedrock"
     gemini_api_key: SecretStr | None = Field(
         default=None,
         validation_alias=AliasChoices("GEMINI_API_KEY", "GOOGLE_API_KEY", "google_api_key"),
     )
+    aws_bearer_token_bedrock: SecretStr | None = None
+    aws_region: str = Field(
+        default="us-east-1",
+        min_length=1,
+        validation_alias=AliasChoices("AWS_REGION", "AWS_DEFAULT_REGION"),
+    )
+    bedrock_model: str = Field(default="us.anthropic.claude-opus-4-6-v1", min_length=1)
     gemini_model: str = "gemini-3.7-flash"
     gemini_fallback_model: str = "gemini-3.6-flash"
     database_path: Path = Path("data/generated/customer_signal.duckdb")
@@ -37,6 +44,11 @@ class Settings(BaseSettings):
     @property
     def resolved_agent_mode(self) -> ResolvedAgentMode:
         if self.agent_mode == "auto":
+            if (
+                self.aws_bearer_token_bedrock
+                and self.aws_bearer_token_bedrock.get_secret_value().strip()
+            ):
+                return "bedrock"
             has_api_key = bool(
                 self.gemini_api_key and self.gemini_api_key.get_secret_value().strip()
             )

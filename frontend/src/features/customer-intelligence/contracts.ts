@@ -1,5 +1,5 @@
 export type SourceId = string;
-export type AgentMode = "fixture" | "gemini";
+export type AgentMode = "fixture" | "gemini" | "bedrock";
 export type RunStatus =
   | "queued"
   | "running"
@@ -630,6 +630,7 @@ export interface RunEventEnvelope {
 }
 
 export interface RunVersions {
+  agent_mode?: AgentMode | null;
   dataset_versions: string[];
   adapter_versions: Record<SourceId, string>;
   manifest_versions: Record<SourceId, string>;

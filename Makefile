@@ -12,16 +12,17 @@ ARTIFACT_DIRECTORY := data/run-artifacts
 HACKATHON_SEED_PATH := data/seeding/hackathon-2week
 
 .DEFAULT_GOAL := help
-.PHONY: help setup seed seed-hackathon dev dev-auto dev-fixture dev-gemini serve-backend-fixture serve-frontend test e2e e2e-generic e2e-legacy
+.PHONY: help setup seed seed-hackathon dev dev-auto dev-fixture dev-gemini dev-bedrock serve-backend-fixture serve-frontend test e2e e2e-generic e2e-legacy
 
 help:
 	@echo "make setup        의존성과 Playwright Chromium 설치"
 	@echo "make seed         seed=$(SEED) 합성 DuckDB 생성"
 	@echo "make seed-hackathon  개선 전후 2주 테이블형 합성 데이터 생성"
-	@echo "make dev          Gemini 모드로 Backend와 Frontend 실행 (기본)"
+	@echo "make dev          Bedrock Claude Opus 4.6으로 실행 (기본)"
 	@echo "make dev-auto     API Key 유무로 모드를 고르는 auto 모드로 실행"
+	@echo "make dev-bedrock  Bedrock 전용 모드로 실행"
 	@echo "make dev-fixture  결정론적 fixture 모드로 실행"
-	@echo "make dev-gemini   Gemini 전용 모드로 실행 (make dev와 동일)"
+	@echo "make dev-gemini   Gemini 전용 모드로 실행"
 	@echo "make test         Backend/Frontend 전체 자동 검증"
 	@echo "make e2e          fixture 기반 실제 브라우저 E2E"
 	@echo "make e2e-generic  범용 분석 Desktop/Mobile E2E"
@@ -41,7 +42,7 @@ seed-hackathon:
 		--output "$(HACKATHON_SEED_PATH)" --seed 20260831 --force
 
 dev:
-	bash scripts/dev.sh gemini
+	bash scripts/dev.sh bedrock
 
 dev-auto:
 	bash scripts/dev.sh auto
@@ -51,6 +52,9 @@ dev-fixture:
 
 dev-gemini:
 	bash scripts/dev.sh gemini
+
+dev-bedrock:
+	bash scripts/dev.sh bedrock
 
 serve-backend-fixture: seed
 	@set -Eeuo pipefail; \
@@ -118,7 +122,7 @@ serve-frontend:
 	NEXT_PUBLIC_API_BASE_URL="$(API_BASE_URL)" \
 		env \
 			-u GEMINI_API_KEY \
-			-u GOOGLE_API_KEY \
+			-u GOOGLE_API_KEY -u AWS_BEARER_TOKEN_BEDROCK \
 			-u GEMINI_MODEL \
 			-u GEMINI_FALLBACK_MODEL \
 			-u LANGSMITH_PROJECT \

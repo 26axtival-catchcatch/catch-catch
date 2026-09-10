@@ -217,7 +217,7 @@ class GenericRunnerOutcome(RunnerContract):
     limitations: list[str] = Field(default_factory=list, max_length=32)
     error: PublicRunError | None = None
     failed_step_id: str | None = Field(default=None, max_length=128)
-    agent_mode: Literal["fixture", "gemini"]
+    agent_mode: Literal["fixture", "gemini", "bedrock"]
     model: str | None = Field(default=None, max_length=128)
 
     @field_validator("limitations")

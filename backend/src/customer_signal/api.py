@@ -19,7 +19,7 @@ from customer_signal.agent.fixture import FixtureRunner
 from customer_signal.agent.gemini import GeminiRunner
 from customer_signal.agent.generic_fixture import GenericFixtureModel
 from customer_signal.investigation.data import InvestigationData
-from customer_signal.investigation.model import GeminiInvestigationModel
+from customer_signal.investigation.model import BedrockInvestigationModel, GeminiInvestigationModel
 from customer_signal.investigation.runner import InvestigationRunner
 from customer_signal.analytics.executor import PrimitiveExecutor
 from customer_signal.analytics.models import CustomerJourneyResult, EvidenceResult
@@ -238,13 +238,26 @@ def _default_dependencies(settings: Settings) -> ApiDependencies:
             data_factory=lambda request: InvestigationData.load(refresh_sources()[0], request),
             artifact_directory=settings.artifact_directory,
         )
+    generic_bedrock_loop = None
+    bedrock_key = settings.aws_bearer_token_bedrock
+    if bedrock_key and bedrock_key.get_secret_value().strip():
+        generic_bedrock_loop = InvestigationRunner(
+            model=BedrockInvestigationModel(
+                api_key=bedrock_key.get_secret_value(),
+                model=settings.bedrock_model,
+                region=settings.aws_region,
+            ),
+            data_factory=lambda request: InvestigationData.load(refresh_sources()[0], request),
+            artifact_directory=settings.artifact_directory,
+        )
     customer_signal_pack = CustomerSignalPack(
         fixture_loop=generic_fixture_loop,
         gemini_loop=generic_gemini_loop,
+        bedrock_loop=generic_bedrock_loop,
     )
     packs = AnalysisPackRegistry([customer_signal_pack])
     journal = SQLiteEventJournal(settings.resolved_journal_path)
-    kernel = PackKernel(journal, timeout_seconds=890.0)
+    kernel = PackKernel(journal, timeout_seconds=None)
     coordinator = RunCoordinator(
         agent_mode=settings.agent_mode,
         fixture_runner=FixtureRunner(mcp_server),

@@ -69,6 +69,7 @@ class RunVersions(ArtifactContractModel):
     """Dataset and execution versions needed to explain or reproduce a Run."""
 
     dataset_versions: list[str] = Field(default_factory=list, max_length=32)
+    agent_mode: Literal["fixture", "gemini", "bedrock"] | None = None
     adapter_versions: dict[SourceId, str] = Field(default_factory=dict, max_length=32)
     manifest_versions: dict[SourceId, str] = Field(default_factory=dict, max_length=32)
     prompt_version: str | None = Field(default=None, max_length=128)

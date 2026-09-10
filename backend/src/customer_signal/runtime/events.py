@@ -145,7 +145,7 @@ class ReportValidatingPayload(GenericEventContract):
 
 
 class ResultPayload(GenericEventContract):
-    agent_mode: Literal["fixture", "gemini"]
+    agent_mode: Literal["fixture", "gemini", "bedrock"]
     report: CustomerSignalReport
 
 

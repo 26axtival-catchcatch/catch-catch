@@ -43,10 +43,20 @@ Backend 를 실행하면 FastAPI 가 다음 경로를 자동으로 제공합니�
 | GET | `/api/runs/{run_id}/customers/{customer_id}/journey` | 완료된 Run 의 고객 Journey 조회 | `CustomerJourneyResult` |
 | GET | `/api/runs/{run_id}/evidence/{evidence_id}` | 완료된 Run 의 마스킹 Evidence 조회 | `EvidenceResult` |
 
-`mode=gemini`는 총괄, 가설별 조사, 독립 검증과 보고 역할을 실행합니다. 요청 필드와
+`mode`는 `auto`, `fixture`, `gemini`, `bedrock`을 지원합니다.
+`mode` 생략 시 서버의 `AGENT_MODE`를 사용하며 기본값은 `bedrock`입니다.
+`auto`는 유효한 Bedrock 토큰 → Gemini 키 → fixture 순서로 선택합니다.
+`mode=bedrock`은 `AWS_BEARER_TOKEN_BEDROCK`, `AWS_REGION`(기본 `us-east-1`),
+`BEDROCK_MODEL`(기본 `us.anthropic.claude-opus-4-6-v1`)로 Converse API를 호출합니다.
+`mode=gemini`와 `mode=bedrock`은 총괄, 가설별 조사, 독립 검증과 보고 역할을 실행합니다.
+Bedrock 호출 실패 시 다른 모델이나 fixture로 자동 전환하지 않습니다.
+상태 응답과 SSE의 `agent_mode`에 `bedrock`이 표시되며, 저장 Artifact의
+`versions.model_version`에 실제 Bedrock 모델 ID, `versions.agent_mode`에 실행 provider를 기록합니다.
+기존 Artifact는 새 필드 없이도 읽을 수 있습니다. 요청 필드와
 SSE, `customer_signal` 보고서 스키마는 유지합니다. 진행 중 실행은 선택한 공간의
 스냅샷을 사용하며, 추가된 데이터는 같은 질문과 기간으로 새 Run을 생성해 분석합니다.
-전체 실행 한계는 15분 미만이며, 시간 내 검증하지 못한 후보는 `limitations`에 남깁니다.
+사용자 결정으로 전체 실행 시간, 역할별 호출 횟수와 재조사 라운드 제한을 해제했습니다.
+완료 시각을 15분 이내로 보장하지 않으며, 확인하지 못한 후보와 중단 사유는 `limitations`에 남깁니다.
 위험 점수는 산정하지 않으므로 `ranked_customers`는 비어 있습니다. 대표 고객 식별자는
 상태 응답의 `facts` 중 `payload.kind=get_customer_journey`의 `payload.customer_id`를 사용합니다.
 기존 고객 Journey와 Evidence 조회 URL은 그대로 사용할 수 있습니다.

@@ -2,9 +2,9 @@
 
 set -Eeuo pipefail
 
-mode="${1:-gemini}"
+mode="${1:-bedrock}"
 case "$mode" in
-  auto|fixture|gemini) ;;
+  auto|fixture|gemini|bedrock) ;;
   *)
     echo "지원하지 않는 AGENT_MODE: $mode" >&2
     exit 2
@@ -74,6 +74,7 @@ frontend_env_isolation=(
   env
   -u GEMINI_API_KEY
   -u GOOGLE_API_KEY
+  -u AWS_BEARER_TOKEN_BEDROCK
   -u GEMINI_MODEL
   -u GEMINI_FALLBACK_MODEL
   -u LANGSMITH_PROJECT

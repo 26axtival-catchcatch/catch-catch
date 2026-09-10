@@ -101,7 +101,7 @@ class RunCoordinator:
         self,
         *,
         runner: AnalysisRunner | None = None,
-        agent_mode: Literal["auto", "fixture", "gemini"] = "fixture",
+        agent_mode: Literal["auto", "fixture", "gemini", "bedrock"] = "fixture",
         fixture_runner: AnalysisRunner | None = None,
         gemini_runner: AnalysisRunner | None = None,
         gemini_timeout_seconds: float = 45.0,
@@ -117,7 +117,7 @@ class RunCoordinator:
             if fixture_runner is not None or gemini_runner is not None:
                 raise ValueError("runner cannot be combined with mode-specific runners")
             self._runner = runner
-            self._agent_mode: Literal["fixed", "auto", "fixture", "gemini"] = "fixed"
+            self._agent_mode: Literal["fixed", "auto", "fixture", "gemini", "bedrock"] = "fixed"
         else:
             if agent_mode in {"auto", "fixture"} and fixture_runner is None:
                 raise ValueError("fixture_runner is required for fixture and auto modes")
@@ -493,6 +493,7 @@ class RunCoordinator:
             model_version=outcome_model or snapshot.agent_mode,
             generic=snapshot.run_kind == "generic",
         )
+        versions.agent_mode = snapshot.agent_mode
         public_error = snapshot.error
         if isinstance(public_error, RunError):
             public_error = PublicRunError(

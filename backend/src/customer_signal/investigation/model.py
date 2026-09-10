@@ -1,4 +1,4 @@
-"""Gemini tool loop for independently investigating one role's assignment."""
+"""Provider adapters for independently investigating one role's assignment."""
 
 from __future__ import annotations
 
@@ -8,10 +8,12 @@ import math
 from collections.abc import Callable
 from typing import Any
 
+from botocore.exceptions import ClientError
+from langchain_aws import ChatBedrockConverse
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage, ToolMessage
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langsmith import tracing_context
-from pydantic import BaseModel, ConfigDict, Field, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, SecretStr, ValidationError
 
 from customer_signal.agent.generic_gemini import _is_typed_not_found
 from customer_signal.investigation.contracts import InvestigationResult, Verification
@@ -24,7 +26,7 @@ class _NoArgs(BaseModel):
 
 
 class _QueryArgs(_NoArgs):
-    sql: str = Field(min_length=1, max_length=16000)
+    sql: str = Field(min_length=1)
 
 
 class _JourneyArgs(_NoArgs):
@@ -92,6 +94,26 @@ class GeminiInvestigationError(RuntimeError):
 
 
 class GeminiInvestigationModel:
+    agent_mode = "gemini"
+    provider_label = "Gemini"
+    error_type = GeminiInvestigationError
+
+    def _error(self, suffix: str, message: str):
+        return self.error_type(f"{self.agent_mode}_{suffix}", f"{self.provider_label} {message}")
+
+    def _provider_error(self, error: Exception):
+        if isinstance(error, TimeoutError):
+            return self._error("timeout", "조사 호출이 제한 시간을 초과했습니다.")
+        if _is_typed_not_found(error):
+            return self._error("model_not_found", "사용 가능한 조사 모델을 찾지 못했습니다.")
+        if isinstance(error, ClientError):
+            code = error.response.get("Error", {}).get("Code")
+            if code == "AccessDeniedException":
+                return self._error("access_denied", "모델 호출 권한을 확인해주세요.")
+            if code == "ThrottlingException":
+                return self._error("throttled", "호출 한도를 초과했습니다.")
+        return self._error("provider_failed", "조사 서비스 호출에 실패했습니다.")
+
     def __init__(
         self,
         *,
@@ -99,23 +121,23 @@ class GeminiInvestigationModel:
         primary_model: str,
         fallback_model: str,
         model_factory: Callable[..., Any] = ChatGoogleGenerativeAI,
-        timeout_seconds: float = 55.0,
+        timeout_seconds: float | None = None,
     ) -> None:
         if not primary_model.strip() or not fallback_model.strip():
             raise ValueError("Gemini model names must be nonblank")
-        if (
+        if timeout_seconds is not None and (
             isinstance(timeout_seconds, bool)
             or not isinstance(timeout_seconds, (int, float))
             or not math.isfinite(timeout_seconds)
-            or not 0 < timeout_seconds <= 55
+            or timeout_seconds <= 0
         ):
-            raise ValueError("Gemini call timeout must be finite and between 0 and 55 seconds")
+            raise ValueError("Model call timeout must be positive and finite, or None")
         self._api_key = api_key.strip() if api_key and api_key.strip() else None
         self._primary_model = primary_model.strip()
         self._fallback_model = fallback_model.strip()
         self._selected_model = self._primary_model
         self._model_factory = model_factory
-        self._timeout_seconds = float(timeout_seconds)
+        self._timeout_seconds = float(timeout_seconds) if timeout_seconds is not None else None
         self._models: dict[str, Any] = {}
 
     @property
@@ -134,9 +156,7 @@ class GeminiInvestigationModel:
         round_index: int = 0,
     ) -> BaseModel:
         if self._api_key is None:
-            raise GeminiInvestigationError(
-                "gemini_not_configured", "Gemini API Key가 설정되지 않았습니다."
-            )
+            raise self._error("not_configured", "API Key가 설정되지 않았습니다.")
         messages: list[BaseMessage] = [
             SystemMessage(content=_SYSTEM_PROMPT),
             HumanMessage(
@@ -154,30 +174,15 @@ class GeminiInvestigationModel:
                 )
             ),
         ]
-        for turn_index in range(32):
-            force_finish = turn_index >= 29
-            if force_finish:
-                messages.append(
-                    HumanMessage(
-                        content=(
-                            "추가 조사를 중단하고 반드시 finish 도구로 결과를 제출하세요. "
-                            "지금까지 확보한 근거만 사용하고, 부족한 부분은 limitations에 명시하세요. "
-                            "스키마가 허용하면 빈 후보 목록을 제출해도 됩니다. 근거 없이 확정하지 마세요. "
-                            "검증 오류를 받았다면 해당 경로와 제약조건을 고쳐 finish를 다시 호출하세요."
-                        )
-                    )
-                )
+        while True:
             response = await self._invoke(
                 messages,
                 role=role,
                 task_id=task_id,
                 round_index=round_index,
-                force_finish=force_finish,
             )
             if not isinstance(response, AIMessage):
-                raise GeminiInvestigationError(
-                    "gemini_response_invalid", "Gemini 도구 응답 형식이 올바르지 않습니다."
-                )
+                raise self._error("response_invalid", "도구 응답 형식이 올바르지 않습니다.")
             messages.append(response)
             if not response.tool_calls:
                 messages.append(
@@ -202,9 +207,6 @@ class GeminiInvestigationModel:
                         name=name,
                     )
                 )
-        raise GeminiInvestigationError(
-            "gemini_turn_limit", "조사 역할이 호출 한도 내에 결과를 제출하지 못했습니다."
-        )
 
     async def _run_tool(
         self,
@@ -279,7 +281,6 @@ class GeminiInvestigationModel:
         role: str,
         task_id: str,
         round_index: int,
-        force_finish: bool = False,
     ) -> AIMessage:
         selected = self._selected_model
         try:
@@ -289,7 +290,6 @@ class GeminiInvestigationModel:
                 role=role,
                 task_id=task_id,
                 round_index=round_index,
-                force_finish=force_finish,
             )
         except asyncio.CancelledError:
             raise
@@ -307,13 +307,12 @@ class GeminiInvestigationModel:
                         role=role,
                         task_id=task_id,
                         round_index=round_index,
-                        force_finish=force_finish,
                     )
                 except asyncio.CancelledError:
                     raise
                 except Exception as fallback_error:
-                    raise _provider_error(fallback_error) from None
-            raise _provider_error(error) from None
+                    raise self._provider_error(fallback_error) from None
+            raise self._provider_error(error) from None
 
     async def _invoke_model(
         self,
@@ -323,20 +322,14 @@ class GeminiInvestigationModel:
         role: str,
         task_id: str,
         round_index: int,
-        force_finish: bool = False,
     ) -> AIMessage:
         model = self._models.get(model_name)
         if model is None:
-            model = self._model_factory(
-                model=model_name,
-                api_key=self._api_key,
-                retries=1,
-                request_timeout=self._timeout_seconds,
-            )
+            model = self._create_model(model_name)
             self._models[model_name] = model
-        chain = model.bind_tools(_TOOLS, **({"tool_choice": "finish"} if force_finish else {}))
+        chain = model.bind_tools(_TOOLS)
         config = build_langfuse_config(
-            run_name=f"customer_signal.{role}", provider="gemini", stage=role
+            run_name=f"customer_signal.{role}", provider=self.agent_mode, stage=role
         )
         config["metadata"].update(task_id=task_id, round_index=round_index, role=role)
         async with asyncio.timeout(self._timeout_seconds):
@@ -344,6 +337,57 @@ class GeminiInvestigationModel:
             # remain enabled in the process environment. Restore the caller's context.
             with tracing_context(enabled=False):
                 return await chain.ainvoke(messages, config=config)
+
+    def _create_model(self, model_name: str):
+        return self._model_factory(
+            model=model_name,
+            api_key=self._api_key,
+            retries=1,
+            request_timeout=self._timeout_seconds,
+        )
+
+
+class BedrockInvestigationError(GeminiInvestigationError):
+    """Safe Bedrock failure; provider payloads are never public errors."""
+
+
+class BedrockInvestigationModel(GeminiInvestigationModel):
+    """Reuse validated data tools and role contracts through Bedrock Converse."""
+
+    agent_mode = "bedrock"
+    provider_label = "Bedrock"
+    error_type = BedrockInvestigationError
+
+    def __init__(
+        self,
+        *,
+        api_key: str | None,
+        model: str,
+        region: str = "us-east-1",
+        model_factory: Callable[..., Any] = ChatBedrockConverse,
+        timeout_seconds: float | None = None,
+    ) -> None:
+        if not region.strip() or not model.strip():
+            raise ValueError("Bedrock region and model must be nonblank")
+        self._region = region.strip()
+        # Explicit selection: never silently downgrade or switch providers.
+        super().__init__(
+            api_key=api_key,
+            primary_model=model,
+            fallback_model=model,
+            model_factory=model_factory,
+            timeout_seconds=timeout_seconds,
+        )
+
+    def _create_model(self, model_name: str):
+        return self._model_factory(
+            model=model_name,
+            region_name=self._region,
+            api_key=SecretStr(self._api_key) if self._api_key else None,
+            max_tokens=None,
+            timeout=self._timeout_seconds,
+            max_retries=0,
+        )
 
 
 def _reference_feedback(
@@ -503,17 +547,3 @@ def _constraint_message(error_type: str, schema: dict) -> tuple[str, str]:
     if error_type in lengths:
         return error_type, "Use the length bounds in the declared schema."
     return "validation_error", "Value must match the declared schema."
-
-
-def _provider_error(error: Exception) -> GeminiInvestigationError:
-    if isinstance(error, TimeoutError):
-        return GeminiInvestigationError(
-            "gemini_timeout", "Gemini 조사 호출이 제한 시간을 초과했습니다."
-        )
-    if _is_typed_not_found(error):
-        return GeminiInvestigationError(
-            "gemini_model_not_found", "사용 가능한 Gemini 조사 모델을 찾지 못했습니다."
-        )
-    return GeminiInvestigationError(
-        "gemini_provider_failed", "Gemini 조사 서비스 호출에 실패했습니다."
-    )

@@ -11,7 +11,7 @@ from hashlib import sha256
 from pathlib import Path
 from secrets import token_bytes
 from tempfile import TemporaryDirectory
-from threading import Lock, Timer
+from threading import Lock
 from uuid import uuid4
 
 import duckdb
@@ -88,7 +88,7 @@ class InvestigationData:
         self.events.sort(key=lambda e: (str(e["occurred_at"]), e["event_id"]))
         self.customer_ids = {e["customer_id"] for e in self.events}
         self._db = duckdb.connect(
-            config={"enable_external_access": "false", "threads": "2", "memory_limit": "256MB"}
+            config={"enable_external_access": "false"}
         )
         columns = {key for e in self.events for key in e}
         columns.update(
@@ -181,25 +181,17 @@ class InvestigationData:
         }
 
     def query(self, sql: str) -> dict:
-        if len(sql) > 16000 or _UNSAFE_SQL.search(sql):
+        if _UNSAFE_SQL.search(sql):
             raise ValueError("only read-only queries of this data space are allowed")
         with self._lock:
             statements = self._db.extract_statements(sql)
             if len(statements) != 1 or statements[0].type != duckdb.StatementType.SELECT:
                 raise ValueError("exactly one SELECT is required")
-            timer = Timer(10, self._db.interrupt)
-            timer.start()
-            try:
-                cursor = self._db.execute(sql)
-                columns = [d[0] for d in cursor.description]
-                if len(columns) != len(set(columns)):
-                    raise ValueError("query columns must be uniquely named")
-                values = cursor.fetchmany(50001)
-                if len(values) > 50000:
-                    raise ValueError("result exceeds 50000 rows; aggregate or refine the query")
-                rows = [dict(zip(columns, row, strict=True)) for row in values]
-            finally:
-                timer.cancel()
+            cursor = self._db.execute(sql)
+            columns = [d[0] for d in cursor.description]
+            if len(columns) != len(set(columns)):
+                raise ValueError("query columns must be uniquely named")
+            rows = [dict(zip(columns, row, strict=True)) for row in cursor.fetchall()]
             query_id = "query-" + uuid4().hex[:24]
             record = {
                 "query_id": query_id,

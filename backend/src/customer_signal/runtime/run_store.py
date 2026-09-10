@@ -39,7 +39,7 @@ from customer_signal.runtime.events import (
 
 
 type RunKind = Literal["legacy", "generic"]
-type RequestedAgentMode = Literal["auto", "fixture", "gemini"]
+type RequestedAgentMode = Literal["auto", "fixture", "gemini", "bedrock"]
 type StoredRunEventType = RunnerEventType | GenericRunnerEventType | Literal["done"]
 
 _REPORT_ADAPTER = TypeAdapter(GenericOrLegacyReport)
@@ -92,7 +92,7 @@ class RunSnapshot(BaseModel):
     request: RunRequest
     created_at: AwareDatetime
     updated_at: AwareDatetime
-    agent_mode: Literal["fixture", "gemini"] | None = None
+    agent_mode: Literal["fixture", "gemini", "bedrock"] | None = None
     goal: AnalysisGoal | None = None
     clarification: ClarificationRecord | None = None
     plan: AnalysisPlan | None = None
@@ -147,7 +147,7 @@ class _RunState:
     report: GenericOrLegacyReport | None = None
     limitations: list[str] = field(default_factory=list)
     failed_step_id: str | None = None
-    agent_mode: Literal["fixture", "gemini"] | None = None
+    agent_mode: Literal["fixture", "gemini", "bedrock"] | None = None
     event_id_offset: int = 0
 
 
@@ -202,7 +202,7 @@ class RunStore:
                 message=restored_error.message,
             )
         restored_mode = artifact.versions.model_version
-        agent_mode = (
+        agent_mode = artifact.versions.agent_mode or (
             "gemini"
             if restored_mode is not None and restored_mode.startswith("gemini")
             else "fixture"
@@ -214,7 +214,7 @@ class RunStore:
             run_id=run_id,
             request=artifact.request.model_copy(deep=True),
             run_kind=run_kind,
-            requested_mode="gemini" if agent_mode == "gemini" else "fixture",
+            requested_mode=agent_mode or "fixture",
             status=artifact.status,
             created_at=artifact.created_at,
             updated_at=artifact.updated_at,
