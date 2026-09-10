@@ -92,7 +92,7 @@ async def test_verifiers_receive_one_candidate_and_run_with_bounded_concurrency(
     outcome = await execute(model, tmp_path)
     assert outcome.status == "completed"
     assert len(outcome.report.findings) == 6
-    assert model.peak == 3
+    assert model.peak == 6
     assert len({task for _, _, task in model.verifications}) == 6
     assert outcome.report.metrics[0].value == 1  # overlapping cohorts still deduplicate
 
@@ -241,6 +241,63 @@ def test_journey_review_credits_only_delivered_rows_and_owned_pages():
         data.close()
 
 
+def test_reusable_cohort_table_is_complete_and_scoped_to_its_verifier(tmp_path):
+    from customer_signal.signals.contracts import SignalDefinition
+    from customer_signal.signals.store import SignalStore
+    from customer_signal.signals.workbench import SignalWorkbench
+
+    data = make_data(REQUEST)
+    try:
+        token = query_owner.set("verifier-one")
+        try:
+            q = data.query("SELECT DISTINCT customer_id FROM events", expose_cohort=True)
+            table = q["cohort_table"]
+            result = data.query(
+                f'SELECT count(*) AS n FROM events JOIN "{table}" USING (customer_id)'
+            )
+            assert result["rows"] == [{"n": 2}]
+            assert data.queries[result["query_id"]]["owner"] == "verifier-one"
+            other = query_owner.set("verifier-two")
+            try:
+                # Case or CTE aliases must not bypass the ownership boundary.
+                for sql in [
+                    f'SELECT * FROM "{table}"',
+                    f'SELECT * FROM "{table.upper()}"',
+                    f'WITH c AS (SELECT * FROM "{table}") SELECT * FROM c',
+                    f'SELECT * FROM temp.main."{table}"',
+                ]:
+                    with pytest.raises(ValueError, match="another task"):
+                        data.query(sql)
+                with pytest.raises(ValueError):
+                    data.query(f"SELECT * FROM \"query_table\"('{table}')")
+                for macro in ("histogram", "histogram_values"):
+                    with pytest.raises(ValueError, match="table function"):
+                        data.query(f"SELECT * FROM {macro}('{table}', customer_id)")
+                assert data.query(f"SELECT '{table}' AS label")["rows"] == [{"label": table}]
+            finally:
+                query_owner.reset(other)
+            with pytest.raises(ValueError):
+                data.query(f'DROP TABLE "{table}"')
+            plain = data.query("SELECT DISTINCT customer_id FROM events")
+            assert "cohort_table" not in plain
+            wb = SignalWorkbench(
+                data=data, store=SignalStore(tmp_path / "signals.sqlite3"), run_id="test"
+            )
+            measurement = wb.measure(
+                SignalDefinition(
+                    source_ids=["app"],
+                    cohort_sql=f'SELECT customer_id FROM "{table}"',
+                    population_description="전체",
+                    normal_comparison="성공과 비교",
+                )
+            )
+            assert measurement["status"] != "success"
+        finally:
+            query_owner.reset(token)
+    finally:
+        data.close()
+
+
 def test_context_compacts_old_rows_and_keeps_reference_and_recent_evidence():
     from customer_signal.investigation.verification import bound_messages, message_bytes
 
@@ -334,6 +391,37 @@ def test_archiving_completed_batches_removes_sql_arguments_but_keeps_references(
     assert all(f"query-{i}" in archive for i in range(5))
     calls = {c["id"] for m in bounded if isinstance(m, AIMessage) for c in m.tool_calls}
     assert calls == {m.tool_call_id for m in bounded if isinstance(m, ToolMessage)}
+
+
+def test_compaction_keeps_small_aggregate_facts_to_avoid_requery_loops():
+    from customer_signal.investigation.verification import bound_messages
+
+    messages = [SystemMessage(content="system"), HumanMessage(content="assignment")]
+    for i in range(5):
+        messages += [
+            AIMessage(
+                content="",
+                tool_calls=[
+                    {"name": "query_data", "args": {"sql": "SELECT " + "x" * 15000}, "id": str(i)}
+                ],
+            ),
+            ToolMessage(
+                content=json.dumps(
+                    {
+                        "query_id": f"query-{i}",
+                        "row_count": 1,
+                        "columns": ["normal_customers", "negative_feedback"],
+                        "owner": "task-verifier",
+                        "rows": [{"normal_customers": 84, "negative_feedback": 84}],
+                    }
+                ),
+                tool_call_id=str(i),
+            ),
+        ]
+    bounded = bound_messages(messages, budget=25000)
+    archived = json.loads(bounded[2].content)["archived_observations"]
+    assert archived[0]["rows"] == [{"normal_customers": 84, "negative_feedback": 84}]
+    assert archived[0]["columns"] == ["normal_customers", "negative_feedback"]
 
 
 def test_bundled_recheck_executes_owned_evidence_without_automatic_confirmation(tmp_path):

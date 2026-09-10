@@ -7,7 +7,7 @@ from hashlib import sha256
 
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, ToolMessage
 
-VERIFIER_CONCURRENCY = 3
+VERIFIER_CONCURRENCY = 6
 VERIFIER_CONTEXT_BYTES = 96_000
 VERIFIER_PREVIEW_ROWS = 20
 
@@ -60,7 +60,9 @@ def recheck_candidate(data, context: dict) -> dict:
     ):
         try:
             value = data.query(
-                data.queries[original_id]["sql"], preview_limit=VERIFIER_PREVIEW_ROWS
+                data.queries[original_id]["sql"],
+                preview_limit=VERIFIER_PREVIEW_ROWS,
+                expose_cohort=True,
             )
             results[original_id] = tool_preview("query_data", value) | {
                 "original_query_id": original_id
@@ -90,7 +92,7 @@ def recheck_candidate(data, context: dict) -> dict:
         "evidence": [results[q] for q in candidate["evidence_query_ids"]],
         "journeys": journeys,
         "measurement": measurement,
-        "instruction": "Mechanical replay is not a verdict. Inspect the supplied SQL semantics, normal counterexamples, feedback attribution and final resolution. Query corrections or additional evidence as needed before finish.",
+        "instruction": "Mechanical replay is not a verdict. Inspect SQL semantics and counterexamples. Reuse cohort_table in SELECT/JOIN instead of rewriting the cohort SQL. These task-owned tables contain the full customer set, not just preview rows. Never use temporary cohort tables in reusable signal definitions.",
     }
 
 
@@ -106,13 +108,43 @@ def _reference(value: dict) -> dict:
             else None,
         }
     if "query_id" in value:
-        return {
+        reference = {
             k: value[k]
-            for k in ("query_id", "row_count", "owner", "snapshot_id", "error")
+            for k in (
+                "query_id",
+                "row_count",
+                "columns",
+                "owner",
+                "snapshot_id",
+                "error",
+                "offset",
+                "next_offset",
+                "truncated",
+                "original_query_id",
+                "cohort_table",
+            )
             if k in value
         }
+        rows = value.get("rows")
+        if (
+            rows is not None
+            and len(json.dumps(rows, ensure_ascii=False, default=str).encode()) <= 2048
+        ):
+            reference["rows"] = rows
+        return reference
     if "customer_id" in value:
-        return {k: value[k] for k in ("customer_id", "total_events", "error") if k in value}
+        reference = {
+            k: value[k]
+            for k in ("customer_id", "total_events", "error", "truncated", "window")
+            if k in value
+        }
+        events = value.get("events")
+        if (
+            events is not None
+            and len(json.dumps(events, ensure_ascii=False, default=str).encode()) <= 2048
+        ):
+            reference["events"] = events
+        return reference
     if "measurement_id" in value:
         return compact_measurement(value)
     return {k: value[k] for k in ("error", "status", "candidate_id") if k in value}
@@ -153,24 +185,11 @@ def bound_messages(
             if not isinstance(value, dict) or value.get("error"):
                 continue
             if "query_id" in value:
-                summary = {
-                    k: value[k]
-                    for k in (
-                        "query_id",
-                        "row_count",
-                        "columns",
-                        "owner",
-                        "snapshot_id",
-                    )
-                    if k in value
-                }
-                summary["instruction"] = "Rows archived; use read_query_result with this query_id."
+                summary = _reference(value)
+                summary["instruction"] = "Full SQL and rows remain available via read_query_result."
             elif "customer_id" in value and "events" in value:
-                summary = {
-                    "customer_id": value["customer_id"],
-                    "total_events": value.get("total_events"),
-                    "instruction": "Journey archived; call customer_journey again or query its events.",
-                }
+                summary = _reference(value)
+                summary["instruction"] = "Full journey remains available via customer_journey."
             elif "measurement_id" in value:
                 summary = compact_measurement(value)
             elif "cohort" in value and "journeys" in value:

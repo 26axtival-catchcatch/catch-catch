@@ -117,6 +117,9 @@ Use aggregate queries for counts; preview rows may be truncated and are not the 
 Only cite query IDs actually returned by query_data or the verifier's recheck_candidate.
 recheck_candidate returns newly executed, independently owned queries and a fresh measurement;
 do not repeat successful unchanged checks just to call the individual tools again.
+Verifier query results may include cohort_table: an immutable full customer set owned by this task.
+JOIN that table for follow-up aggregates instead of repeating a long cohort CTE in each SELECT.
+Other tasks cannot query that table. Never use temporary cohort tables inside reusable signal definitions.
 The final result must follow result_schema
 and be submitted with finish(document=<JSON string>). Write public results in Korean.
 When signal_tools_enabled is true, investigators MUST measure_signal and propose_signal for
@@ -354,7 +357,7 @@ class GeminiInvestigationModel:
                     )
                 elif isinstance(validated, _QueryArgs):
                     options = (
-                        {"preview_limit": VERIFIER_PREVIEW_ROWS}
+                        {"preview_limit": VERIFIER_PREVIEW_ROWS, "expose_cohort": True}
                         if result_type is Verification
                         else {}
                     )

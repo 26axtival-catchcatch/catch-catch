@@ -2,7 +2,7 @@
 
 The approved direction is to retain verification capability while splitting its context and reducing the serial bottleneck. The baseline run f9d10f57-5e90-4ee6-ac3d-1c2e175b42b3 used one verifier for six candidates, 401 seconds, and up to 178,822 input tokens.
 
-Each candidate receives a separate verifier task with a unique query owner, at most three tasks concurrently. A task receives one complete candidate, its referenced SQL with bounded previews, and only its own signal definition and compact measurement summary. All authorized source tables remain queryable for normal counterexamples and cross-source checks. Candidate IDs are not inferred from domain names.
+Each candidate receives a separate verifier task with a unique query owner, at most six tasks concurrently. A task receives one complete candidate, its referenced SQL with bounded previews, and only its own signal definition and compact measurement summary. All authorized source tables remain queryable for normal counterexamples and cross-source checks. Candidate IDs are not inferred from domain names.
 
 The verifier can call `recheck_candidate` to execute its assigned SQL, retrieve representative journeys, and independently remeasure the signal in one request. This is mechanical evidence collection, not an automatic verdict. It must still judge SQL semantics and gather normal counterexamples or correct the cohort as needed. Partial failures retain all successful sub-results in the delivered response.
 

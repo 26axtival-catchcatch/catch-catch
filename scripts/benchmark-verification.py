@@ -41,6 +41,7 @@ async def benchmark(args):
     from customer_signal.investigation.data import InvestigationData, query_owner
     from customer_signal.investigation.model import BedrockInvestigationModel
     from customer_signal.investigation.runner import InvestigationRunner
+    import customer_signal.investigation.runner as runner_module
     from customer_signal.investigation.verification import message_bytes
     from customer_signal.signals.contracts import SignalDefinition, Measurement
     from customer_signal.signals.store import SignalStore
@@ -52,6 +53,9 @@ async def benchmark(args):
     )
 
     settings = Settings(_env_file=None)
+    if args.concurrency is not None:
+        # Isolated benchmark process override; the running API is unaffected.
+        runner_module.VERIFIER_CONCURRENCY = args.concurrency
     original = json.loads(args.artifacts.joinpath("investigation.json").read_text())
     proposals = json.loads(args.artifacts.joinpath("proposals.json").read_text())[
         "items"
@@ -212,6 +216,7 @@ async def benchmark(args):
     summary = {
         "run_id": run_id,
         "model": args.model,
+        "concurrency": runner_module.VERIFIER_CONCURRENCY,
         "status": outcome.status,
         "elapsed_seconds": round(time.monotonic() - started, 3),
         "verification_seconds": round(
@@ -272,5 +277,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--artifacts", type=Path, required=True)
     parser.add_argument("--model", required=True)
+    parser.add_argument("--concurrency", type=int, choices=range(1, 7))
     args = parser.parse_args()
     asyncio.run(benchmark(args))
