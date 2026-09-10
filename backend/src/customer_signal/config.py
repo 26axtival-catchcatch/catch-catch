@@ -23,6 +23,9 @@ class Settings(BaseSettings):
         validation_alias=AliasChoices("AWS_REGION", "AWS_DEFAULT_REGION"),
     )
     bedrock_model: str = Field(default="us.anthropic.claude-opus-4-6-v1", min_length=1)
+    bedrock_investigator_model: str = Field(
+        default="us.anthropic.claude-sonnet-4-6", pattern=r"\S"
+    )
     gemini_model: str = "gemini-3.7-flash"
     gemini_fallback_model: str = "gemini-3.6-flash"
     database_path: Path = Path("data/generated/customer_signal.duckdb")

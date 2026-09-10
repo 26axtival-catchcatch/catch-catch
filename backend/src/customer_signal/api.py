@@ -21,6 +21,8 @@ from customer_signal.agent.generic_fixture import GenericFixtureModel
 from customer_signal.investigation.data import InvestigationData
 from customer_signal.investigation.model import BedrockInvestigationModel, GeminiInvestigationModel
 from customer_signal.investigation.runner import InvestigationRunner
+from customer_signal.signals.api import create_router as create_signal_router
+from customer_signal.signals.store import SignalStore
 from customer_signal.analytics.executor import PrimitiveExecutor
 from customer_signal.analytics.models import CustomerJourneyResult, EvidenceResult
 from customer_signal.analytics.service import AnalyticsService
@@ -118,6 +120,7 @@ class ApiDependencies:
     journal: EventJournal | None = None
     packs: AnalysisPackRegistry | None = None
     refresh_sources: Callable[[], tuple[SourceRegistry, tuple[str, ...]]] | None = None
+    signal_store: SignalStore | None = None
 
 
 class _RepositoryEvidenceProvider:
@@ -227,6 +230,7 @@ def _default_dependencies(settings: Settings) -> ApiDependencies:
         executor=executor,
         registry=registry,
     )
+    signal_store = SignalStore(settings.artifact_directory / "signals.sqlite3")
     generic_gemini_loop = None
     if api_key and api_key.strip():
         generic_gemini_loop = InvestigationRunner(
@@ -237,6 +241,7 @@ def _default_dependencies(settings: Settings) -> ApiDependencies:
             ),
             data_factory=lambda request: InvestigationData.load(refresh_sources()[0], request),
             artifact_directory=settings.artifact_directory,
+            signal_store=signal_store,
         )
     generic_bedrock_loop = None
     bedrock_key = settings.aws_bearer_token_bedrock
@@ -245,10 +250,12 @@ def _default_dependencies(settings: Settings) -> ApiDependencies:
             model=BedrockInvestigationModel(
                 api_key=bedrock_key.get_secret_value(),
                 model=settings.bedrock_model,
+                investigator_model=settings.bedrock_investigator_model,
                 region=settings.aws_region,
             ),
             data_factory=lambda request: InvestigationData.load(refresh_sources()[0], request),
             artifact_directory=settings.artifact_directory,
+            signal_store=signal_store,
         )
     customer_signal_pack = CustomerSignalPack(
         fixture_loop=generic_fixture_loop,
@@ -287,6 +294,7 @@ def _default_dependencies(settings: Settings) -> ApiDependencies:
         journal=journal,
         packs=packs,
         refresh_sources=refresh_sources,
+        signal_store=signal_store,
     )
 
 
@@ -294,6 +302,7 @@ _OPENAPI_TAGS = [
     {"name": "system", "description": "서비스 상태 확인"},
     {"name": "sources", "description": "분석에 사용할 수 있는 공개 Source 목록"},
     {"name": "runs", "description": "분석 Run 생성, 상태 조회, SSE 이벤트, 후속 조회"},
+    {"name": "signals", "description": "사용자 선택 시그널 등록과 기간별 정량 측정"},
     {"name": "run-artifacts", "description": "완료된 Run Artifact 조회와 다운로드"},
 ]
 
@@ -339,6 +348,7 @@ def create_app(
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
+        expose_headers=["X-Langfuse-Trace-Id"],
     )
 
     def snapshot_or_404(run_id: str) -> RunSnapshot:
@@ -379,6 +389,26 @@ def create_app(
                 detail="Last-Event-ID must name an emitted event or zero",
             ) from error
         return cursor
+
+    if resolved.signal_store is not None:
+        def completed_signal_run(run_id: str) -> bool:
+            # Persisted Artifact is the completion authority, including after restart.
+            if resolved.artifact_store is None:
+                return False
+            try:
+                return resolved.artifact_store.load(run_id).status == "completed"
+            except (InvalidRunIdError, ArtifactNotFoundError):
+                return False
+
+        def signal_data(request: RunRequest):
+            registry = resolved.refresh_sources()[0] if resolved.refresh_sources else resolved.registry
+            if registry is None:
+                raise ValueError("source registry unavailable")
+            return InvestigationData.load(registry, request)
+
+        app.include_router(create_signal_router(
+            store=resolved.signal_store, is_completed=completed_signal_run, load_data=signal_data,
+        ))
 
     @app.get("/health", tags=["system"], summary="서비스 상태 확인")
     async def health() -> dict[str, str]:

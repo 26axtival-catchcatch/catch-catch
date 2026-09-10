@@ -130,11 +130,11 @@ LANGFUSE_TRACING_ENVIRONMENT=development
 
 | 실행 | 동작 |
 | --- | --- |
-| `make dev` | Bedrock Claude Opus 4.6 전용 모드 (기본, `make dev-bedrock`과 동일) |
+| `make dev` | Bedrock 모드, investigator는 Sonnet 4.6, 나머지는 Opus 4.6 (기본, `make dev-bedrock`과 동일) |
 | `make dev-auto` | Bedrock 토큰 → Gemini 키 → Fixture 순서로 선택. 선택한 모델의 실패를 Run 오류로 표시 |
 | `make dev-fixture` | API 키와 외부 네트워크가 필요 없는 결정론적 Fixture 모드 |
 | `make dev-gemini` | 키 누락과 Provider 실패를 명시적 Run 오류로 표시하는 Gemini 전용 모드 |
-| `make dev-bedrock` | Bedrock Converse로 조사·검증·보고 수행. 다른 모델로 자동 전환하지 않음 |
+| `make dev-bedrock` | Bedrock Converse로 조사, 검증, 보고 수행. 실패 시 다른 모델로 자동 전환 없음 |
 
 Bedrock을 사용하려면 루트 `.env`에 다음을 설정하고 `make dev-bedrock` 또는 `make dev`를 실행합니다.
 
@@ -142,7 +142,13 @@ Bedrock을 사용하려면 루트 `.env`에 다음을 설정하고 `make dev-bed
 AWS_BEARER_TOKEN_BEDROCK=your_bedrock_api_key
 AWS_REGION=us-east-1
 BEDROCK_MODEL=us.anthropic.claude-opus-4-6-v1
+BEDROCK_INVESTIGATOR_MODEL=us.anthropic.claude-sonnet-4-6
 ```
+
+`BEDROCK_INVESTIGATOR_MODEL`은 investigator 전용 모델이며, 생략하면 Sonnet 4.6을 사용합니다.
+coordinator, verifier, reporter는 `BEDROCK_MODEL`을 사용합니다.
+investigator도 Opus로 실행하려면 두 변수에 같은 모델 ID를 지정합니다.
+설정을 변경한 뒤에는 Backend를 다시 시작해야 합니다.
 
 토큰은 Backend에만 전달하며 Frontend 실행 환경에서는 제거합니다.
 `AWS_DEFAULT_REGION`도 리전 별칭으로 지원합니다.

@@ -96,3 +96,31 @@ def test_query_keeps_complete_results_past_old_row_and_sql_length_limits(space):
     assert len(result["rows"]) == 100
     assert result["truncated"] is True
     assert len(space.queries[result["query_id"]]["rows"]) == 50001
+
+
+def test_restrict_uses_only_registered_sources_and_preserves_window(space):
+    assert hasattr(space, 'restrict'), 'Signal measurement needs a fixed source scope'
+    restricted = space.restrict(['app'])
+    try:
+        assert restricted.request.start_at == space.request.start_at
+        assert restricted.catalog()['event_count'] == 10001
+        restricted.query('SELECT DISTINCT customer_id FROM events')
+    finally:
+        restricted.close()
+    with pytest.raises(ValueError, match='scope'):
+        space.restrict(['other'])
+    assert space.query('SELECT count(*) AS n FROM events')['rows'][0]['n'] == 10001
+
+
+def test_referenced_tables_uses_external_access_disabled_connection():
+    request = RunRequest(question='추적', start_at='2026-09-04T00:00:00Z',
+        end_at='2026-09-11T00:00:00Z', enabled_sources=['app'])
+    data = InvestigationData(request=request, events=[event(1)], manifests=[], snapshot_id='test')
+    try:
+        assert hasattr(data, 'referenced_tables'), 'Dependency validation must use scoped database'
+        assert data.referenced_tables('SELECT count(*) FROM events') == {'events'}
+        assert data.referenced_tables('WITH events AS (SELECT 999) SELECT * FROM events') == set()
+        with pytest.raises((ValueError, Exception)):
+            data.referenced_tables("SELECT * FROM read_csv_auto('/tmp/not-authorized.csv')")
+    finally:
+        data.close()

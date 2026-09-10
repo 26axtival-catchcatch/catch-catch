@@ -188,6 +188,9 @@ async def test_tool_loop_runs_authorized_data_queries_off_thread_and_finishes():
         "catalog_data",
         "query_data",
         "customer_journey",
+        "find_signals",
+        "measure_signal",
+        "propose_signal",
         "finish",
     }
     assert provider.models[0]["retries"] == 1

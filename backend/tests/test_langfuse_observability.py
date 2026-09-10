@@ -326,3 +326,53 @@ def test_export_mask_keeps_one_stable_workflow_trace_name() -> None:
 
     assert attributes["langfuse.trace.name"] == "customer_signal.turn"
     assert attributes["langfuse.public_key"] == "[REDACTED]"
+
+
+def test_signal_span_groups_pattern_identity_and_nests_tools(role_client) -> None:
+    with bind_langfuse_run(LangfuseRunContext("signal-run", "generic", "질문", ("voc",))):
+        with tracing.signal_observation(
+            operation="proposal", proposal_id="proposal-1", candidate_id="pattern-1",
+            task_id="task-1", input={"api_key": "private", "title": "패턴", "source_run_id": "analysis-run"},
+        ) as observation:
+            with public_observation(name="measure", stage="measurement", input={}):
+                pass
+            observation.update(output={"signal_id": "signal-1", "secret": "private",
+                                       "measurement": {"measurement_id": "measurement-1"}})
+        assert _model_parent() == "span-1"
+    call = role_client.calls[1]
+    assert call["name"] == "customer_signal.signal"
+    assert call["as_type"] == "span"
+    assert {k: call["metadata"][k] for k in (
+        "entity_type", "operation", "proposal_id", "candidate_id", "task_id", "run_id"
+    )} == {
+        "entity_type": "signal", "operation": "proposal", "proposal_id": "proposal-1",
+        "candidate_id": "pattern-1", "task_id": "task-1", "run_id": "signal-run",
+    }
+    assert call["input"]["api_key"] == "[REDACTED]"
+    assert call["metadata"]["source_run_id"] == "analysis-run"
+    assert role_client.calls[2]["trace_context"]["parent_span_id"] == "span-2"
+    assert role_client.spans[1].updates[-1]["output"]["secret"] == "[REDACTED]"
+    assert role_client.spans[1].updates[-1]["metadata"]["signal_id"] == "signal-1"
+    assert role_client.spans[1].updates[-1]["metadata"]["operation"] == "proposal"
+    assert role_client.spans[1].updates[-1]["metadata"]["measurement_id"] == "measurement-1"
+    assert all(s.ended for s in role_client.spans)
+
+
+def test_signal_span_failure_restores_parent_and_sanitizes_error(role_client) -> None:
+    with bind_langfuse_run(LangfuseRunContext("signal-error", "generic", "질문", ())):
+        with pytest.raises(ValueError):
+            with tracing.signal_observation(
+                operation="register", signal_id="signal-1", input={}
+            ):
+                raise ValueError("private error")
+        assert _model_parent() == "span-1"
+    assert role_client.spans[1].updates == [
+        {"output": {"status": "failed", "error_type": "ValueError"}}
+    ]
+    assert role_client.spans[1].ended
+
+
+def test_signal_span_without_observability_does_not_block_work(monkeypatch) -> None:
+    monkeypatch.setattr(tracing, "_get_client", lambda: None)
+    with tracing.signal_observation(operation="register", input={}) as observation:
+        observation.update(output={"signal_id": "signal-1"})

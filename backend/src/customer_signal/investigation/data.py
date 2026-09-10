@@ -45,6 +45,7 @@ class InvestigationData:
             for e in events
         ):
             raise ValueError("event is outside authorized scope")
+        self._raw_events = [event.model_copy(deep=True) for event in events]
         self.request = request.model_copy(deep=True)
         self.manifests = manifests
         self.snapshot_id = snapshot_id
@@ -180,6 +181,13 @@ class InvestigationData:
             "instructions": "DuckDB SELECT. events contains all selected sources; each source_id is also a view. dim_* are strings; measure_* are numeric. occurred_at uses each source mapping; ingestion timestamps may differ from action time. No ground-truth or A/B labels are provided. No data outside this run is available.",
         }
 
+    def referenced_tables(self, sql: str) -> set[str]:
+        """Resolve SQL dependencies with the same external-access boundary as execution."""
+        if _UNSAFE_SQL.search(sql):
+            raise ValueError("only read-only queries of this data space are allowed")
+        with self._lock:
+            return set(self._db.get_table_names(sql))
+
     def query(self, sql: str) -> dict:
         if _UNSAFE_SQL.search(sql):
             raise ValueError("only read-only queries of this data space are allowed")
@@ -231,6 +239,17 @@ class InvestigationData:
             if len(events) <= 100
             else "first_50_and_last_50; query events for middle rows",
         }
+
+    def restrict(self, source_ids: list[str]) -> InvestigationData:
+        """Create an independent space with the registered sources and current window."""
+        if not source_ids or not set(source_ids) <= set(self.request.enabled_sources):
+            raise ValueError("registered sources are outside authorized scope")
+        return InvestigationData(
+            request=self.request.model_copy(update={"enabled_sources": sorted(set(source_ids))}),
+            events=[e for e in self._raw_events if e.source_id in source_ids],
+            manifests=[m for m in self.manifests if m.source_id in source_ids],
+            snapshot_id=self.snapshot_id,
+        )
 
     def close(self) -> None:
         self._db.close()
