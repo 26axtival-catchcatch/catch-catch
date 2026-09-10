@@ -602,3 +602,302 @@
     animation: none;
   }
 }
+
+/* ── Multi-agent signal canvas ───────────────────────── */
+.panel {
+  width: min(64rem, 100%);
+}
+
+.head {
+  display: flex;
+  align-items: flex-end;
+  gap: 1rem;
+  margin: 0 0 0.4rem;
+  padding: 0;
+  border: 0;
+}
+
+.kicker {
+  margin: 0 0 0.3rem;
+  color: var(--signal);
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.13em;
+}
+
+.canvas {
+  position: relative;
+  height: clamp(23rem, 52vh, 30rem);
+  min-height: 23rem;
+  overflow: hidden;
+  background-image: radial-gradient(circle, var(--line-soft) 0.8px, transparent 0.8px);
+  background-size: 24px 24px;
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 9%, #000 93%, transparent 100%);
+  mask-image: linear-gradient(to bottom, transparent 0, #000 9%, #000 93%, transparent 100%);
+}
+
+.canvasLoading {
+  display: grid;
+  place-items: center;
+  color: var(--fog-dim);
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.12em;
+}
+
+.canvas :global(.react-flow__pane) {
+  cursor: default;
+}
+
+.canvas :global(.react-flow__attribution) {
+  background: transparent;
+  color: var(--fog-dim);
+  font-family: var(--font-mono);
+  font-size: 0.52rem;
+  opacity: 0.45;
+}
+
+.canvas :global(.react-flow__attribution a) {
+  color: inherit;
+}
+
+.flowNode {
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  transition: transform 420ms var(--ease);
+}
+
+.edge {
+  fill: none;
+  stroke: var(--line);
+  stroke-width: 1.2;
+  vector-effect: non-scaling-stroke;
+  transition: stroke 320ms var(--ease), opacity 320ms var(--ease);
+}
+
+.edge[data-state="active"] {
+  stroke: var(--signal);
+  stroke-dasharray: 5 10;
+  animation: signalFlow var(--pulse-duration) linear infinite;
+  filter: drop-shadow(0 0 6px var(--signal-glow));
+}
+
+.edge[data-state="done"] {
+  stroke: var(--signal);
+}
+
+.edge[data-state="rejected"] {
+  stroke: var(--amber);
+  stroke-dasharray: 2 7;
+}
+
+.edgePulse {
+  fill: var(--signal);
+  filter: drop-shadow(0 0 6px var(--signal));
+}
+
+@keyframes signalFlow {
+  to {
+    stroke-dashoffset: -30;
+  }
+}
+
+.node {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.28rem;
+  opacity: 1;
+  animation: nodeEnter 300ms var(--ease) both;
+}
+
+@keyframes nodeEnter {
+  from {
+    opacity: 0;
+    transform: scale(0.72);
+  }
+}
+
+.handle {
+  width: 1px !important;
+  height: 1px !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  opacity: 0;
+}
+
+.orb {
+  position: relative;
+  display: grid;
+  width: 2.25rem;
+  height: 2.25rem;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: var(--ground);
+  color: var(--fog);
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+}
+
+.node[data-primary="true"] .orb {
+  width: 2.9rem;
+  height: 2.9rem;
+}
+
+.node[data-state="active"] .orb {
+  border-color: var(--signal);
+  color: var(--signal);
+  box-shadow: 0 0 0 7px var(--signal-wash), 0 0 28px rgb(255 46 152 / 22%);
+}
+
+.node[data-state="active"] .orb::before {
+  position: absolute;
+  inset: -7px;
+  border: 1px solid var(--signal);
+  border-radius: 50%;
+  content: "";
+  animation: nodePulse 1.65s var(--ease) infinite;
+}
+
+.node[data-state="done"] .orb {
+  border-color: var(--signal);
+  color: var(--signal);
+}
+
+.node[data-state="rejected"] .orb {
+  border-color: var(--amber);
+  color: var(--amber);
+}
+
+.node[data-state="waiting"] {
+  opacity: 0.52;
+}
+
+@keyframes nodePulse {
+  from {
+    opacity: 0.9;
+    transform: scale(0.82);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.48);
+  }
+}
+
+.nodeLabel {
+  color: var(--chalk);
+  font-size: 0.74rem;
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.nodeMeta {
+  color: var(--fog-dim);
+  font-family: var(--font-mono);
+  font-size: 0.59rem;
+  line-height: 1.25;
+  white-space: nowrap;
+}
+
+.node[data-state="active"] .nodeMeta {
+  color: var(--signal-soft);
+}
+
+.node[data-state="rejected"] .nodeMeta {
+  color: var(--amber);
+}
+
+.eventRail {
+  display: flex;
+  min-height: 2.7rem;
+  align-items: center;
+  gap: 0.55rem;
+  padding-top: 0.7rem;
+  border-top: 1px solid var(--line-soft);
+}
+
+.eventMark {
+  color: var(--signal);
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+}
+
+.eventText {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--fog);
+  font-size: 0.76rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.eventMeta {
+  margin-left: auto;
+  color: var(--fog-dim);
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  white-space: nowrap;
+}
+
+.canvas[data-halted="true"] .edge[data-state="active"] {
+  animation-play-state: paused;
+}
+
+@media (max-width: 700px) {
+  .screen {
+    padding-inline: 0.8rem;
+  }
+
+  .head {
+    align-items: flex-start;
+  }
+
+  .count,
+  .nodeMeta {
+    display: none;
+  }
+
+  .canvas {
+    height: 30rem;
+    background-size: 20px 20px;
+  }
+
+  .nodeLabel {
+    font-size: 0.68rem;
+  }
+
+  .eventRail {
+    gap: 0.4rem;
+  }
+
+  .eventMeta {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .edge[data-state="active"],
+  .node[data-state="active"] .orb::before {
+    animation: none;
+  }
+
+  .edgePulse {
+    display: none;
+  }
+
+  .node {
+    animation: none;
+  }
+
+  .flowNode {
+    transition: none;
+  }
+}
