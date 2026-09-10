@@ -18,3 +18,5 @@ coverage/
 dist/
 .gstack/
 backend/data/run-artifacts/
+data/investigation-demo-sources/
+data/live-validation/

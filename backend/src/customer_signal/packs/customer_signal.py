@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import AsyncIterator
-from typing import Literal, cast
+from typing import Literal, Protocol, cast
 from uuid import UUID
 
 from pydantic import JsonValue
@@ -72,6 +72,10 @@ CUSTOMER_SIGNAL_PACK_SPEC = AnalysisPackSpec(
 _DONE = object()
 
 
+class _GenericLoop(Protocol):
+    async def run(self, request: RunRequest, *, emit) -> GenericRunnerOutcome: ...
+
+
 class CustomerSignalPack:
     """One deep module owning customer-signal analysis behind the Pack seam."""
 
@@ -82,9 +86,9 @@ class CustomerSignalPack:
         self,
         *,
         fixture_loop: AnalysisLoop,
-        gemini_loop: AnalysisLoop | None = None,
+        gemini_loop: _GenericLoop | None = None,
     ) -> None:
-        self._loops: dict[str, AnalysisLoop | None] = {
+        self._loops: dict[str, _GenericLoop | None] = {
             "fixture": fixture_loop,
             "gemini": gemini_loop,
         }
@@ -140,7 +144,7 @@ class CustomerSignalPack:
                 task.cancel()
                 await asyncio.gather(task, return_exceptions=True)
 
-    def _select_loop(self, context: PackContext) -> AnalysisLoop:
+    def _select_loop(self, context: PackContext) -> _GenericLoop:
         mode = cast(str, context.options.get("mode", "auto"))
         if mode == "auto":
             mode = "gemini" if self.has_gemini else "fixture"

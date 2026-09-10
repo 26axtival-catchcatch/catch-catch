@@ -28,6 +28,9 @@ Backend 를 실행하면 FastAPI 가 다음 경로를 자동으로 제공합니�
 | --- | --- | --- | --- |
 | GET | `/api/sources` | 분석에 사용할 수 있는 공개 Source 목록 조회 | `PublicSourceList` |
 
+목록 조회와 새 Run 생성 시 등록 디렉터리를 다시 읽습니다. 외부에서 승인된 데이터 Source를
+추가한 뒤 목록을 새로 조회하면 재시작 없이 다음 분석에 사용할 수 있습니다.
+
 ## runs
 
 | Method | 경로 | 설명 | 응답 |
@@ -39,6 +42,16 @@ Backend 를 실행하면 FastAPI 가 다음 경로를 자동으로 제공합니�
 | GET | `/api/runs/{run_id}/presentation` | Canonical Run Event 에서 재계산한 Presentation Intent 목록 조회 | `PresentationReplay` |
 | GET | `/api/runs/{run_id}/customers/{customer_id}/journey` | 완료된 Run 의 고객 Journey 조회 | `CustomerJourneyResult` |
 | GET | `/api/runs/{run_id}/evidence/{evidence_id}` | 완료된 Run 의 마스킹 Evidence 조회 | `EvidenceResult` |
+
+`mode=gemini`는 총괄, 가설별 조사, 독립 검증과 보고 역할을 실행합니다. 요청 필드와
+SSE, `customer_signal` 보고서 스키마는 유지합니다. 진행 중 실행은 선택한 공간의
+스냅샷을 사용하며, 추가된 데이터는 같은 질문과 기간으로 새 Run을 생성해 분석합니다.
+전체 실행 한계는 15분 미만이며, 시간 내 검증하지 못한 후보는 `limitations`에 남깁니다.
+위험 점수는 산정하지 않으므로 `ranked_customers`는 비어 있습니다. 대표 고객 식별자는
+상태 응답의 `facts` 중 `payload.kind=get_customer_journey`의 `payload.customer_id`를 사용합니다.
+기존 고객 Journey와 Evidence 조회 URL은 그대로 사용할 수 있습니다.
+새 분석의 상세 조회는 완료된 Run의 Fact에 보관한 여정과 근거를 반환하므로,
+추가 데이터의 마스킹 고객 ID도 조회할 수 있고 실행 이후 데이터 변경의 영향을 받지 않습니다.
 
 ## run-artifacts
 

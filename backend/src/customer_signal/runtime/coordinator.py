@@ -15,11 +15,13 @@ from customer_signal.agent.contracts import (
     UnsupportedQuestionError,
 )
 from customer_signal.agent.gemini import GeminiRunnerError
-from customer_signal.analytics.models import CustomerJourneyResult, EvidenceResult
+from customer_signal.analytics.models import CustomerJourneyResult, EvidenceResult, ToolStats
 from customer_signal.analytics.service import AnalyticsService
 from customer_signal.data.repository import EntityNotFoundError
 from customer_signal.domain.analysis import PublicRunError
-from customer_signal.domain.facts import AnalysisFact
+from customer_signal.domain.facts import AnalysisFact, CustomerJourneyPayload, EvidencePayload
+from customer_signal.domain.models import EvidenceRecord
+from customer_signal.domain.reports import JourneyEvent
 from customer_signal.observability.langfuse import (
     LangfuseRunContext,
     bind_langfuse_run,
@@ -215,6 +217,15 @@ class RunCoordinator:
         if customer_id not in allowed_customers:
             raise RunResourceNotFoundError("run resource not found")
 
+        if snapshot.run_kind == "generic":
+            for fact in snapshot.facts:
+                payload = fact.payload
+                if isinstance(payload, CustomerJourneyPayload) and payload.customer_id == customer_id:
+                    events = [JourneyEvent(**event.model_dump()) for event in payload.events]
+                    return CustomerJourneyResult(result_id=fact.result_id, customer_id=customer_id,
+                        events=events, evidence_ids=[event.evidence_id for event in events],
+                        stats=ToolStats(scanned_rows=0, returned_rows=len(events)))
+
         cache_key = (run_id, customer_id)
         cached = self._journey_cache.get(cache_key)
         if cached is None:
@@ -247,6 +258,14 @@ class RunCoordinator:
         journey_evidence = self._journey_evidence_ids.get(run_id, set())
         if evidence_id not in allowed_evidence and evidence_id not in journey_evidence:
             raise RunResourceNotFoundError("run resource not found")
+        if snapshot.run_kind == "generic":
+            for fact in snapshot.facts:
+                if isinstance(fact.payload, EvidencePayload):
+                    records = [EvidenceRecord(**record.model_dump()) for record in fact.payload.records
+                               if record.evidence_id == evidence_id]
+                    if records:
+                        return EvidenceResult(result_id=fact.result_id, records=records,
+                            evidence_ids=[evidence_id], stats=ToolStats(scanned_rows=0, returned_rows=1))
         try:
             return self._analytics.get_evidence([evidence_id])
         except (EntityNotFoundError, ValueError) as error:

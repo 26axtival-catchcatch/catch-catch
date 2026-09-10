@@ -19,7 +19,6 @@ from customer_signal.agent.generic_fixture import (
     REPEAT_JOURNEY_QUESTION,
     SIGNUP_ABANDONMENT_QUESTION,
 )
-from customer_signal.agent.generic_gemini import GeminiAnalysisModel
 from customer_signal.api import _default_dependencies, create_app
 from customer_signal.config import Settings
 from customer_signal.domain.analysis import (
@@ -178,19 +177,16 @@ def test_default_gemini_loop_owns_all_stages_without_fixture_delegate(
     pack = dependencies.packs.get("customer_signal")
     loop = pack._loops["gemini"]
     assert loop is not None
-    model = loop._model
+    from customer_signal.investigation.model import GeminiInvestigationModel
+    from customer_signal.investigation.runner import InvestigationRunner
+    assert isinstance(loop, InvestigationRunner)
+    model = loop.model
     fixture_loop = pack._loops["fixture"]
 
-    assert isinstance(model, GeminiAnalysisModel)
+    assert isinstance(model, GeminiInvestigationModel)
     assert model is not fixture_loop._model
     assert not hasattr(model, "_verified_model")
-    assert {
-        "create_goal",
-        "create_plan",
-        "create_note",
-        "select_next",
-        "create_report",
-    } <= GeminiAnalysisModel.__dict__.keys()
+    assert "run_role" in GeminiInvestigationModel.__dict__
 
 
 def _wait_for_status(

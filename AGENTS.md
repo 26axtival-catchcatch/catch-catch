@@ -50,3 +50,8 @@
   시각, `run_name`, stage metadata를 확인해야 합니다.
 - Uvicorn을 `--reload` 없이 실행했다면 코드나 `.env` 변경 뒤 Backend를 다시
   시작해야 합니다.
+
+
+<!-- BEGIN sdd-control-plane -->
+When using `$sdd-control-plane`, read `.sdd-control/AGENTS.md`, `.sdd-control/PROJECT.md`, and `.sdd-control/STACKS.md`.
+<!-- END sdd-control-plane -->

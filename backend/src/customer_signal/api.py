@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import AsyncIterator, Sequence
+from collections.abc import AsyncIterator, Callable, Sequence
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from uuid import UUID
@@ -18,7 +18,9 @@ from customer_signal.agent.contracts import RunRequest
 from customer_signal.agent.fixture import FixtureRunner
 from customer_signal.agent.gemini import GeminiRunner
 from customer_signal.agent.generic_fixture import GenericFixtureModel
-from customer_signal.agent.generic_gemini import GeminiAnalysisModel
+from customer_signal.investigation.data import InvestigationData
+from customer_signal.investigation.model import GeminiInvestigationModel
+from customer_signal.investigation.runner import InvestigationRunner
 from customer_signal.analytics.executor import PrimitiveExecutor
 from customer_signal.analytics.models import CustomerJourneyResult, EvidenceResult
 from customer_signal.analytics.service import AnalyticsService
@@ -115,6 +117,7 @@ class ApiDependencies:
     generic_default_mode: RequestedAgentMode = "fixture"
     journal: EventJournal | None = None
     packs: AnalysisPackRegistry | None = None
+    refresh_sources: Callable[[], tuple[SourceRegistry, tuple[str, ...]]] | None = None
 
 
 class _RepositoryEvidenceProvider:
@@ -204,6 +207,11 @@ def _default_dependencies(settings: Settings) -> ApiDependencies:
         [*adapters, *onboarded],
         evidence=CompositeEvidenceProvider(evidence, onboarded) if onboarded else evidence,
     )
+    def refresh_sources() -> tuple[SourceRegistry, tuple[str, ...]]:
+        current = load_onboarded_adapters(settings.onboarded_sources_dir)
+        fresh = SourceRegistry([*adapters, *current],
+            evidence=CompositeEvidenceProvider(evidence, current) if current else evidence)
+        return fresh, (*_BUILT_IN_SOURCE_IDS, *(a.describe().source_id for a in current))
     executor = PrimitiveExecutor(
         registry=registry,
         dataset_version=str(SYNTHETIC_DATASET_VERSION),
@@ -221,14 +229,14 @@ def _default_dependencies(settings: Settings) -> ApiDependencies:
     )
     generic_gemini_loop = None
     if api_key and api_key.strip():
-        generic_gemini_loop = AnalysisLoop(
-            model=GeminiAnalysisModel(
+        generic_gemini_loop = InvestigationRunner(
+            model=GeminiInvestigationModel(
                 api_key=api_key,
                 primary_model=settings.gemini_model,
                 fallback_model=settings.gemini_fallback_model,
             ),
-            executor=executor,
-            registry=registry,
+            data_factory=lambda request: InvestigationData.load(refresh_sources()[0], request),
+            artifact_directory=settings.artifact_directory,
         )
     customer_signal_pack = CustomerSignalPack(
         fixture_loop=generic_fixture_loop,
@@ -236,7 +244,7 @@ def _default_dependencies(settings: Settings) -> ApiDependencies:
     )
     packs = AnalysisPackRegistry([customer_signal_pack])
     journal = SQLiteEventJournal(settings.resolved_journal_path)
-    kernel = PackKernel(journal, timeout_seconds=130.0)
+    kernel = PackKernel(journal, timeout_seconds=890.0)
     coordinator = RunCoordinator(
         agent_mode=settings.agent_mode,
         fixture_runner=FixtureRunner(mcp_server),
@@ -265,6 +273,7 @@ def _default_dependencies(settings: Settings) -> ApiDependencies:
         generic_default_mode=settings.resolved_agent_mode,
         journal=journal,
         packs=packs,
+        refresh_sources=refresh_sources,
     )
 
 
@@ -366,7 +375,8 @@ def create_app(
     async def list_sources() -> PublicSourceList:
         if resolved.registry is None:
             return PublicSourceList(items=[])
-        manifests = resolved.registry.manifests(resolved.source_ids)
+        registry, source_ids = resolved.refresh_sources() if resolved.refresh_sources else (resolved.registry, resolved.source_ids)
+        manifests = registry.manifests(source_ids)
         return PublicSourceList(
             items=[PublicSourceManifest.from_internal(item) for item in manifests]
         )
@@ -383,7 +393,8 @@ def create_app(
     ) -> RunAccepted:
         if resolved.registry is not None:
             try:
-                resolved.registry.manifests(request.enabled_sources)
+                registry = resolved.refresh_sources()[0] if resolved.refresh_sources else resolved.registry
+                registry.manifests(request.enabled_sources)
             except LookupError as error:
                 raise HTTPException(
                     status_code=422,

@@ -96,7 +96,7 @@ class PackKernel:
     """Run Packs against the journal with shared validation and error rules."""
 
     def __init__(self, journal: EventJournal, *, timeout_seconds: float = 240.0) -> None:
-        if not 0 < timeout_seconds <= 600:
+        if not 0 < timeout_seconds <= 900:
             raise ValueError("timeout_seconds must be positive and bounded")
         self._journal = journal
         self._timeout_seconds = timeout_seconds

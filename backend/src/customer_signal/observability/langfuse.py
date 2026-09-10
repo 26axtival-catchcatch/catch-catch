@@ -186,6 +186,61 @@ def update_langfuse_workflow(*, output: Any) -> None:
     _update_observation(_CURRENT_WORKFLOW.get(), output=output)
 
 
+def current_run_id() -> str | None:
+    """Return the public run identifier bound to this execution context."""
+
+    context = _CURRENT_RUN.get()
+    return context.run_id if context is not None else None
+
+
+@contextmanager
+def agent_observation(
+    *,
+    role: str,
+    task_id: str,
+    input: dict[str, Any],
+    round_index: int = 0,
+) -> Iterator[_NoOpObservation | _SafeObservation]:
+    """Nest a role's model and tool calls while retaining the root workflow."""
+
+    context = _CURRENT_RUN.get()
+    client = _get_client()
+    if context is None or client is None:
+        yield _NoOpObservation()
+        return
+
+    metadata = {
+        "provider": "server",
+        "stage": role,
+        "role": role,
+        "task_id": task_id,
+        "round_index": round_index,
+        "run_id": context.run_id,
+        "run_kind": context.run_kind,
+        "enabled_sources": ",".join(context.source_ids),
+        "langfuse_session_id": context.run_id,
+        "langfuse_tags": ["customer-signal", "server", role, context.run_kind],
+    }
+    try:
+        observation = client.start_observation(
+            name=f"customer_signal.{role}",
+            as_type="agent",
+            trace_context=_trace_context(context),
+            input=sanitize_trace_value(input),
+            metadata=sanitize_trace_value(metadata),
+        )
+    except Exception:
+        yield _NoOpObservation()
+        return
+
+    run_token = _CURRENT_RUN.set(replace(context, parent_observation_id=observation.id))
+    try:
+        yield _SafeObservation(observation)
+    finally:
+        _CURRENT_RUN.reset(run_token)
+        _end_observation(observation)
+
+
 @contextmanager
 def public_observation(
     *,

@@ -1,7 +1,11 @@
 from __future__ import annotations
 
+import asyncio
 from types import SimpleNamespace
 
+import pytest
+
+from customer_signal.observability import langfuse as tracing
 from customer_signal.observability.langfuse import (
     LangfuseRunContext,
     _mask_otel_spans,
@@ -35,6 +39,115 @@ class _FakeClient:
         span = _FakeSpan(f"span-{len(self.spans) + 1}")
         self.spans.append(span)
         return span
+
+
+@pytest.fixture
+def role_client(monkeypatch):
+    client = _FakeClient()
+    for name in ("LANGFUSE_PUBLIC_KEY", "LANGFUSE_SECRET_KEY", "LANGFUSE_BASE_URL"):
+        monkeypatch.setenv(name, "configured-for-test")
+
+    class FakeCallbackHandler:
+        def __init__(self, *, public_key, trace_context) -> None:
+            self.trace_context = trace_context
+
+    monkeypatch.setattr("langfuse.langchain.CallbackHandler", FakeCallbackHandler)
+    monkeypatch.setattr(tracing, "_get_client", lambda: client)
+    return client
+
+
+def _model_parent() -> str:
+    config = build_langfuse_config(
+        run_name="customer_signal.note", provider="gemini", stage="note"
+    )
+    return config["callbacks"][0].trace_context["parent_span_id"]
+
+
+def test_agent_observation_nests_model_and_tool_and_preserves_root_summary(role_client) -> None:
+    context = LangfuseRunContext("run-roles", "generic", "합성 질문", ("voc",))
+    with bind_langfuse_run(context):
+        assert tracing.current_run_id() == "run-roles"
+        with tracing.agent_observation(
+            role="coordinator", task_id="coordinate", input={}, round_index=1
+        ):
+            with tracing.agent_observation(
+                role="research",
+                task_id="research-voc",
+                input={"messages": [{"role": "assistant", "content": "private reasoning"}]},
+                round_index=1,
+            ) as observation:
+                assert _model_parent() == "span-3"
+                with public_observation(name="customer_signal.tool.query", stage="tool", input={}):
+                    pass
+                observation.update(output={"api_key": "private-key", "fact_id": "fact-1"})
+                tracing.update_langfuse_workflow(output={"status": "completed"})
+            assert _model_parent() == "span-2"
+        assert _model_parent() == "span-1"
+    assert tracing.current_run_id() is None
+    assert [call["name"] for call in role_client.calls] == [
+        "customer_signal.turn", "customer_signal.coordinator", "customer_signal.research",
+        "customer_signal.tool.query",
+    ]
+    assert [call["trace_context"].get("parent_span_id") for call in role_client.calls] == [
+        None, "span-1", "span-2", "span-3",
+    ]
+    role = role_client.calls[2]
+    assert role["as_type"] == "agent"
+    assert {key: role["metadata"][key] for key in ("role", "task_id", "round_index", "run_id")} == {
+        "role": "research", "task_id": "research-voc", "round_index": 1, "run_id": "run-roles",
+    }
+    assert role["input"]["messages"][0]["content"] == "[PRIVATE_AGENT_MESSAGE_REDACTED]"
+    assert role_client.spans[2].updates == [{"output": {"api_key": "[REDACTED]", "fact_id": "fact-1"}}]
+    assert role_client.spans[0].updates == [{"output": {"status": "completed"}}]
+    assert all(span.ended for span in role_client.spans)
+
+
+async def test_parallel_agent_observations_keep_separate_task_parents(role_client) -> None:
+    both_started = asyncio.Event()
+    parents = {}
+
+    async def run_role(role):
+        with tracing.agent_observation(role=role, task_id=role, input={}):
+            parents[role] = _model_parent()
+            if len(parents) == 2:
+                both_started.set()
+            await asyncio.wait_for(both_started.wait(), timeout=1)
+            assert _model_parent() == parents[role]
+            with public_observation(name=f"tool.{role}", stage="tool", input={}):
+                pass
+        assert _model_parent() == "span-1"
+
+    with bind_langfuse_run(LangfuseRunContext("run-parallel", "generic", "합성 질문", ("voc",))):
+        await asyncio.gather(run_role("research"), run_role("verification"))
+        assert _model_parent() == "span-1"
+    assert parents["research"] != parents["verification"]
+    for call in role_client.calls:
+        if call["name"].startswith("tool."):
+            assert call["trace_context"]["parent_span_id"] == parents[call["name"].split(".")[1]]
+    assert all(span.ended for span in role_client.spans)
+
+
+@pytest.mark.parametrize("error_type", [RuntimeError, asyncio.CancelledError])
+def test_agent_observation_restores_parent_after_error(role_client, error_type) -> None:
+    with bind_langfuse_run(LangfuseRunContext("run-error", "generic", "합성 질문", ("voc",))):
+        with pytest.raises(error_type):
+            with tracing.agent_observation(role="report", task_id="report", input={}):
+                raise error_type("private error detail")
+        assert _model_parent() == "span-1"
+        assert role_client.spans[1].ended
+    assert tracing.current_run_id() is None
+
+
+def test_agent_observation_is_noop_without_client(monkeypatch) -> None:
+    monkeypatch.setattr(tracing, "_get_client", lambda: None)
+    with tracing.agent_observation(role="research", task_id="orphan", input={}) as observation:
+        observation.update(output={"status": "completed"})
+        assert tracing.current_run_id() is None
+    with bind_langfuse_run(LangfuseRunContext("run-noop", "generic", "합성 질문", ())):
+        with tracing.agent_observation(role="research", task_id="task", input={}) as observation:
+            observation.update(output={"status": "completed"})
+            assert tracing.current_run_id() == "run-noop"
+    assert tracing.current_run_id() is None
 
 
 def test_callback_config_is_empty_without_credentials(monkeypatch) -> None:
