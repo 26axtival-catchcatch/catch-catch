@@ -30,6 +30,8 @@ class Settings(BaseSettings):
     gemini_fallback_model: str = "gemini-3.6-flash"
     database_path: Path = Path("data/generated/customer_signal.duckdb")
     artifact_directory: Path = Path("data/run-artifacts")
+    signal_scheduler_enabled: bool = True
+    signal_scheduler_poll_seconds: float = Field(default=60, ge=0.1, le=3600)
     journal_path: Path | None = None
     onboarded_sources_dir: Path = Path("data/onboarded-sources")
     api_host: str = "127.0.0.1"

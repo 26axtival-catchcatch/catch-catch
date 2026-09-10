@@ -164,3 +164,22 @@ env -u LANGFUSE_SECRET_KEY -u LANGFUSE_PUBLIC_KEY -u LANGFUSE_BASE_URL \
   uv run --env-file .env --project backend python scripts/verify-signal-spans-mcp.py \
   --backend-credentials --trace-id <분석 Run ID에서 하이픈을 뺀 ID> --trace-tree
 ```
+
+## 일별 자동 측정 API 연결
+
+등록 완료 후 `GET /api/signals/{id}/schedule`에서 기본 활성 일정과 다음 실행 시각을 읽습니다.
+한국시간 자정마다 직전 하루를 고정된 정의로 측정합니다. `PUT /schedule`의 `enabled`로
+자동 측정만 끄거나 켤 수 있고 시그널의 paused/archived 상태도 자동 실행을 막습니다.
+
+추이 데이터는 `GET /api/signals/{id}/daily-results?limit=30`을 사용하세요.
+`next_before`를 다음 호출의 `before`로 전달합니다. 각 행의 `measurement.values`가 지표이며
+행은 최신순입니다. 자동 실행 `status`와 재측정 이후의 `measurement.status`는 구분합니다.
+초기 여러 날짜 분석의 값은 일별 그래프에 자동으로 섞이지 않습니다.
+
+최근 두 일별 기간 비교 카드는 `GET /api/signals/{id}/comparison`으로 조회합니다. 두 measurement ID를
+함께 보내면 선택한 기간끼리 비교할 수 있습니다. `comparable=false`일 때 수치 증감을 만들지 말고
+`comparison_limitations`를 표시하세요. `percentage_points`는 `%p`, 상대 변화는 `%`로 표시합니다.
+`relative_change_percent=null`은 기준값 0이라 계산할 수 없다는 뜻입니다.
+
+상세 계약, backfill 예시, 실행 조건은 [API 엔드포인트 문서](api-endpoints.md)의
+시그널 일별 자동 측정과 비교 절을 참고하세요.

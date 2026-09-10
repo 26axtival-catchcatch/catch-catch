@@ -146,3 +146,59 @@ env -u LANGFUSE_SECRET_KEY -u LANGFUSE_PUBLIC_KEY -u LANGFUSE_BASE_URL \
   uv run --env-file .env --project backend python scripts/verify-signal-spans-mcp.py \
   --backend-credentials --trace-id <ID>
 ```
+
+## 시그널 일별 자동 측정과 비교
+
+새 시그널을 등록하면 기본 일정을 함께 저장합니다. 기존 시그널도 새 Backend가 시작될 때
+일정이 없는 경우 다음 한국시간 자정부터 일정을 추가합니다. 일별 실행은 기존
+`SignalService.measure → InvestigationData.load → measure_definition` 경로를 사용합니다.
+등록된 SQL, Source 범위, 모집단과 지표를 그대로 유지하며 실행마다 해당 기간의 최신 데이터를 읽습니다.
+LLM을 다시 호출해 정의를 만들지 않습니다.
+
+| Method | 경로 | 설명 | 응답 |
+| --- | --- | --- | --- |
+| GET | `/api/signals/{signal_id}/schedule` | 일별 일정, 다음 실행 시각, 시그널 상태 조회 | `DailySchedule` |
+| PUT | `/api/signals/{signal_id}/schedule` | `enabled` 설정, 선택적으로 `next_run_at` 변경 | `DailySchedule` |
+| GET | `/api/signals/{signal_id}/daily-results` | 일별 실행과 기간별 최신 측정, 누락 기간 수 조회 | `DailyResults` |
+| GET | `/api/signals/{signal_id}/comparison` | 기본 최신 일별 두 기간 또는 지정한 두 측정 비교 | `MeasurementComparison` |
+
+일정은 `interval=daily`, `timezone=Asia/Seoul`로 고정합니다. 매일 00:00에 직전 하루의
+`[start_at, end_at)`를 측정하며 API 응답의 시각은 UTC입니다. 예를 들어 한국시간
+9월 11일 00:00 실행은 9월 10일 00:00 이상, 9월 11일 00:00 미만의 데이터입니다.
+실행 확인은 기본 60초 간격이므로 자정 이후 다음 poll에 실행합니다.
+
+```json
+{"enabled": true, "next_run_at": "2026-09-06T00:00:00+09:00"}
+```
+
+`next_run_at`은 timezone이 있는 한국시간 자정이어야 합니다. 과거 자정으로 설정하면
+해당 자정을 끝으로 하는 하루부터 순차 보충하며, 아직 끝나지 않은 기간은 실행하지 않습니다.
+누락 기간은 poll마다 시그널당 한 기간씩 처리합니다. `enabled=false` 또는 시그널의
+`status=paused/archived`이면 자동 실행을 중지하며, 재개 시 기존 커서부터 누락을 보충합니다.
+누락 보충을 원하지 않으면 다음 미래 자정으로 `next_run_at`을 지정하세요.
+이미 시작한 측정은 중지 이후에도 완료될 수 있습니다. 실행 중 일정 변경은 409입니다.
+
+`daily-results`는 최신순이며 `limit`은 기본 30, 최대 100입니다. 다음 페이지는 응답의
+`next_before`를 `before`에 그대로 전달합니다. `before`는 해당 경계를 포함하지 않습니다.
+`pending_days`는 다음 실행 시각부터 현재까지 닫힌 기간 수이며 일시 중지 여부와 무관합니다.
+`items[].status`는 자동 실행의 결과(`running/success/unavailable`), `measurement`는 해당 기간의
+최신 성공 측정을 우선한 값입니다. 수동으로 같은 기간을 재측정하면 실행 결과는 보존하면서
+`measurement`에 복구된 값이 반영됩니다. `running`은 재시작 후 재처리 중인 실행일 수도 있습니다.
+실패 기간은 null 값과 공개 사유로 저장하고 다음 날의 실행을 계속합니다. 실패/지연 적재를
+복구하려면 기존 `POST /measurements`로 그 기간을 재측정합니다.
+
+`comparison`에 `baseline_measurement_id`, `target_measurement_id`를 함께 지정하면
+해당 시그널의 두 측정을 비교합니다. 미지정 시 최신 일별 두 기간을 사용하므로 등록 당시의
+다일 최초 측정은 섞이지 않습니다. 정의 지문, `pipeline_version`, Source 범위/버전,
+기간 길이, 중첩 여부, 측정 상태와 지표 단위를 검사합니다. 비교 불가 시 `metrics=[]`와
+`comparison_limitations`를 반환합니다. 정상 비교 시 각 지표의 기준값·현재값·절대 변화·상대 변화율을 제공합니다.
+`unit=percent` 또는 `%`인 비율 지표의 `absolute_change` 단위는 `percentage_points`, `relative_change_percent`는
+`(현재-기준)/abs(기준)*100`입니다. 기준값 0이면 상대 변화율은 null입니다.
+시그널/측정 ID가 없으면 404, 한쪽 측정 ID만 지정하거나 일정을 잘못 지정하면 422입니다.
+모든 정상 응답은 HTTP 200입니다.
+
+운영 설정은 `SIGNAL_SCHEDULER_ENABLED=true`, `SIGNAL_SCHEDULER_POLL_SECONDS=60`입니다.
+Backend 프로세스가 실행 중이어야 주기 측정이 동작합니다. 종료 중 누락은 재시작 시 보충합니다.
+일정과 실행 결과는 기존 `signals.sqlite3`에 저장하며 시그널별 파일 잠금으로 같은 로컬 DB를
+공유하는 여러 worker의 중복 실행을 막습니다. 로컬 POSIX 파일 시스템(macOS/Linux) 기준이며
+여러 호스트나 네트워크 파일 시스템 운영에는 외부 작업 큐/잠금 구성이 별도로 필요합니다.

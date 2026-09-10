@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import asyncio
+
 from collections.abc import AsyncIterator, Callable, Sequence
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
@@ -23,6 +25,8 @@ from customer_signal.investigation.model import BedrockInvestigationModel, Gemin
 from customer_signal.investigation.runner import InvestigationRunner
 from customer_signal.signals.api import create_router as create_signal_router
 from customer_signal.signals.store import SignalStore
+from customer_signal.signals.service import SignalService
+from customer_signal.signals.scheduling import DailyScheduler, ScheduleStore
 from customer_signal.analytics.executor import PrimitiveExecutor
 from customer_signal.analytics.models import CustomerJourneyResult, EvidenceResult
 from customer_signal.analytics.service import AnalyticsService
@@ -303,7 +307,7 @@ _OPENAPI_TAGS = [
     {"name": "system", "description": "서비스 상태 확인"},
     {"name": "sources", "description": "분석에 사용할 수 있는 공개 Source 목록"},
     {"name": "runs", "description": "분석 Run 생성, 상태 조회, SSE 이벤트, 후속 조회"},
-    {"name": "signals", "description": "사용자 선택 시그널 등록과 기간별 정량 측정"},
+    {"name": "signals", "description": "시그널 등록, 일별 자동 측정과 기간별 정량 비교"},
     {"name": "run-artifacts", "description": "완료된 Run Artifact 조회와 다운로드"},
 ]
 
@@ -318,15 +322,23 @@ def create_app(
     resolved = dependencies or _default_dependencies(resolved_settings)
     mcp_http_app = resolved.mcp_server.http_app(path="/")
 
+    signal_scheduler = None
+
     @asynccontextmanager
     async def api_lifespan(_app: FastAPI):
         if resolved.journal is not None:
             # The journal is the source of truth: rebuild replayable SSE
             # histories for restored Runs before serving traffic.
             await restore_wire_events(resolved.journal, resolved.store)
+        scheduler_task = None
+        if signal_scheduler is not None and resolved_settings.signal_scheduler_enabled:
+            scheduler_task = asyncio.create_task(signal_scheduler.run(), name="daily-signals")
         try:
             yield {}
         finally:
+            if scheduler_task is not None:
+                signal_scheduler.stop()
+                await scheduler_task
             await resolved.coordinator.close()
             journal_close = getattr(resolved.journal, "close", None)
             if journal_close is not None:
@@ -407,6 +419,12 @@ def create_app(
                 raise ValueError("source registry unavailable")
             return InvestigationData.load(registry, request)
 
+        signal_scheduler = DailyScheduler(
+            ScheduleStore(resolved.signal_store),
+            SignalService(store=resolved.signal_store, load_data=signal_data),
+            poll_seconds=resolved_settings.signal_scheduler_poll_seconds,
+        )
+        app.state.signal_scheduler = signal_scheduler
         app.include_router(create_signal_router(
             store=resolved.signal_store, is_completed=completed_signal_run, load_data=signal_data,
         ))

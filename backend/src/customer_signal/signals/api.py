@@ -6,12 +6,17 @@ from collections.abc import Callable
 from typing import Literal
 from uuid import uuid4
 
-from fastapi import APIRouter, HTTPException, Response
+from fastapi import APIRouter, HTTPException, Query, Response
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, model_validator
 
 from customer_signal.observability.langfuse import LangfuseRunContext
 from customer_signal.signals.contracts import Measurement, Proposal, Signal, SignalDefinition
 from customer_signal.signals.service import MeasurementUnavailable, SignalService
+from customer_signal.signals.comparison import (
+    MeasurementComparison, compare_measurements, comparison_limitations,
+)
+from customer_signal.signals.schedule_contracts import DailyResults, DailySchedule, ScheduleUpdate
+from customer_signal.signals.scheduling import ScheduleBusy, ScheduleStore
 
 
 class RequestModel(BaseModel):
@@ -68,21 +73,7 @@ def history_response(items: list[Measurement]) -> MeasurementHistory:
         if previous is None or item.status == "success" or previous.status != "success":
             latest[key] = item
     windows = sorted(latest.values(), key=lambda m: (m.start_at, m.end_at))
-    reasons = []
-    if len(windows) < 2:
-        reasons.append("비교할 관측 기간이 두 개 이상 필요합니다.")
-    if any(m.status != "success" for m in windows):
-        reasons.append("측정 불가 기간이 포함되어 있습니다. 0건으로 해석하지 마세요.")
-    if len({(m.end_at - m.start_at).total_seconds() for m in windows}) > 1:
-        reasons.append("관측 기간의 길이가 다릅니다.")
-    if len({m.definition_fingerprint for m in windows}) > 1:
-        reasons.append("지표 정의가 다릅니다.")
-    if len({tuple(m.source_ids) for m in windows}) > 1:
-        reasons.append("측정 Source 범위가 다릅니다.")
-    if len({str(sorted(getattr(m, "source_versions", {}).items())) for m in windows}) > 1:
-        reasons.append("Source 매핑 또는 스키마 버전이 다릅니다.")
-    if any(a.end_at > b.start_at for a, b in zip(windows, windows[1:])):
-        reasons.append("관측 기간이 겹칩니다.")
+    reasons = comparison_limitations(windows)
     return MeasurementHistory(
         items=items,
         latest_by_window=windows,
@@ -94,6 +85,7 @@ def history_response(items: list[Measurement]) -> MeasurementHistory:
 def create_router(*, store, is_completed: Callable[[str], bool], load_data: Callable) -> APIRouter:
     router = APIRouter(tags=["signals"])
     service = SignalService(store=store, load_data=load_data)
+    schedules = ScheduleStore(store)
 
     def signal_or_404(signal_id):
         try:
@@ -202,5 +194,47 @@ def create_router(*, store, is_completed: Callable[[str], bool], load_data: Call
     def history(signal_id: str) -> MeasurementHistory:
         signal_or_404(signal_id)
         return history_response(store.list_measurements(signal_id))
+
+    @router.get("/api/signals/{signal_id}/schedule", summary="시그널 일별 자동 측정 일정 조회")
+    def schedule(signal_id: str) -> DailySchedule:
+        signal_or_404(signal_id)
+        return schedules.get(signal_id)
+
+    @router.put("/api/signals/{signal_id}/schedule", summary="시그널 일별 자동 측정 일정 설정")
+    def update_schedule(signal_id: str, request: ScheduleUpdate) -> DailySchedule:
+        signal_or_404(signal_id)
+        try:
+            return schedules.update(signal_id, **request.model_dump())
+        except ScheduleBusy:
+            raise HTTPException(409, "측정 실행 중에는 일정을 변경할 수 없습니다.") from None
+
+    @router.get("/api/signals/{signal_id}/daily-results", summary="시그널 일별 자동 실행과 측정 누적 조회")
+    def daily_results(
+        signal_id: str,
+        limit: int = Query(default=30, ge=1, le=100),
+        before: AwareDatetime | None = None,
+    ) -> DailyResults:
+        signal_or_404(signal_id)
+        return schedules.results(signal_id, limit=limit, before=before)
+
+    @router.get("/api/signals/{signal_id}/comparison", summary="시그널 두 기간의 지표 변화 비교")
+    def comparison(
+        signal_id: str,
+        baseline_measurement_id: str | None = None,
+        target_measurement_id: str | None = None,
+    ) -> MeasurementComparison:
+        signal_or_404(signal_id)
+        if (baseline_measurement_id is None) != (target_measurement_id is None):
+            raise HTTPException(422, "기준과 비교 측정 ID를 함께 지정하세요.")
+        if baseline_measurement_id is not None:
+            items = {m.measurement_id: m for m in store.list_measurements(signal_id)}
+            if baseline_measurement_id not in items or target_measurement_id not in items:
+                raise HTTPException(404, "이 시그널에 속한 측정값을 찾을 수 없습니다.")
+            baseline, target = items[baseline_measurement_id], items[target_measurement_id]
+        else:
+            results = schedules.results(signal_id, limit=2).items
+            target = results[0].measurement if results else None
+            baseline = results[1].measurement if len(results) > 1 else None
+        return compare_measurements(baseline, target)
 
     return router
