@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 
-import type { CatchReport, RunOutcome } from "../state/types";
+import type { CatchReport, EvidenceMap, RunOutcome } from "../state/types";
 
 import { EvidencePanel } from "./EvidencePanel";
 import { JourneyFlow } from "./JourneyFlow";
@@ -22,6 +22,10 @@ interface ResultScreenProps {
   onHighlightSeen: () => void;
   /** 이 분석 이후 적용된 실험. 리포트를 고치지 않고 맥락만 얹는다. */
   applied: { actionId: string; title: string; status: string }[];
+  evidence: EvidenceMap;
+  evidenceLoadingId: string | null;
+  evidenceErrorId: string | null;
+  onLoadEvidence: (evidenceId: string) => void;
 }
 
 export function ResultScreen({
@@ -34,6 +38,10 @@ export function ResultScreen({
   highlightActionId,
   onHighlightSeen,
   applied,
+  evidence,
+  evidenceLoadingId,
+  evidenceErrorId,
+  onLoadEvidence,
 }: ResultScreenProps) {
   const [evidenceId, setEvidenceId] = useState<string | null>(null);
   const [limitsOpen, setLimitsOpen] = useState(false);
@@ -59,11 +67,16 @@ export function ResultScreen({
   // 탈락한 주장은 과정 보기 안쪽 검증 기록에 싣는다. 여기 남는 건 통과한 것뿐이다.
   const findings = report.findings.filter((claim) => claim.verdict === "passed");
 
+  function openEvidence(id: string) {
+    setEvidenceId(id);
+    onLoadEvidence(id);
+  }
+
   return (
     <div className={styles.screen}>
       <div className={styles.inner}>
         <header className={styles.head}>
-          {degraded ? (
+          {report.limitations.length ? (
             <div className={styles.headTop}>
               <button
                 type="button"
@@ -71,7 +84,7 @@ export function ResultScreen({
                 onClick={() => setLimitsOpen((prev) => !prev)}
                 aria-expanded={limitsOpen}
               >
-                부분 캐치
+                {degraded ? "부분 캐치" : "확인하지 못한 것"}
               </button>
             </div>
           ) : null}
@@ -153,7 +166,11 @@ export function ResultScreen({
             가장 복잡했던 고객 한 명의 여정을 그대로 폈습니다.
             점을 누르면 그 행동의 원본 근거가 열려요.
           </p>
-          <JourneyFlow report={report} onOpenEvidence={setEvidenceId} />
+          {report.journey.length ? (
+            <JourneyFlow report={report} onOpenEvidence={openEvidence} />
+          ) : (
+            <p className={styles.blockNote}>공개할 수 있는 대표 고객 여정이 없습니다.</p>
+          )}
         </section>
 
         <section className={styles.insight}>
@@ -165,7 +182,7 @@ export function ResultScreen({
                   <p className={styles.findingText}>{claim.statement}</p>
                   <div className={styles.chips}>
                     {claim.evidenceIds.map((id) => (
-                      <button key={id} type="button" onClick={() => setEvidenceId(id)}>
+                      <button key={id} type="button" onClick={() => openEvidence(id)}>
                         근거 {id}
                       </button>
                     ))}
@@ -211,7 +228,7 @@ export function ResultScreen({
                   <div className={styles.actionFoot}>
                     <div className={styles.chips}>
                       {item.evidenceIds.slice(0, 2).map((id) => (
-                        <button key={id} type="button" onClick={() => setEvidenceId(id)}>
+                        <button key={id} type="button" onClick={() => openEvidence(id)}>
                           근거 {id}
                         </button>
                       ))}
@@ -245,7 +262,15 @@ export function ResultScreen({
       </div>
 
       {evidenceId ? (
-        <EvidencePanel evidenceId={evidenceId} onClose={() => setEvidenceId(null)} />
+        <EvidencePanel
+          evidenceId={evidenceId}
+          record={evidence[evidenceId] ?? null}
+          loading={evidenceLoadingId === evidenceId}
+          failed={evidenceErrorId === evidenceId}
+          sourceLabels={report.sourceLabels}
+          onRetry={() => onLoadEvidence(evidenceId)}
+          onClose={() => setEvidenceId(null)}
+        />
       ) : null}
     </div>
   );

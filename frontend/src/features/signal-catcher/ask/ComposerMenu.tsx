@@ -40,6 +40,10 @@ function shortLabel(iso: string): string {
 /** 이 소스가 빠지면 어떤 질문도 성립하지 않아 해제할 수 없다. */
 export const REQUIRED_SOURCE: SourceId = "search_history";
 
+export function isRequiredSource(id: SourceId): boolean {
+  return id === REQUIRED_SOURCE || id.endsWith("_search_history");
+}
+
 type Panel = "root" | "dataset" | "period";
 
 interface ComposerMenuProps {
@@ -48,6 +52,7 @@ interface ComposerMenuProps {
   period: PeriodChoice;
   onToggleSource: (id: SourceId) => void;
   onSelectPeriod: (choice: PeriodChoice) => void;
+  periodLocked?: boolean;
   onClose: () => void;
 }
 
@@ -57,6 +62,7 @@ export function ComposerMenu({
   period,
   onToggleSource,
   onSelectPeriod,
+  periodLocked = false,
   onClose,
 }: ComposerMenuProps) {
   const [panel, setPanel] = useState<Panel>("root");
@@ -111,13 +117,17 @@ export function ComposerMenu({
             </button>
           </li>
           <li>
-            <button type="button" onClick={() => setPanel("period")}>
+            <button
+              type="button"
+              disabled={periodLocked}
+              onClick={() => setPanel("period")}
+            >
               <span className={styles.menuIcon} aria-hidden="true">
                 ◷
               </span>
               <span>
                 <strong>기간</strong>
-                <small>{period.label}</small>
+                <small>{period.label}{periodLocked ? " · 고정" : ""}</small>
               </span>
               <span className={styles.menuChevron} aria-hidden="true">
                 ›
@@ -135,7 +145,7 @@ export function ComposerMenu({
           <p className={styles.menuHint}>연결된 데이터는 모두 켜져 있어요. 빼고 싶은 것만 끄면 돼요.</p>
           <ul className={styles.sourceList}>
             {sources.map((source) => {
-              const required = source.id === REQUIRED_SOURCE;
+              const required = isRequiredSource(source.id);
               const on = selected.includes(source.id);
               return (
                 <li key={source.id}>

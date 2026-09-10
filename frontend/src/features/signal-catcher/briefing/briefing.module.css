@@ -75,6 +75,73 @@
   font-weight: 600;
 }
 
+/* 시그널이 0개면 덱 대신 메인 탐색 경험을 스티치 카드 안에 둔다. */
+.emptyBriefing {
+  position: relative;
+  margin-top: 1.35rem;
+  padding: clamp(1.2rem, 3vw, 2rem);
+  border: 1px dashed color-mix(in srgb, var(--signal) 42%, var(--line));
+  border-radius: var(--radius);
+  background:
+    radial-gradient(circle at 8% 0%, var(--signal-wash), transparent 28rem),
+    var(--card);
+  overflow: visible;
+  animation: rise 0.45s var(--ease) both;
+}
+
+.emptyStatus {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.emptyStatus p {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.3rem 0.7rem;
+  margin: 0;
+}
+
+.emptyStatus b {
+  color: var(--chalk);
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.emptyStatus span {
+  color: var(--fog-dim);
+  font-size: 0.76rem;
+}
+
+.emptyPulse {
+  position: relative;
+  width: 0.55rem;
+  height: 0.55rem;
+  flex: none;
+  border-radius: 50%;
+  background: var(--signal);
+  box-shadow: 0 0 0 0 var(--signal-wash);
+  animation: emptyPulse 2.2s ease-out infinite;
+}
+
+@keyframes emptyPulse {
+  55%,
+  100% {
+    box-shadow: 0 0 0 0.55rem transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .emptyBriefing,
+  .emptyPulse {
+    animation: none;
+  }
+}
+
 /* ── 카드 덱 ─────────────────────────────────────────── */
 .deck {
   position: relative;

@@ -37,6 +37,7 @@ import {
   decodeAnalysisPlan,
   decodeArtifactDocument,
   decodeArtifactListResponse,
+  decodeEventType,
   decodeGenericPrimitive,
   decodePublicSourceList,
   decodeRunArtifact,
@@ -84,6 +85,8 @@ export interface RunClientOptions {
   apiBaseUrl?: string;
   fetchImpl?: typeof fetch;
   maxReconnectAttempts?: number;
+  /** 특정 화면이 Backend 기본값과 무관하게 실행 provider를 고정할 때 사용한다. */
+  agentMode?: AgentMode;
 }
 
 export interface StreamRunOptions {
@@ -111,13 +114,6 @@ const RUN_STATUSES = [
   "completed",
   "degraded",
   "failed",
-] as const;
-const EVENT_TYPES = [
-  "search",
-  "feedback",
-  "digital_behavior",
-  "subscription",
-  "voc",
 ] as const;
 const RISK_LEVELS = ["high", "medium", "low"] as const;
 const CONFIDENCE_LEVELS = ["high", "medium", "low"] as const;
@@ -283,7 +279,7 @@ function decodeJourneyEvent(value: unknown, path: string): JourneyEvent {
     evidence_id: expectId(record.evidence_id, `${path}.evidence_id`),
     source_id: decodeSource(record.source_id, `${path}.source_id`),
     occurred_at: expectTimestamp(record.occurred_at, `${path}.occurred_at`),
-    event_type: expectOneOf(record.event_type, EVENT_TYPES, `${path}.event_type`),
+    event_type: decodeEventType(record.event_type, `${path}.event_type`),
     action: expectString(record.action, `${path}.action`),
     topic: expectString(record.topic, `${path}.topic`),
     outcome: expectString(record.outcome, `${path}.outcome`),
@@ -799,6 +795,7 @@ export class RunClient {
   private readonly apiBaseUrl: string;
   private readonly fetchImpl: typeof fetch;
   private readonly maxReconnectAttempts: number;
+  private readonly agentMode: AgentMode | undefined;
 
   constructor(options: RunClientOptions = {}) {
     this.apiBaseUrl = (options.apiBaseUrl ?? DEFAULT_API_BASE_URL).replace(/\/+$/, "");
@@ -806,11 +803,15 @@ export class RunClient {
     this.maxReconnectAttempts = validateReconnectAttempts(
       options.maxReconnectAttempts ?? 2,
     );
+    this.agentMode = options.agentMode;
   }
 
   async createRun(request: RunRequest, signal?: AbortSignal): Promise<RunAccepted> {
+    const path = this.agentMode
+      ? `/api/runs?mode=${encodeURIComponent(this.agentMode)}`
+      : "/api/runs";
     return this.requestJson(
-      "/api/runs",
+      path,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },

@@ -21,7 +21,7 @@ export const DEMO_QUESTION =
 /** 첫 화면 입력창에서 타자 치듯 바뀌는 문구. 페르소나별로 하나씩. */
 export const PLACEHOLDER_QUESTIONS = [
   "최근 로밍을 알아보는 고객들이 가장 많이 궁금해하는 게 뭐야?",
-  "AI검색에서 원하는 답을 찾지 못한 고객은 그 다음에 어디로 갔어?",
+  "최근 일주일간 앱에서 원하는 문제를 해결하기 위해 곧바로 못 찾고 헤맨 고객 찾아줘",
   "같은 내용을 반복해서 검색하는 고객들은 뭘 찾고 있어?",
   "상담 전에 고객들이 어떤 경로를 거쳐 들어오는지 알려줘",
 ] as const;
@@ -36,7 +36,7 @@ export const SUGGESTIONS = [
   {
     persona: "AI검색 기획",
     label: "검색 실패 후 행동",
-    question: "AI검색에서 원하는 답을 찾지 못한 고객은 그 다음에 어디로 이동했어?",
+    question: "최근 일주일간 앱에서 원하는 문제를 해결하기 위해 곧바로 못 찾고 헤맨 고객 찾아줘",
   },
   {
     persona: "CX",
@@ -101,11 +101,11 @@ export const LANES: JourneyLane[] = [
  * 분석가 모드에서 event를 함께 노출한다.
  */
 export const STAGES: Stage[] = [
-  { key: "goal", label: "분석 목표를 세우고 있어요", short: "목표", event: "goal_created", detail: null, status: "pending" },
-  { key: "plan", label: "분석 계획을 짜고 있어요", short: "계획", event: "plan_created", detail: null, status: "pending" },
-  { key: "analyze", label: "시그널을 캐치하고 있어요", short: "분석", event: "step_completed", detail: null, status: "pending" },
-  { key: "insight", label: "인사이트를 뽑아내고 있어요", short: "인사이트", event: "analysis_note_created", detail: null, status: "pending" },
-  { key: "verify", label: "근거를 하나씩 검증하고 있어요", short: "검증", event: "report_validating", detail: null, status: "pending" },
+  { key: "goal", label: "질문에서 분석 목적과 범위를 확인하고 있어요", short: "목표", event: "goal_created", detail: null, status: "pending" },
+  { key: "plan", label: "확인할 데이터와 분석 순서를 정하고 있어요", short: "계획", event: "plan_created", detail: null, status: "pending" },
+  { key: "analyze", label: "선택한 데이터에서 관련 패턴을 찾고 있어요", short: "분석", event: "step_completed", detail: null, status: "pending" },
+  { key: "insight", label: "발견한 패턴의 의미를 정리하고 있어요", short: "해석", event: "analysis_note_created", detail: null, status: "pending" },
+  { key: "verify", label: "결과를 원본 데이터와 다시 대조하고 있어요", short: "검증", event: "report_validating", detail: null, status: "pending" },
 ];
 
 /**
@@ -123,33 +123,33 @@ export const STAGES: Stage[] = [
  */
 export const STAGE_TICKS: Record<string, readonly StageTick[]> = {
   goal: [
-    { kind: "think", primitive: null, short: null, text: "질문의 의도를 해석하고 있어요", meta: "goal.objective", ms: 420 },
-    { kind: "think", primitive: null, short: null, text: "로밍을 탐색한 고객을 모집단으로 잡았어요", meta: "population: customers", ms: 420 },
-    { kind: "think", primitive: null, short: null, text: "분석 기간을 2026.08.05 – 08.19로 고정했어요", meta: "time_range", ms: 460 },
+    { kind: "think", primitive: null, short: null, text: "질문에서 확인할 내용을 정리하고 있어요", meta: "goal.objective", ms: 420 },
+    { kind: "think", primitive: null, short: null, text: "로밍 정보를 탐색한 고객을 분석 대상으로 정했어요", meta: "population: customers", ms: 420 },
+    { kind: "think", primitive: null, short: null, text: "2026.08.05 – 08.19 데이터를 기준으로 분석해요", meta: "time_range", ms: 460 },
   ],
   plan: [
-    { kind: "think", primitive: null, short: null, text: "6단계 분석 계획을 세웠어요", meta: "plan.steps = 6", ms: 400 },
-    { kind: "tool", primitive: "catalog_sources", short: null, text: "쓸 수 있는 데이터 소스를 확인하는 중", meta: "소스 5개", ms: 460 },
+    { kind: "think", primitive: null, short: null, text: "확인 과정을 6단계로 나누었어요", meta: "plan.steps = 6", ms: 400 },
+    { kind: "tool", primitive: "catalog_sources", short: null, text: "분석에 사용할 수 있는 데이터를 확인하고 있어요", meta: "소스 5개", ms: 460 },
   ],
   analyze: [
-    { kind: "tool", primitive: "aggregate_events", short: null, text: "AI검색 이력에서 로밍 검색을 모으는 중", meta: "12,480건", ms: 380 },
-    { kind: "tool", primitive: "build_segment", short: null, text: "같은 주제를 반복 검색한 고객을 추리는 중", meta: "328명", ms: 400 },
-    { kind: "fact", primitive: null, short: "반복 검색 3.4회", text: "328명이 같은 주제를 평균 3.4회 다시 검색했어요", meta: "avg_search_repeat", ms: 620 },
-    { kind: "tool", primitive: "match_sequence", short: null, text: "앱 행동로그를 고객 단위로 잇는 중", meta: "1,204건", ms: 380 },
-    { kind: "tool", primitive: "profile_customers", short: null, text: "가입 상태를 대조하는 중", meta: "328명", ms: 360 },
-    { kind: "fact", primitive: null, short: "미가입 71%", text: "상품 상세까지 보고도 가입하지 않은 고객이 71%예요", meta: "detail_view_no_join", ms: 640 },
-    { kind: "tool", primitive: "match_sequence", short: null, text: "상담 이력까지 연결하는 중", meta: "41명", ms: 420 },
+    { kind: "tool", primitive: "aggregate_events", short: null, text: "AI 검색 이력에서 로밍 관련 검색을 집계하고 있어요", meta: "12,480건", ms: 380 },
+    { kind: "tool", primitive: "build_segment", short: null, text: "같은 주제를 반복해서 검색한 고객을 확인하고 있어요", meta: "328명", ms: 400 },
+    { kind: "fact", primitive: null, short: "평균 검색 3.4회", text: "같은 주제를 다시 검색한 고객 328명의 평균 검색 횟수는 3.4회예요", meta: "avg_search_repeat", ms: 620 },
+    { kind: "tool", primitive: "match_sequence", short: null, text: "앱 이용 기록을 고객별 흐름으로 연결하고 있어요", meta: "1,204건", ms: 380 },
+    { kind: "tool", primitive: "profile_customers", short: null, text: "같은 고객의 가입 여부를 확인하고 있어요", meta: "328명", ms: 360 },
+    { kind: "fact", primitive: null, short: "상세 조회 후 미가입 71%", text: "상품 상세를 확인한 고객 중 71%는 분석 기간 내 가입으로 이어지지 않았어요", meta: "detail_view_no_join", ms: 640 },
+    { kind: "tool", primitive: "match_sequence", short: null, text: "상담 이력이 있는 고객 41명의 흐름을 연결하고 있어요", meta: "41명", ms: 420 },
   ],
   insight: [
-    { kind: "think", primitive: null, short: null, text: "고객들이 무엇을 결정하지 못했는지 해석하는 중", meta: "analysis_note", ms: 820 },
-    { kind: "fact", primitive: null, short: "재검색 4.2일", text: "평균 4.2일 뒤 같은 주제로 다시 돌아왔어요", meta: "research_gap_days", ms: 700 },
-    { kind: "think", primitive: null, short: null, text: "다음 행동 후보를 정리하는 중", meta: "note.next_action", ms: 900 },
+    { kind: "think", primitive: null, short: null, text: "검색과 앱 이용 흐름에서 반복되는 어려움을 정리하고 있어요", meta: "analysis_note", ms: 820 },
+    { kind: "fact", primitive: null, short: "재검색까지 평균 4.2일", text: "같은 주제로 다시 검색하기까지 평균 4.2일이 걸렸어요", meta: "research_gap_days", ms: 700 },
+    { kind: "think", primitive: null, short: null, text: "발견한 내용에서 실행 가능한 개선 후보를 정리하고 있어요", meta: "note.next_action", ms: 900 },
   ],
   verify: [
-    { kind: "tool", primitive: "validate_claims", short: null, text: "주장 14개를 원본 데이터와 대조하는 중", meta: "14 claims", ms: 1100 },
-    { kind: "reject", primitive: null, short: null, text: "2개는 근거가 부족해 리포트에서 뺐어요", meta: "rejected = 2", ms: 900 },
+    { kind: "tool", primitive: "validate_claims", short: null, text: "결과에 포함할 주장 14개를 원본 데이터와 대조하고 있어요", meta: "14 claims", ms: 1100 },
+    { kind: "reject", primitive: null, short: null, text: "원본 근거가 충분하지 않은 주장 2개는 결과에서 제외했어요", meta: "rejected = 2", ms: 900 },
     // 우리 팀의 차별점이 드러나는 문장. 가장 오래 머문다.
-    { kind: "fact", primitive: null, short: "주장 12개 통과", text: "남은 주장 12개는 근거와 빠짐없이 연결됐어요", meta: "fact_ids = 37", ms: 1700 },
+    { kind: "fact", primitive: null, short: "근거 확인 12건", text: "주장 12개가 원본 근거와 연결된 것을 확인했어요", meta: "fact_ids = 37", ms: 1700 },
   ],
 };
 
@@ -672,6 +672,12 @@ export const REPORT: CatchReport = {
     subscription: "v1.1",
     voc: "v1.3",
   },
+  traceLog: STAGES.flatMap((stage) =>
+    (STAGE_TICKS[stage.key] ?? []).map((tick) => ({ ...tick, stage: stage.key })),
+  ),
+  sourceLabels: Object.fromEntries(
+    SOURCE_OPTIONS.map((source) => [source.id, source.label]),
+  ),
 };
 
 export const CLARIFICATION = {
@@ -700,14 +706,8 @@ export function observabilityLinks(runId: string) {
     {
       id: "langfuse",
       label: "Langfuse 트레이스",
-      note: "단계별 프롬프트와 토큰",
-      href: `https://cloud.langfuse.com/project/catch-catch/traces/${runId}`,
-    },
-    {
-      id: "datadog",
-      label: "Datadog LLM Observability",
-      note: "지연·오류·비용",
-      href: `https://app.datadoghq.com/llm/traces?query=%40run_id%3A${runId}`,
+      note: "역할별 실행과 모델·도구 호출",
+      href: `http://localhost:3100/project/cmt84iujl0007qs077zcxunel/traces/${runId.replaceAll("-", "")}`,
     },
   ];
 }
