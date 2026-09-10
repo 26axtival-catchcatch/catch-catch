@@ -9,6 +9,7 @@ from uuid import uuid4
 from fastapi import APIRouter, HTTPException, Response
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, model_validator
 
+from customer_signal.observability.langfuse import LangfuseRunContext
 from customer_signal.signals.contracts import Measurement, Proposal, Signal, SignalDefinition
 from customer_signal.signals.service import MeasurementUnavailable, SignalService
 
@@ -163,6 +164,9 @@ def create_router(*, store, is_completed: Callable[[str], bool], load_data: Call
                 ) from None
         proposal = proposal_or_404(request.proposal_id)
         require_completed(proposal.run_id)
+        response.headers["X-Langfuse-Trace-Id"] = LangfuseRunContext(
+            proposal.run_id, "generic", "", tuple(proposal.definition.source_ids)
+        ).trace_id
         try:
             return service.register_proposal(proposal, trace_run_id=trace_run_id)
         except ValueError:

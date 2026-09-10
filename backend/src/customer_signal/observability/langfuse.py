@@ -87,6 +87,19 @@ def bind_langfuse_run(context: LangfuseRunContext) -> Iterator[LangfuseRunContex
         _end_observation(workflow)
 
 
+@contextmanager
+def bind_langfuse_trace(context: LangfuseRunContext) -> Iterator[LangfuseRunContext]:
+    """Attach a later user action to an existing utterance without a second root."""
+
+    run_token = _CURRENT_RUN.set(context)
+    workflow_token = _CURRENT_WORKFLOW.set(None)
+    try:
+        yield context
+    finally:
+        _CURRENT_WORKFLOW.reset(workflow_token)
+        _CURRENT_RUN.reset(run_token)
+
+
 def _new_callback_handler() -> Any | None:
     """Build a callback only when a complete Langfuse configuration is present."""
 
@@ -165,6 +178,10 @@ def build_langfuse_config(*, run_name: str, provider: str, stage: str) -> dict[s
 
 @dataclass(slots=True)
 class _NoOpObservation:
+    @property
+    def id(self) -> None:
+        return None
+
     def update(self, *, output: Any) -> None:
         del output
 
@@ -172,6 +189,10 @@ class _NoOpObservation:
 @dataclass(slots=True)
 class _SafeObservation:
     observation: Any
+
+    @property
+    def id(self) -> str | None:
+        return getattr(self.observation, "id", None)
 
     def update(self, *, output: Any) -> None:
         try:
@@ -188,7 +209,7 @@ class _SignalObservation(_SafeObservation):
         # Registration allocates its durable ID inside the span. Keep that ID
         # searchable as metadata as soon as the operation returns it.
         if isinstance(output, dict):
-            for key in ("signal_id", "proposal_id", "candidate_id", "measurement_id"):
+            for key in ("signal_id", "proposal_id", "candidate_id", "measurement_id", "verdict"):
                 if isinstance(output.get(key), str):
                     self.metadata[key] = output[key]
             measurement = output.get("measurement")
@@ -325,7 +346,7 @@ def signal_observation(
         return
 
     metadata = {
-        "entity_type": "signal",
+        "entity_type": "signal_collection" if operation == "collection" else "signal",
         "operation": operation,
         "provider": "server",
         "stage": "signal",
@@ -341,13 +362,14 @@ def signal_observation(
                 "candidate_id": candidate_id,
                 "task_id": task_id,
                 "source_run_id": input.get("source_run_id"),
+                "title": input.get("title"),
             }.items()
             if value is not None
         },
     }
     try:
         observation = client.start_observation(
-            name="customer_signal.signal",
+            name="customer_signal.signals" if operation == "collection" else "customer_signal.signal",
             as_type="span",
             trace_context=_trace_context(context),
             input=sanitize_trace_value(input),

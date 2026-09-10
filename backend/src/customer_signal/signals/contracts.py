@@ -86,6 +86,8 @@ class Proposal(Contract):
     run_id: str
     candidate_id: str
     task_id: str | None = None
+    trace_id: str | None = None
+    observation_id: str | None = None
     title: str = Field(min_length=1)
     description: str = Field(min_length=1)
     definition: SignalDefinition
