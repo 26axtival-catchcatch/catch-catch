@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import type { CatchReport, EvidenceMap, RunOutcome } from "../state/types";
 
@@ -9,6 +9,248 @@ import { JourneyFlow } from "./JourneyFlow";
 import { ProcessTrace } from "./ProcessTrace";
 import { WatchSignalModal } from "./WatchSignalModal";
 import styles from "./result.module.css";
+
+const SENTENCE_END = /[.!?。](?:\s+|$)/;
+const NUMBERED_SECTION = /\s(?=1\.\s)/;
+const ACTION_PREAMBLE = /^개선 가설입니다[.!?。]?\s*/;
+const SUMMARY_SECTION = /\[(조사 배경 및 개요|패턴\s*\d+\s*[:：]\s*[^\]]+|분석 한계)\]/g;
+const SUMMARY_SECTION_START = /\[(조사 배경 및 개요|패턴\s*\d+\s*[:：]\s*[^\]]+|분석 한계)\]/;
+const SUMMARY_LABEL = /[-–—]\s*(행동 근거|정상 대조군 비교|최종 해결 및 개선 제안)\s*[:：]/g;
+
+type SummarySectionKind = "context" | "pattern" | "limitation" | "plain";
+
+interface SummaryPoint {
+  label: string | null;
+  text: string;
+}
+
+interface SummarySection {
+  key: string;
+  kind: SummarySectionKind;
+  eyebrow: string | null;
+  title: string | null;
+  points: SummaryPoint[];
+}
+
+function splitLead(text: string) {
+  const value = text.trim();
+  const sentenceEnd = value.search(SENTENCE_END);
+  if (sentenceEnd < 0) return { lead: value, detail: "" };
+  const end = sentenceEnd + 1;
+  return {
+    lead: value.slice(0, end).trim(),
+    detail: value.slice(end).trim(),
+  };
+}
+
+function splitSummary(text: string) {
+  const value = text.trim();
+  const structuredStart = value.search(SUMMARY_SECTION_START);
+
+  if (structuredStart > 0) {
+    return {
+      lead: value.slice(0, structuredStart).trim(),
+      detail: value.slice(structuredStart).trim(),
+    };
+  }
+
+  // 요약이 섹션 마커로 바로 시작해도 제목은 읽을 수 있는 핵심 문장으로 보여준다.
+  // 전체 원문은 detail에 남겨 섹션 맥락이 사라지지 않게 한다.
+  if (structuredStart === 0) {
+    const firstMarkerEnd = value.indexOf("]") + 1;
+    const firstSectionCopy = splitLead(value.slice(firstMarkerEnd));
+    return {
+      lead: firstSectionCopy.lead || value,
+      detail: value,
+    };
+  }
+
+  const [overview, ...sections] = value.split(NUMBERED_SECTION);
+  if (sections.length) {
+    return { lead: overview.trim(), detail: `1. ${sections.join(" ").trim()}` };
+  }
+  return splitLead(value);
+}
+
+function parseSummaryPoints(text: string): SummaryPoint[] {
+  const matches = Array.from(text.matchAll(SUMMARY_LABEL));
+  if (!matches.length) {
+    return text.trim() ? [{ label: null, text: text.trim() }] : [];
+  }
+
+  const points: SummaryPoint[] = [];
+  const prefix = text.slice(0, matches[0].index).trim();
+  if (prefix) points.push({ label: null, text: prefix });
+
+  matches.forEach((match, index) => {
+    const contentStart = (match.index ?? 0) + match[0].length;
+    const contentEnd = matches[index + 1]?.index ?? text.length;
+    points.push({
+      label: match[1],
+      text: text.slice(contentStart, contentEnd).trim(),
+    });
+  });
+
+  return points;
+}
+
+function sectionMeta(rawTitle: string): Pick<SummarySection, "kind" | "eyebrow" | "title"> {
+  const pattern = rawTitle.match(/^패턴\s*(\d+)\s*[:：]\s*(.+)$/);
+  if (pattern) {
+    return {
+      kind: "pattern",
+      eyebrow: `패턴 ${pattern[1]}`,
+      title: pattern[2].trim(),
+    };
+  }
+  if (rawTitle === "분석 한계") {
+    return { kind: "limitation", eyebrow: "CHECK", title: rawTitle };
+  }
+  return { kind: "context", eyebrow: "CONTEXT", title: rawTitle };
+}
+
+function parseSummaryDetail(text: string): SummarySection[] {
+  const matches = Array.from(text.matchAll(SUMMARY_SECTION));
+  if (!matches.length) {
+    return [{
+      key: "summary-plain",
+      kind: "plain",
+      eyebrow: null,
+      title: null,
+      points: parseSummaryPoints(text),
+    }];
+  }
+
+  const sections: SummarySection[] = [];
+  const prefix = text.slice(0, matches[0].index).trim();
+  if (prefix) {
+    sections.push({
+      key: "summary-prefix",
+      kind: "plain",
+      eyebrow: null,
+      title: null,
+      points: parseSummaryPoints(prefix),
+    });
+  }
+
+  matches.forEach((match, index) => {
+    const contentStart = (match.index ?? 0) + match[0].length;
+    const contentEnd = matches[index + 1]?.index ?? text.length;
+    const meta = sectionMeta(match[1]);
+    sections.push({
+      key: `summary-section-${index}`,
+      ...meta,
+      points: parseSummaryPoints(text.slice(contentStart, contentEnd)),
+    });
+  });
+
+  return sections;
+}
+
+function readableParagraphs(text: string) {
+  const value = text.trim();
+  if (!value) return [];
+
+  const paragraphs: string[] = [];
+  const boundaries = Array.from(value.matchAll(/[.!?。](?=\s+)|\n\s*\n/g));
+  let start = 0;
+  for (const boundary of boundaries) {
+    const end = (boundary.index ?? 0) + boundary[0].length;
+    const paragraph = value.slice(start, end).trim();
+    if (paragraph) paragraphs.push(paragraph);
+    start = end;
+  }
+  const remainder = value.slice(start).trim();
+  if (remainder) paragraphs.push(remainder);
+  return paragraphs;
+}
+
+function SummaryDetail({ sections }: { sections: SummarySection[] }) {
+  return (
+    <div className={styles.summaryDetail}>
+      {sections.map((section) => (
+        <section
+          key={section.key}
+          className={styles.summarySection}
+          data-kind={section.kind}
+          aria-label={section.title ?? "상세 분석"}
+        >
+          <header className={styles.summarySectionHead}>
+            {section.eyebrow ? <p>{section.eyebrow}</p> : null}
+            <h3>{section.title ?? "상세 분석"}</h3>
+          </header>
+          <div className={styles.summarySectionBody}>
+            {section.points.map((point, pointIndex) => {
+              const paragraphs = readableParagraphs(point.text);
+              return point.label ? (
+                <div className={styles.summaryPoint} key={`${section.key}-point-${pointIndex}`}>
+                  <p className={styles.summaryPointLabel}>{point.label}</p>
+                  <div className={styles.summaryParagraphs}>
+                    {paragraphs.map((paragraph, paragraphIndex) => (
+                      <p key={`${section.key}-point-${pointIndex}-paragraph-${paragraphIndex}`}>
+                        {paragraph}
+                      </p>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className={styles.summaryParagraphs} key={`${section.key}-point-${pointIndex}`}>
+                  {paragraphs.map((paragraph, paragraphIndex) => (
+                    <p key={`${section.key}-paragraph-${pointIndex}-${paragraphIndex}`}>
+                      {paragraph}
+                    </p>
+                  ))}
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      ))}
+    </div>
+  );
+}
+
+function sourceLabelForEvidence(id: string, sourceLabels: Record<string, string>) {
+  for (const [sourceId, label] of Object.entries(sourceLabels)) {
+    if (id.includes(sourceId)) return label;
+  }
+  return "원본 데이터";
+}
+
+interface EvidenceLinksProps {
+  ids: string[];
+  sourceLabels: Record<string, string>;
+  onOpen: (id: string) => void;
+}
+
+function EvidenceLinks({ ids, sourceLabels, onOpen }: EvidenceLinksProps) {
+  if (!ids.length) return null;
+  const labels = ids.map((id) => sourceLabelForEvidence(id, sourceLabels));
+  const sources = [...new Set(labels)];
+
+  return (
+    <details className={styles.evidenceGroup}>
+      <summary>
+        <strong>근거 {ids.length.toLocaleString("ko-KR")}개</strong>
+        <span>{sources.slice(0, 3).join(" · ")}{sources.length > 3 ? ` 외 ${sources.length - 3}곳` : ""}</span>
+        <i aria-hidden="true">⌄</i>
+      </summary>
+      <div className={styles.evidenceLinks}>
+        {ids.map((id, index) => (
+          <button
+            key={id}
+            type="button"
+            aria-label={`${labels[index]} 근거 ${index + 1} 열기`}
+            onClick={() => onOpen(id)}
+          >
+            <span>{labels[index]}</span>
+            <small>{String(index + 1).padStart(2, "0")}</small>
+          </button>
+        ))}
+      </div>
+    </details>
+  );
+}
 
 interface ResultScreenProps {
   report: CatchReport;
@@ -71,6 +313,13 @@ export function ResultScreen({
   const degraded = outcome === "degraded";
   // 탈락한 주장은 과정 보기 안쪽 검증 기록에 싣는다. 여기 남는 건 통과한 것뿐이다.
   const findings = report.findings.filter((claim) => claim.verdict === "passed");
+  const summary = useMemo(() => {
+    const copy = splitSummary(report.summary);
+    return {
+      ...copy,
+      sections: copy.detail ? parseSummaryDetail(copy.detail) : [],
+    };
+  }, [report.summary]);
 
   function openEvidence(id: string) {
     setEvidenceId(id);
@@ -141,7 +390,16 @@ export function ResultScreen({
             </div>
           ) : null}
 
-          <p className={styles.summary}>{report.summary}</p>
+          <section className={styles.summaryCard} aria-labelledby="result-summary-title">
+            <p className={styles.summaryKicker}>분석 한눈에 보기</p>
+            <h2 id="result-summary-title" className={styles.summary}>{summary.lead}</h2>
+            {summary.detail ? (
+              <details className={styles.copyDetails}>
+                <summary>전체 분석 요약 보기 <span aria-hidden="true">⌄</span></summary>
+                <SummaryDetail sections={summary.sections} />
+              </details>
+            ) : null}
+          </section>
 
           <dl className={styles.metrics}>
             {report.metrics.map((metric) => {
@@ -197,81 +455,114 @@ export function ResultScreen({
           )}
         </section>
 
-        <section className={styles.insight}>
-          <div>
-            <h2 className={styles.blockTitle}>검증된 발견</h2>
+        <section className={styles.insight} aria-label="검증된 발견과 다음 행동">
+          <div className={styles.insightGroup}>
+            <header className={styles.sectionHead}>
+              <div>
+                <p>VERIFIED FINDINGS</p>
+                <h2>검증된 발견</h2>
+              </div>
+              <span>{findings.length.toLocaleString("ko-KR")}</span>
+              <small>결론부터 읽고, 필요할 때 검증 내용과 원본 근거를 펼쳐보세요.</small>
+            </header>
             <ul className={styles.findings}>
-              {findings.map((claim) => (
-                <li key={claim.claimId}>
-                  <p className={styles.findingText}>{claim.statement}</p>
-                  <div className={styles.chips}>
-                    {claim.evidenceIds.map((id) => (
-                      <button key={id} type="button" onClick={() => openEvidence(id)}>
-                        근거 {id}
-                      </button>
-                    ))}
-                  </div>
-                </li>
-              ))}
+              {findings.map((claim, index) => {
+                const copy = splitLead(claim.statement);
+                return (
+                  <li key={claim.claimId}>
+                    <p className={styles.findingIndex}>검증 {String(index + 1).padStart(2, "0")}</p>
+                    <h3 className={styles.findingText}>{copy.lead}</h3>
+                    {copy.detail ? (
+                      <details className={styles.copyDetails}>
+                        <summary>검증 내용 자세히 <span aria-hidden="true">⌄</span></summary>
+                        <p>{copy.detail}</p>
+                      </details>
+                    ) : null}
+                    <EvidenceLinks
+                      ids={claim.evidenceIds}
+                      sourceLabels={report.sourceLabels}
+                      onOpen={openEvidence}
+                    />
+                  </li>
+                );
+              })}
             </ul>
+            {!findings.length ? <p className={styles.insightEmpty}>검증을 통과한 발견이 없습니다.</p> : null}
           </div>
 
-          <div>
-            <h2 className={styles.blockTitle}>다음 행동</h2>
+          <div className={styles.insightGroup}>
+            <header className={styles.sectionHead}>
+              <div>
+                <p>NEXT ACTIONS</p>
+                <h2>다음 행동</h2>
+              </div>
+              <span>{report.actions.length.toLocaleString("ko-KR")}</span>
+              <small>발견을 실제 개선으로 옮길 수 있도록 행동 단위로 정리했어요.</small>
+            </header>
             <ul className={styles.actions}>
-              {report.actions.map((item) => (
-                <li
-                  key={item.actionId}
-                  ref={item.actionId === highlightActionId ? highlightRef : undefined}
-                  data-highlight={item.actionId === highlightActionId}
-                >
-                  {(() => {
-                    const exp = experimentOf(item.actionId);
-                    if (!exp) return null;
-                    return (
-                      <p className={styles.actionState} data-status={exp.status}>
-                        <span>
-                          {exp.status === "done"
-                            ? `실험 완료 · 예측 ${exp.total}개 중 ${exp.hits}개 적중`
-                            : `관찰 중 · ${exp.elapsedDays}일째`}
-                        </span>
-                        {exp.status === "watching" ? (
-                          <i>
-                            <b
-                              style={{
-                                width: `${(exp.elapsedDays / exp.observeDays) * 100}%`,
-                              }}
-                            />
-                          </i>
-                        ) : null}
-                      </p>
-                    );
-                  })()}
-                  <h4>{item.title}</h4>
-                  <p>{item.reason}</p>
-                  <div className={styles.actionFoot}>
-                    <div className={styles.chips}>
-                      {item.evidenceIds.slice(0, 2).map((id) => (
-                        <button key={id} type="button" onClick={() => openEvidence(id)}>
-                          근거 {id}
-                        </button>
-                      ))}
+              {report.actions.map((item, index) => {
+                const exp = experimentOf(item.actionId);
+                const reason = splitLead(item.reason.replace(ACTION_PREAMBLE, ""));
+                return (
+                  <li
+                    key={item.actionId}
+                    ref={item.actionId === highlightActionId ? highlightRef : undefined}
+                    data-highlight={item.actionId === highlightActionId}
+                  >
+                    <div className={styles.actionNumber} aria-hidden="true">
+                      {String(index + 1).padStart(2, "0")}
                     </div>
-                    {item.keywords ? (
-                      <button
-                        type="button"
-                        className={styles.primaryBtn}
-                        onClick={() => onOpenAction(item.actionId)}
-                      >
-                        {experimentOf(item.actionId) ? "경과 보기" : "미리보기"}
-                      </button>
-                    ) : (
-                      <span className={styles.actionSoon}>다음 단계</span>
-                    )}
-                  </div>
-                </li>
-              ))}
+                    <div className={styles.actionBody}>
+                      {exp ? (
+                        <p className={styles.actionState} data-status={exp.status}>
+                          <span>
+                            {exp.status === "done"
+                              ? `실험 완료 · 예측 ${exp.total}개 중 ${exp.hits}개 적중`
+                              : `관찰 중 · ${exp.elapsedDays}일째`}
+                          </span>
+                          {exp.status === "watching" ? (
+                            <i>
+                              <b
+                                style={{
+                                  width: `${(exp.elapsedDays / exp.observeDays) * 100}%`,
+                                }}
+                              />
+                            </i>
+                          ) : null}
+                        </p>
+                      ) : null}
+                      <h3>{item.title}</h3>
+                      <p className={styles.actionReason}>{reason.lead}</p>
+                      {reason.detail ? (
+                        <details className={styles.copyDetails}>
+                          <summary>판단 근거 자세히 <span aria-hidden="true">⌄</span></summary>
+                          <p>{reason.detail}</p>
+                        </details>
+                      ) : null}
+                      <div className={styles.actionFoot}>
+                        <EvidenceLinks
+                          ids={item.evidenceIds}
+                          sourceLabels={report.sourceLabels}
+                          onOpen={openEvidence}
+                        />
+                        {item.keywords ? (
+                          <button
+                            type="button"
+                            className={styles.primaryBtn}
+                            onClick={() => onOpenAction(item.actionId)}
+                          >
+                            {exp ? "경과 보기" : "미리보기"}
+                          </button>
+                        ) : (
+                          <span className={styles.actionSoon}>제안 완료</span>
+                        )}
+                      </div>
+                    </div>
+                  </li>
+                );
+              })}
             </ul>
+            {!report.actions.length ? <p className={styles.insightEmpty}>제안할 다음 행동이 없습니다.</p> : null}
           </div>
         </section>
 

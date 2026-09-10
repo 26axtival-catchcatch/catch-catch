@@ -131,7 +131,12 @@ export function CatchingScreen({
                   </div>
                   <span className={styles.graphLegend}>현재 실행을 따라 이동 · 드래그로 이전 단계 확인</span>
                 </header>
-                <AgentGraph topology={graphTopology} halted={halted} speed={speed} />
+                <AgentGraph
+                  topology={graphTopology}
+                  halted={halted}
+                  speed={speed}
+                  planning={isAssigningRoles && !halted}
+                />
               </section>
             </div>
           </div>

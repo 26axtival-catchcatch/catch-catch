@@ -753,11 +753,14 @@ export function useLiveCatchSession(providedClient?: SignalCatcherClient): Catch
           }
 
           if (snapshot.status !== "completed" && snapshot.status !== "degraded") {
+            // 진행 중인 Run을 URL로 다시 열었을 때 snapshot에는 이전 agent_activity가
+            // 포함되지 않는다. 최신 cursor 뒤에서만 이어 받으면 이미 시작된 역할과
+            // depends_on 토폴로지를 복원할 수 없으므로 공개 SSE 이력을 처음부터 재생한다.
             void consumeStream(
               runId,
               controller,
               version,
-              snapshot.last_event_id ?? 0,
+              0,
             );
             return;
           }

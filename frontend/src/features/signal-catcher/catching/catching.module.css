@@ -636,6 +636,141 @@
   mask-image: linear-gradient(to bottom, transparent 0, #000 9%, #000 93%, transparent 100%);
 }
 
+/*
+ * 목표·계획 직후에는 실제 agent_activity가 오기 전이라 노드를 미리 만들지 않는다.
+ * 대신 중앙의 확정된 workflow에서 다음 역할 자리로 신호가 탐색되는 모습만 남겨
+ * 그래프가 멎은 게 아니라 곧 왼쪽→오른쪽으로 확장된다는 것을 보여준다.
+ */
+.planningField {
+  position: absolute;
+  top: 50%;
+  left: calc(100% - 1px);
+  z-index: 0;
+  display: block;
+  width: clamp(22rem, 36vw, 32rem);
+  height: clamp(14rem, 28vh, 20rem);
+  overflow: hidden;
+  pointer-events: none;
+  transform: translateY(-50%);
+}
+
+.planningField svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.planningBranch {
+  fill: none;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.planningBranch {
+  stroke: color-mix(in srgb, var(--signal) 48%, transparent);
+  stroke-width: 1.35;
+  stroke-dasharray: 7 12;
+  animation: planningBranch var(--planning-duration) var(--ease) infinite;
+}
+
+.planningBranch:nth-of-type(2) {
+  animation-delay: -0.8s;
+}
+
+.planningBranch:nth-of-type(3) {
+  animation-delay: -1.6s;
+}
+
+.planningTarget {
+  fill: var(--ground);
+  stroke: color-mix(in srgb, var(--signal) 72%, transparent);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: planningTarget var(--planning-duration) var(--ease) infinite;
+}
+
+.planningTarget:nth-of-type(2) {
+  animation-delay: -0.8s;
+}
+
+.planningTarget:nth-of-type(3) {
+  animation-delay: -1.6s;
+}
+
+.planningField > span {
+  position: absolute;
+  bottom: 4%;
+  left: 42%;
+  color: color-mix(in srgb, var(--signal-soft) 58%, transparent);
+  font-family: var(--font-mono);
+  font-size: 0.5rem;
+  letter-spacing: 0.16em;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+
+.canvas :global(.react-flow) {
+  z-index: 1;
+}
+
+.canvas[data-planning="true"] .node[data-category="workflow"] .orbWrap::after {
+  position: absolute;
+  inset: -0.35rem;
+  border: 1px solid color-mix(in srgb, var(--signal) 72%, transparent);
+  border-radius: 50%;
+  content: "";
+  animation: planningOrb var(--planning-duration) var(--ease) infinite;
+}
+
+.canvas[data-planning="true"] .node[data-category="workflow"] {
+  border-color: color-mix(in srgb, var(--signal) 42%, var(--line));
+  box-shadow: 0 10px 30px rgb(0 0 0 / 18%), 0 0 24px rgb(255 46 152 / 10%);
+}
+
+@keyframes planningBranch {
+  0%, 16% {
+    opacity: 0.16;
+    stroke-dashoffset: 26;
+  }
+  52% {
+    opacity: 0.82;
+  }
+  100% {
+    opacity: 0.2;
+    stroke-dashoffset: -12;
+  }
+}
+
+@keyframes planningTarget {
+  0%, 24% {
+    opacity: 0.2;
+    transform: scale(0.72);
+  }
+  55%, 72% {
+    opacity: 0.9;
+    transform: scale(1.15);
+  }
+  100% {
+    opacity: 0.24;
+    transform: scale(0.82);
+  }
+}
+
+@keyframes planningOrb {
+  from {
+    opacity: 0.72;
+    transform: scale(0.82);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.55);
+  }
+}
+
 .canvasLoading {
   display: grid;
   place-items: center;
@@ -1374,7 +1509,10 @@
 
 @media (prefers-reduced-motion: reduce) {
   .edge[data-state="active"],
-  .node[data-state="active"] .orb::before {
+  .node[data-state="active"] .orb::before,
+  .planningBranch,
+  .planningTarget,
+  .canvas[data-planning="true"] .node[data-category="workflow"] .orbWrap::after {
     animation: none;
   }
 

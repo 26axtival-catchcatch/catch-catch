@@ -324,4 +324,68 @@ describe("useLiveCatchSession", () => {
     expect(result.current.session.question).toBe("저장된 고객 여정을 보여줘");
     expect(result.current.session.report?.runId).toBe("run-saved-1");
   });
+
+  it("replays an in-progress run from the first SSE event so existing agent roles are restored", async () => {
+    const completedSnapshot: RunSnapshot = {
+      run_id: "run-in-progress-1",
+      status: "completed",
+      request: {
+        question: "진행 중인 멀티에이전트 실행을 보여줘",
+        start_at: LIVE_START_AT,
+        end_at: LIVE_END_AT,
+        enabled_sources: sources.items.map((item) => item.source_id),
+      },
+      created_at: "2026-09-11T00:00:00Z",
+      updated_at: "2026-09-11T00:03:00Z",
+      agent_mode: "bedrock",
+      report,
+      error: null,
+      plan_history: [plan],
+      facts: [journeyFact],
+      last_event_id: 9,
+    };
+    const runningSnapshot: RunSnapshot = {
+      ...completedSnapshot,
+      status: "running",
+      report: null,
+      last_event_id: 3,
+    };
+    const streamCursors: Array<number | undefined> = [];
+    let snapshotCalls = 0;
+    const client: SignalCatcherClient = {
+      listSources: vi.fn(async () => apiSources),
+      createRun: vi.fn(),
+      getRun: vi.fn(async () => {
+        snapshotCalls += 1;
+        return snapshotCalls === 1 ? runningSnapshot : completedSnapshot;
+      }),
+      async *streamRunEvents(_runId, options) {
+        streamCursors.push(options?.lastEventId);
+        for (const event of streamEvents()) yield event;
+      },
+      submitClarification: vi.fn(),
+      getJourney: vi.fn(async () => ({
+        result_id: "journey-in-progress-1",
+        customer_id: "C-01**",
+        events: [],
+        evidence_ids: [],
+        stats: { scanned_rows: 0, returned_rows: 0 },
+      })),
+      getEvidence: vi.fn(),
+    };
+    const { result } = renderHook(() => useLiveCatchSession(client));
+
+    act(() => result.current.restoreRun("run-in-progress-1"));
+
+    await waitFor(() => expect(result.current.session.phase).toBe("result"), {
+      timeout: 2_500,
+    });
+
+    expect(streamCursors).toEqual([0]);
+    expect(result.current.activities.map((activity) => activity.role)).toEqual([
+      "coordinator",
+      "coordinator",
+    ]);
+    expect(result.current.topologyEvents[0]?.type).toBe("run_started");
+  });
 });
