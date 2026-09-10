@@ -375,7 +375,7 @@ def _start_workflow_observation(context: LangfuseRunContext) -> Any | None:
     if client is None:
         return None
     metadata = {
-        "provider": "gemini",
+        "provider": "server",
         "stage": "turn",
         "run_id": context.run_id,
         "run_kind": context.run_kind,

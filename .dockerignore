@@ -1,0 +1,14 @@
+**
+!backend/
+!backend/pyproject.toml
+!backend/uv.lock
+!backend/src/
+!backend/src/**
+!deploy/
+!deploy/backend-entrypoint.sh
+!data/
+!data/seeding/
+!data/seeding/hackathon-2week/
+!data/seeding/hackathon-2week/onboarded-sources/
+!data/seeding/hackathon-2week/onboarded-sources/**
+**/__pycache__/**

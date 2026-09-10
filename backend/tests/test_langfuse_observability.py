@@ -256,6 +256,8 @@ def test_one_run_groups_workflow_model_and_tool_under_one_trace(monkeypatch) -> 
         "customer_signal.tool.match_sequence",
     ]
     assert client.calls[0]["trace_context"] == {"trace_id": bound.trace_id}
+    # The workflow also wraps fixture/Bedrock runs; it is owned by the server.
+    assert client.calls[0]["metadata"]["provider"] == "server"
     assert config["callbacks"][0].trace_context == {
         "trace_id": bound.trace_id,
         "parent_span_id": "span-1",
