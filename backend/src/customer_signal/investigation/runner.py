@@ -243,6 +243,7 @@ class InvestigationRunner:
                                 or (getattr(result, "summary", "")[:1000] or None),
                                 details=role_details(result),
                                 duration_ms=int((monotonic() - role_started) * 1000),
+                                message_kind="summary" if result.display_summary or getattr(result, "summary", "") else None,
                             )
                             return result
                     except asyncio.CancelledError:

@@ -375,6 +375,7 @@ export function SignalCatcherApp({
             <TraceScreen
               report={session.report}
               question={session.question}
+              topologyEvents={controller.topologyEvents}
               onBack={controller.closeTrace}
             />
           </div>

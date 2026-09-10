@@ -4,11 +4,13 @@
 }
 
 .inner {
-  width: min(52rem, 100%);
+  width: min(76rem, 100%);
   margin-inline: auto;
   display: grid;
   gap: 2.5rem;
 }
+
+.conversation { min-width: 0; }
 
 .back {
   justify-self: start;
@@ -233,6 +235,8 @@
 }
 
 .provenance div {
+  min-width: 0;
+  overflow-wrap: anywhere;
   padding: 0.7rem 0.9rem;
   background: var(--card);
   border: 1px solid var(--line);

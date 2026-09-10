@@ -24,6 +24,7 @@ from pydantic import BaseModel, ConfigDict, Field, SecretStr, ValidationError
 
 from customer_signal.agent.generic_gemini import _is_typed_not_found
 from customer_signal.investigation.activity import ActivityDetails, operation, tool_details
+from customer_signal.investigation.commentary import public_model_text
 from customer_signal.investigation.contracts import InvestigationResult, Verification
 from customer_signal.investigation.verification import (
     VERIFIER_PREVIEW_ROWS,
@@ -137,6 +138,11 @@ JOIN that table for follow-up aggregates instead of repeating a long cohort CTE 
 Other tasks cannot query that table. Never use temporary cohort tables inside reusable signal definitions.
 The final result must follow result_schema
 and be submitted with finish(document=<JSON string>). Write public results in Korean.
+When useful, include a brief Korean public-facing progress update in your ordinary text
+alongside a tool batch: the next check or an observed high-level finding. These text updates
+are shown in the agent conversation. Do not expose private reasoning, SQL, raw rows, customer
+identifiers, credentials or tool argument JSON. Do not narrate routine tool names or invent
+findings. Updates need no extra tool or model call; submit final results with finish as usual.
 When signal_tools_enabled is true, investigators MUST measure_signal and propose_signal for
 supported candidates BEFORE finish when measurable. If a reusable metric cannot be established,
 retain the analytical candidate with explicit limitations; it stays unconfirmed and unregistrable.
@@ -547,6 +553,7 @@ class GeminiInvestigationModel:
                 with tracing_context(enabled=False):
                     response = await chain.ainvoke(messages, config=config)
             if isinstance(response, AIMessage):
+                activity.commentary = public_model_text(response.content)
                 usage = response.usage_metadata or {}
                 activity.details = ActivityDetails(
                     tool_count=len(response.tool_calls),

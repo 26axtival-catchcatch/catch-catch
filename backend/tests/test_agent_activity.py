@@ -148,6 +148,13 @@ async def test_http_stream_replay_after_restart_and_swagger(tmp_path):
     deps = _default_dependencies(settings)
     from customer_signal.investigation.data import InvestigationData
     from test_investigation_data import event
+    from customer_signal.investigation.activity import operation
+
+    class CommentaryModel(ScriptedModel):
+        async def run_role(self, **kwargs):
+            async with operation("model", "generation", model="test-model") as activity:
+                activity.commentary = "관찰된 행동과 정상적인 비교 탐색을 구분하겠습니다."
+            return await super().run_role(**kwargs)
 
     def api_data(req):
         return InvestigationData(
@@ -158,7 +165,7 @@ async def test_http_stream_replay_after_restart_and_swagger(tmp_path):
         )
 
     deps.packs.get("customer_signal")._loops["fixture"] = InvestigationRunner(
-        model=ScriptedModel(), data_factory=api_data, artifact_directory=tmp_path
+        model=CommentaryModel(), data_factory=api_data, artifact_directory=tmp_path
     )
 
     def frames(text):
@@ -174,10 +181,17 @@ async def test_http_stream_replay_after_restart_and_swagger(tmp_path):
         original = client.get(url)
         values = frames(original.text)
         assert any(e["type"] == "agent_activity" for e in values)
+        assert any(e["payload"].get("message_kind") == "commentary" for e in values)
+        assert any(e["payload"].get("message_kind") == "summary" for e in values)
         assert values[-1]["type"] == "done"
         assert values[-1]["payload"]["status"] == "completed"
         schema = client.get("/openapi.json").json()
         assert "AgentActivityPayload" in schema["components"]["schemas"]
+        assert "message_kind" in schema["components"]["schemas"]["AgentActivityPayload"]["properties"]
+        assert "message_text" in schema["components"]["schemas"]["AgentActivityPayload"]["properties"]
+        comments = [e["payload"] for e in values if e["payload"].get("message_kind") == "commentary"]
+        assert all(c["display_text"] == "모델 응답 생성" for c in comments)
+        assert all(c["message_text"] == "관찰된 행동과 정상적인 비교 탐색을 구분하겠습니다." for c in comments)
     with TestClient(create_app(settings=settings)) as client:
         replay = client.get(url)
         assert frames(replay.text) == values

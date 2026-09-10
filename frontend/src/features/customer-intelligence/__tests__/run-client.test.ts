@@ -925,12 +925,13 @@ describe("RunClient", () => {
   });
 });
 
-it("parses the complete agent activity payload without changing its public values", async () => {
+it.each([undefined, null, "commentary", "summary"])("parses public agent activity with message_kind %s without changing its values", async (messageKind) => {
   const activity = {
     schema_version: 1, node_id: "agent-reporter", parent_node_id: null,
     depends_on: ["agent-verifier"], kind: "agent", role: "reporter", task_id: "task-reporting",
     round_index: 0, status: "completed", name: "reporter",
     display_text: "검색 실패 후 관련 없는 메뉴를 탐색하는 배회 행동을 확인했습니다.",
+    ...(messageKind !== undefined ? { message_kind: messageKind, message_text: messageKind === null ? null : "단톡방에 표시할 공개 문장입니다." } : {}),
     occurred_at: "2026-09-10T08:54:31.123456Z", duration_ms: 30257, model: null,
     details: {
       query_id: null, row_count: null, event_count: null, customer_count: null,

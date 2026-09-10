@@ -74,6 +74,14 @@ Bedrock 호출 실패 시 다른 모델이나 fixture로 자동 전환하지 않
 역할별 토폴로지, 실제 모델과 도구 호출의 시작/완료/실패/취소를 전달합니다.
 `node_id`, `parent_node_id`, `depends_on`, `role`, `task_id`, `round_index`로 진행 관계를 표시합니다.
 `display_text`, `duration_ms`, 타입이 지정된 `details`에는 공개 요약과 실제 실행 값을 담습니다.
+`message_kind=commentary`는 모델의 일반 `text`에서 추출한 짧은 진행 설명이며,
+`message_kind=summary`는 에이전트의 결과 요약입니다. 실제 문장은 단톡방 전용 `message_text`에
+저장합니다. 기존 `display_text`와 실행 상태를 유지하며, 대화 화면만 새 필드를 읽습니다.
+`message_kind=null`인 모델과 도구 호출 상태는 토폴로지에서 확인합니다.
+진행 설명은 모델 응답을 받은 뒤 도구 실행 전에 저장합니다. 추론 전용 블록과 도구 인자는
+포함하지 않으며, 연락처와 고객 식별자는 가리고 최대 1,000자로 제한합니다.
+기존 실행에서 이 필드가 없으면 완료된 에이전트의 공개 요약만 대화에 표시합니다.
+과거에 저장하지 않은 모델 텍스트는 자동 복원하지 않습니다.
 서버 검사를 반영한 후보 판정은 `kind=assessment`에서 확인합니다.
 개별 활동의 실패는 Run 종료가 아니며 최종 종료는 기존 `done`으로 판단합니다.
 전체 필드, SSE 예시와 재접속 처리는 [에이전트 액티비티 FE 인계](agent-activity-handoff.md)에 정리했습니다.

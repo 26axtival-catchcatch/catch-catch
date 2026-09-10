@@ -190,6 +190,7 @@ export function useLiveCatchSession(providedClient?: SignalCatcherClient): Catch
   }, []);
 
   const appendTopologyEvent = useCallback((event: AnyRunStreamEvent) => {
+    if (topologyEventLogRef.current.some(existing => existing.id === event.id)) return;
     topologyEventLogRef.current = [...topologyEventLogRef.current, event];
     setTopologyEvents(topologyEventLogRef.current);
   }, []);
@@ -347,6 +348,7 @@ export function useLiveCatchSession(providedClient?: SignalCatcherClient): Catch
       controller: AbortController,
       version: number,
       lastEventId = 0,
+      answeredClarificationThrough = 0,
     ) => {
       streamActiveRef.current = true;
       try {
@@ -380,6 +382,7 @@ export function useLiveCatchSession(providedClient?: SignalCatcherClient): Catch
               break;
             }
             case "clarification_required":
+              if (event.id <= answeredClarificationThrough) break;
               setSession((current) => ({
                 ...current,
                 clarification: {
@@ -702,6 +705,7 @@ export function useLiveCatchSession(providedClient?: SignalCatcherClient): Catch
       traceRef.current = [];
       topologyEventLogRef.current = [];
       reportRef.current = null;
+      publishingFactsRef.current = false;
       startedAtRef.current = Date.now();
       setBursting(false);
       setFlatline(false);
@@ -760,7 +764,9 @@ export function useLiveCatchSession(providedClient?: SignalCatcherClient): Catch
               runId,
               controller,
               version,
-              0,
+              0, // Replay prior public messages before following the active Run.
+              snapshot.status === "awaiting_clarification" ? 0 : snapshot.last_event_id ?? 0,
+
             );
             return;
           }

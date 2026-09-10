@@ -1,6 +1,5 @@
 "use client";
 
-import dynamic from "next/dynamic";
 import { useMemo } from "react";
 
 import type { AgentActivity } from "../../customer-intelligence/agent-activity";
@@ -10,20 +9,8 @@ import type { CatchSession, StageKey, StageTick } from "../state/types";
 
 import { createAgentTopology } from "./agent-topology";
 import { ClarificationModal } from "./ClarificationModal";
-import { TopologyActivityStream } from "./TopologyActivityStream";
+import { AgentWorkspace } from "./AgentWorkspace";
 import styles from "./catching.module.css";
-
-const AgentGraph = dynamic(
-  () => import("./AgentGraph").then((module) => module.AgentGraph),
-  {
-    ssr: false,
-    loading: () => (
-      <div className={`${styles.canvas} ${styles.canvasLoading}`} aria-label="분석 흐름 준비 중">
-        <span>분석 흐름을 준비하고 있어요</span>
-      </div>
-    ),
-  },
-);
 
 interface CatchingScreenProps {
   session: CatchSession;
@@ -105,7 +92,7 @@ export function CatchingScreen({
             <div className={styles.head}>
               <div>
                 <p className={styles.kicker}>
-                  {activeIndex >= 0
+                  {isConnecting ? "분석 연결 중" : activeIndex >= 0
                     ? `분석 진행 · ${String(activeIndex + 1).padStart(2, "0")} / ${String(session.stages.length).padStart(2, "0")}`
                     : "분석 완료"}
                 </p>
@@ -121,26 +108,10 @@ export function CatchingScreen({
               </span>
             </div>
 
-            <div className={styles.workspace}>
-              <TopologyActivityStream activities={activities} halted={halted} />
-              <section className={styles.graphPanel} aria-labelledby="agent-topology-title">
-                <header className={styles.columnHeader}>
-                  <div>
-                    <p className={styles.columnKicker}>AGENT TOPOLOGY</p>
-                    <h2 id="agent-topology-title">실시간 멀티에이전트 실행</h2>
-                  </div>
-                  <span className={styles.graphLegend}>현재 실행을 따라 이동 · 드래그로 이전 단계 확인</span>
-                </header>
-                <AgentGraph
-                  topology={graphTopology}
-                  halted={halted}
-                  speed={speed}
-                  planning={isAssigningRoles && !halted}
-                />
-              </section>
-            </div>
+            <AgentWorkspace events={topologyEvents} halted={halted} speed={speed} />
           </div>
         )}
+        {failed ? <div className={styles.panel}><AgentWorkspace events={topologyEvents} halted speed={speed} /></div> : null}
       </div>
 
       {session.clarification ? (

@@ -32,6 +32,10 @@ export function ProcessTrace({ report, onOpenTrace }: ProcessTraceProps) {
 
   return (
     <section className={styles.wrap}>
+      <div className={styles.detailEntry}>
+        <div><strong>에이전트가 나눈 대화</strong><p>단서를 찾고 검증한 과정을 시간순으로 살펴보세요.</p></div>
+        <button type="button" onClick={onOpenTrace}>상세 보러가기 <span aria-hidden="true">→</span></button>
+      </div>
       <button
         type="button"
         className={styles.toggle}

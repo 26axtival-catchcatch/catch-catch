@@ -137,7 +137,9 @@ const ActivityRow = memo(function ActivityRow({
 }: { activity: AgentActivity; child?: boolean }) {
   const details = activityDetails(activity);
   const duration = durationLabel(activity.duration_ms);
-  const rawPayload = JSON.stringify(activity, null, 2);
+  // Conversation prose is reserved for the chat panel, including in this debug disclosure.
+  const rawPayload = JSON.stringify(activity,
+    (key, value) => key === "message_kind" || key === "message_text" ? undefined : value, 2);
   const context = [
     activity.role,
     activity.task_id,
