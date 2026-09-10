@@ -48,6 +48,9 @@ Backend 를 실행하면 FastAPI 가 다음 경로를 자동으로 제공합니�
 `auto`는 유효한 Bedrock 토큰 → Gemini 키 → fixture 순서로 선택합니다.
 `mode=bedrock`은 `AWS_BEARER_TOKEN_BEDROCK`, `AWS_REGION`(기본 `us-east-1`),
 `BEDROCK_MODEL`(기본 `us.anthropic.claude-opus-4-6-v1`)로 Converse API를 호출합니다.
+서버에 `AGENT_MODE=bedrock`을 명시하면 토큰 없이도 AWS SDK 자격증명 체인을 사용합니다.
+EC2에서는 인스턴스 역할에 해당 inference profile과 기반 모델의 `bedrock:InvokeModel`,
+`bedrock:InvokeModelWithResponseStream` 권한이 필요합니다. 호출별 출력 상한은 8,192 토큰입니다.
 investigator는 `BEDROCK_INVESTIGATOR_MODEL`(기본 `us.anthropic.claude-sonnet-4-6`)을
 사용하며, coordinator, reporter는 `BEDROCK_MODEL`을 사용합니다.
 verifier는 `BEDROCK_VERIFIER_MODEL`을 지정하면 해당 모델을 사용하고, 생략하면

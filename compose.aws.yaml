@@ -1,0 +1,14 @@
+services:
+  gateway:
+    ports: !override
+      - "0.0.0.0:80:8080"
+  langfuse-web:
+    ports: !override
+      - "0.0.0.0:3210:3000"
+    environment:
+      LANGFUSE_INIT_USER_NAME: 4bit
+      LANGFUSE_INIT_ORG_NAME: Catch Catch Hackathon
+      LANGFUSE_INIT_PROJECT_NAME: Catch Catch Hackathon
+  minio:
+    ports: !override
+      - "0.0.0.0:3290:9000"

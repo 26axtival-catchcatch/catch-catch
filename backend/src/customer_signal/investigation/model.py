@@ -271,7 +271,8 @@ class GeminiInvestigationModel:
         result_type: type[BaseModel],
         round_index: int = 0,
     ) -> BaseModel:
-        if self._api_key is None:
+        # Bedrock can authenticate through the AWS SDK credential chain.
+        if self._api_key is None and self.agent_mode != "bedrock":
             raise self._error("not_configured", "API Key가 설정되지 않았습니다.")
         messages: list[BaseMessage] = [
             SystemMessage(
@@ -654,7 +655,7 @@ class BedrockInvestigationModel(GeminiInvestigationModel):
             model=model_name,
             region_name=self._region,
             api_key=SecretStr(self._api_key) if self._api_key else None,
-            max_tokens=None,
+            max_tokens=8192,
             timeout=self._timeout_seconds,
             # The async adapter owns retries, avoiding a second SDK retry loop.
             max_retries=0,

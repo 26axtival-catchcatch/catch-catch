@@ -1,0 +1,29 @@
+{
+  "schemaVersion": "0.3",
+  "description": "Catch Catch 메인을 서버에서 받아 전체 Compose 스택을 재배포합니다. 실행 중인 분석은 재시작으로 중단될 수 있습니다.",
+  "parameters": {},
+  "mainSteps": [
+    {
+      "name": "DeployMain",
+      "action": "aws:runCommand",
+      "timeoutSeconds": 1800,
+      "inputs": {
+        "DocumentName": "AWS-RunShellScript",
+        "InstanceIds": [
+          "i-0ba6c57529146ac3d"
+        ],
+        "Parameters": {
+          "commands": [
+            "set -eu",
+            "export HOME=/root",
+            "cd /opt/catch-catch",
+            "bash deploy/aws-redeploy.sh main"
+          ],
+          "executionTimeout": [
+            "1800"
+          ]
+        }
+      }
+    }
+  ]
+}

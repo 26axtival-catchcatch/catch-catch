@@ -68,6 +68,17 @@ async def run_role(model):
     )
 
 
+async def test_bedrock_uses_sdk_role_credentials_without_api_key():
+    provider = ScriptedProvider({"test-model": [finish()]})
+    model = investigation_model.BedrockInvestigationModel(
+        api_key=None, model="test-model", region="us-east-1", model_factory=provider,
+    )
+    result = await run_role(model)
+    assert result.headline == "검증 결과"
+    assert provider.models[0]["api_key"] is None
+    assert provider.models[0]["max_tokens"] == 8192
+
+
 async def test_bedrock_tool_roundtrip_and_provider_metadata():
     provider = ScriptedProvider({"test-model": [call("catalog_data"), finish()]})
     model = make_model(provider)
@@ -260,12 +271,13 @@ async def test_bedrock_allows_model_to_finish_after_many_turns():
     assert provider.calls[-1]["binding"] == {}
 
 
-def test_api_wires_bedrock_and_exposes_mode_in_swagger(tmp_path):
+@pytest.mark.parametrize("api_key", [None, "test-key"])
+def test_api_wires_bedrock_and_exposes_mode_in_swagger(tmp_path, api_key):
     from customer_signal.api import _default_dependencies, create_app
 
     settings = Settings(
         agent_mode="bedrock",
-        aws_bearer_token_bedrock="test-key",
+        aws_bearer_token_bedrock=api_key,
         database_path=tmp_path / "db.duckdb",
         artifact_directory=tmp_path / "artifacts",
         onboarded_sources_dir=tmp_path / "sources",
