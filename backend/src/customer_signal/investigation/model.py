@@ -259,14 +259,17 @@ class GeminiInvestigationModel:
             # Mandatory local work needs no model decision or remote round trip.
             # Keep this actual server-executed tool pair in the recoverable history;
             # the entire result must reach the model before any verdict is accepted.
-            prepared = await self._run_tool(
-                name="recheck_candidate",
-                arguments={},
-                data=data,
-                result_type=result_type,
-                task_id=task_id,
-                context=context,
-            )
+            async with operation("tool", "recheck_candidate") as activity:
+                prepared = await self._run_tool(
+                    name="recheck_candidate",
+                    arguments={},
+                    data=data,
+                    result_type=result_type,
+                    task_id=task_id,
+                    context=context,
+                )
+                activity.details = tool_details("recheck_candidate", prepared)
+                activity.failed = activity.details.error_code is not None
             messages.extend(
                 [
                     AIMessage(

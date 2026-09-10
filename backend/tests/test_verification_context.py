@@ -116,6 +116,7 @@ async def test_followup_only_rechecks_changed_candidate(tmp_path):
 async def test_prepared_verification_can_finish_in_one_model_call(
     tmp_path, provider_kind, fail_measurement, monkeypatch
 ):
+    from customer_signal.investigation.activity import ActivityStream
     from customer_signal.investigation.contracts import Verification
     from customer_signal.investigation.model import (
         BedrockInvestigationModel,
@@ -219,16 +220,24 @@ async def test_prepared_verification_can_finish_in_one_model_call(
                 api_key="test", primary_model="test", fallback_model="test", model_factory=provider
             )
         )
+        events = []
+
+        async def emit(event):
+            events.append(event.payload)
+
+        stream = ActivityStream(emit)
+        node = await stream.agent("verifier", "task-verifier", 0, [])
         token = query_owner.set("task-verifier")
         try:
-            result = await model.run_role(
-                role="verifier",
-                task_id="task-verifier",
-                instruction="독립 검증",
-                context=context,
-                data=data,
-                result_type=Verification,
-            )
+            with stream.bind(node):
+                result = await model.run_role(
+                    role="verifier",
+                    task_id="task-verifier",
+                    instruction="독립 검증",
+                    context=context,
+                    data=data,
+                    result_type=Verification,
+                )
         finally:
             query_owner.reset(token)
         assert result.decisions[0].verdict == ("candidate" if fail_measurement else "confirmed")
@@ -238,6 +247,13 @@ async def test_prepared_verification_can_finish_in_one_model_call(
         )
         assert data.queries[original["query_id"]]["owner"] == "server"
         assert "prepared_evidence" not in context
+        preparation = [e for e in events if e["name"] == "recheck_candidate"]
+        assert [e["status"] for e in preparation] == ["started", "completed"]
+        assert all(e["parent_node_id"] == node.node_id for e in preparation)
+        generation = next(e for e in events if e["kind"] == "model")
+        assert events.index(preparation[-1]) < events.index(generation)
+        assert original["sql"] not in json.dumps(events)
+        assert all(cid not in json.dumps(events) for cid in data.customer_ids)
     finally:
         data.close()
 
