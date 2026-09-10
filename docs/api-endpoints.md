@@ -134,11 +134,17 @@ FastAPI OpenAPI 스키마에 포함되지 않으므로 Swagger UI 에 나타나�
 | PATCH | `/api/signals/{signal_id}` | `status`: active/paused/archived | `Signal` |
 | POST | `/api/signals/{signal_id}/measurements` | `start_at`, `end_at` 지정 재측정 | `Measurement` |
 | GET | `/api/signals/{signal_id}/measurements` | 전체 이력, 기간별 최신 성공 값, 비교 가능 여부 | `MeasurementHistory` |
-| GET | `/api/signals/{signal_id}/alert-recommendations` | 저장된 모델 추천 알림 조건, 기존 데이터는 null 가능 | `RecommendationSet \| null` |
-| POST | `/api/signals/{signal_id}/alert-recommendations` | 기존 시그널의 추천 생성 또는 실패 재시도 | `RecommendationSet` |
+| GET | `/api/signals/{signal_id}/alert-recommendations` | 저장된 측정 지표별 알림 기준, 기존 데이터는 null 가능 | `RecommendationSet \| null` |
+| POST | `/api/signals/{signal_id}/alert-recommendations` | 기존 측정 지표로 알림 기준 준비, 과거 추천 전환 | `RecommendationSet` |
 | GET | `/api/signals/{signal_id}/alert-rules` | 사용자 선택 조건과 편집 버전 조회 | `AlertRules` |
-| PUT | `/api/signals/{signal_id}/alert-rules` | 추천 선택과 임계값 변경, 빈 목록으로 전체 해제 | `AlertRules` |
+| PUT | `/api/signals/{signal_id}/alert-rules` | 지표별 기준 선택과 임계값 변경, 빈 목록으로 전체 해제 | `AlertRules` |
 | GET | `/api/signal-alert-events` | `after` 커서 이후 알림 이벤트 폴링, `limit` 페이지 크기 | `AlertEvents` |
+
+알림 기준은 시그널 상세와 Langfuse `customer_signal.signal` span의 측정 지표를 재사용합니다.
+`alert_recommendations.source=measurement`이며, 지표마다 `kind=value`, `operator=gte`인 기준 하나를 제공합니다.
+초기 `threshold`는 분석 당시 값입니다. 사용자가 하루 기준의 임계값을 조정하고 저장합니다.
+기준 준비에는 외부 모델 호출이 없습니다. 기존 `model`과 `fixture` 추천은 POST 또는 재등록 시 전환하고,
+이미 선택한 알림 규칙은 사용자가 새 기준을 저장할 때까지 유지합니다.
 
 등록과 재측정은 HTTP 200을 반환합니다. 없는 시그널/후보는 404, 완료되지 않은 Run의 후보 조회, 등록은 409,
 잘못된 요청은 422입니다. 직접 등록 시 최초 측정이 불가능해도 422이며 등록을 저장하지 않습니다.

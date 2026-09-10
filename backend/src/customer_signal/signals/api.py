@@ -19,7 +19,7 @@ from customer_signal.signals.comparison import (
 from customer_signal.signals.schedule_contracts import DailyResults, DailySchedule, ScheduleUpdate
 from customer_signal.signals.scheduling import ScheduleBusy, ScheduleStore
 from customer_signal.signals.alert_api import create_alert_router
-from customer_signal.signals.alert_recommendations import fixture_recommendations
+from customer_signal.signals.alert_recommendations import measurement_recommendations
 from customer_signal.signals.fast_forward import (
     FastForwardConflict, FastForwardRequest, FastForwardResult, FastForwardService,
 )
@@ -93,7 +93,7 @@ def history_response(items: list[Measurement]) -> MeasurementHistory:
 
 def create_router(
     *, store, is_completed: Callable[[str], bool], load_data: Callable,
-    recommend: Callable = fixture_recommendations,
+    recommend: Callable = measurement_recommendations,
 ) -> APIRouter:
     router = APIRouter(tags=["signals"])
     service = SignalService(store=store, load_data=load_data, recommend=recommend)

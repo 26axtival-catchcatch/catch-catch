@@ -118,7 +118,14 @@ def test_analysis_groups_every_pattern_and_registration_resumes_selected_pattern
             "parent_span_id": first.id,
         }
         assert client.spans[-2].updates[-1]["output"]["signal_id"] == selected.signal_id
-        assert client.calls[-1]["name"] == "customer_signal.alert_recommendation"
+        assert client.calls[-1]["name"] == "customer_signal.signal_alert_criteria"
+        assert selected.alert_recommendations.source == "measurement"
+        assert [(r.metric_key, r.metric_label, r.metric_unit, r.threshold)
+                for r in selected.alert_recommendations.items] == [
+            (m["key"], m["label"], m["unit"], m["value"])
+            for m in first_output["measurement"]["values"]
+            if m["value"] is not None and m["key"] != "val_count" and "확인용" not in m["label"]
+        ]
         assert client.calls[-1]["trace_context"] == {
             "trace_id": context.trace_id, "parent_span_id": client.spans[-2].id,
         }
@@ -164,7 +171,7 @@ def test_legacy_proposal_registration_uses_original_trace_without_new_workflow(
         assert len(client.calls) == 2
         assert client.calls[0]["name"] == "customer_signal.signal"
         assert client.calls[0]["trace_context"] == {"trace_id": proposal.run_id.replace("-", "")}
-        assert client.calls[1]["name"] == "customer_signal.alert_recommendation"
+        assert client.calls[1]["name"] == "customer_signal.signal_alert_criteria"
         assert client.calls[1]["trace_context"]["parent_span_id"] == client.spans[0].id
     finally:
         data.close()

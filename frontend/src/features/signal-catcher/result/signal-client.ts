@@ -41,7 +41,7 @@ export interface AlertRecommendation {
 
 export interface AlertRecommendationSet {
   status: "ready" | "unavailable";
-  source: "model" | "fixture";
+  source: "measurement" | "model" | "fixture";
   items: AlertRecommendation[];
   reason: string | null;
 }
@@ -419,7 +419,7 @@ function recommendationSetOf(value: unknown, path: string): AlertRecommendationS
   }
   return {
     status: oneOf(set.status, ["ready", "unavailable"], `${path}.status`),
-    source: oneOf(set.source, ["model", "fixture"], `${path}.source`),
+    source: oneOf(set.source, ["measurement", "model", "fixture"], `${path}.source`),
     items: set.items.map((item, index) => recommendationOf(item, `${path}.items[${index}]`)),
     reason: set.reason === null ? null : stringOf(set.reason, `${path}.reason`),
   };

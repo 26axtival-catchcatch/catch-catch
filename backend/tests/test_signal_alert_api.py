@@ -19,7 +19,7 @@ def test_registration_returns_recommendations_and_explicit_opt_in(registry):  # 
     created = client.post("/api/signals", json={"proposal_id": "done"}).json()
     sid = created["signal_id"]
     recs = created["alert_recommendations"]
-    assert recs["status"] == "ready" and recs["source"] == "fixture"
+    assert recs["status"] == "ready" and recs["source"] == "measurement"
     base = f"/api/signals/{sid}"
     assert client.get(base + "/alert-recommendations").json() == recs
     assert client.get(base + "/alert-rules").json()["items"] == []
@@ -180,3 +180,33 @@ def test_nonfinite_json_threshold_is_a_validation_error(registry):  # noqa: F811
             headers={"Content-Type": "application/json"},
         )
         assert response.status_code == 422
+
+
+def test_legacy_recommendations_upgrade_without_changing_active_alerts(registry):  # noqa: F811
+    store, client = registry
+    signal = client.post("/api/signals", json={"proposal_id": "done"}).json()
+    sid = signal["signal_id"]
+    base = f"/api/signals/{sid}"
+    legacy = signal["alert_recommendations"]
+    legacy["source"] = "model"
+    legacy["items"] = [dict(legacy["items"][0], recommendation_id="legacy-rate",
+        kind="relative_change_percent", comparison_unit="percent", threshold=35)]
+    signal["alert_recommendations"] = legacy
+    import json
+    with store._connection() as db:
+        db.execute("UPDATE signals SET payload=? WHERE signal_id=?", (json.dumps(signal), sid))
+    saved = client.put(base + "/alert-rules", json={
+        "revision": 0, "items": [{"recommendation_id": "legacy-rate", "threshold": 42}],
+    }).json()
+    upgraded = client.post(base + "/alert-recommendations").json()
+    assert upgraded["source"] == "measurement"
+    assert all(item["kind"] == "value" and item["operator"] == "gte" for item in upgraded["items"])
+    assert client.get(base + "/alert-rules").json() == saved
+    assert client.post("/api/signals", json={"proposal_id": "done"}).json()["alert_recommendations"] == upgraded
+    selected = client.put(base + "/alert-rules", json={
+        "revision": saved["revision"],
+        "items": [{"recommendation_id": upgraded["items"][0]["recommendation_id"], "threshold": 12}],
+    })
+    assert selected.status_code == 200
+    assert selected.json()["items"][0]["threshold"] == 12
+    assert selected.json()["items"][0]["kind"] == "value"
