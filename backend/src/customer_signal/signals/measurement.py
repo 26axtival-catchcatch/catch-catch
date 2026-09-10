@@ -14,6 +14,10 @@ from customer_signal.investigation.data import InvestigationData
 from customer_signal.signals.contracts import Measurement, MetricValue, SignalDefinition
 
 
+# Increment when the deterministic SQL measurement semantics change.
+PIPELINE_VERSION = "signal-sql-v1"
+
+
 def _fingerprint(value: object) -> str:
     def canonical(item):
         if isinstance(item, datetime):
@@ -39,6 +43,14 @@ def _fingerprint(value: object) -> str:
             value, sort_keys=True, default=str, ensure_ascii=False, separators=(",", ":")
         ).encode()
     ).hexdigest()
+
+
+def _snapshot_fingerprint(payload: dict) -> str:
+    # Preserve pre-scheduler v1 snapshot IDs. Later engine revisions need a distinct
+    # identity even if the underlying rows and registered definition stay unchanged.
+    if PIPELINE_VERSION != "signal-sql-v1":
+        payload = {**payload, "pipeline": PIPELINE_VERSION}
+    return _fingerprint(payload)
 
 
 def definition_fingerprint(definition: SignalDefinition) -> str:
@@ -126,11 +138,12 @@ def measure_definition(data: InvestigationData, definition: SignalDefinition) ->
     common = dict(
         measurement_id="measurement-" + uuid4().hex,
         definition_fingerprint=definition_fingerprint(definition),
+        pipeline_version=PIPELINE_VERSION,
         start_at=data.request.start_at,
         end_at=data.request.end_at,
         source_ids=source_ids,
     )
-    snapshot = _fingerprint({"source_ids": source_ids, "missing": True})
+    snapshot = _snapshot_fingerprint({"source_ids": source_ids, "missing": True})
     try:
         if not set(source_ids) <= set(data.request.enabled_sources):
             raise _Unavailable("missing_source")
@@ -145,7 +158,7 @@ def measure_definition(data: InvestigationData, definition: SignalDefinition) ->
                     "columns": scoped.columns,
                 }
             )
-        snapshot = _fingerprint(
+        snapshot = _snapshot_fingerprint(
             {
                 "source_ids": source_ids,
                 "versions": versions,
@@ -231,9 +244,10 @@ def unavailable_measurement(
     return Measurement(
         measurement_id="measurement-" + uuid4().hex,
         definition_fingerprint=definition_fingerprint(definition),
+        pipeline_version=PIPELINE_VERSION,
         start_at=start_at,
         end_at=end_at,
-        snapshot_id=_fingerprint(
+        snapshot_id=_snapshot_fingerprint(
             {
                 "unavailable": reason,
                 "sources": sorted(definition.source_ids),

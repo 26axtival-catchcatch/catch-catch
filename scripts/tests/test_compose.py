@@ -30,6 +30,7 @@ class ComposeEnvironmentTests(unittest.TestCase):
             "UNRELATED_SECRET": "must-not-be-copied",
             "LANGSMITH_TRACING": "true",
             "BEDROCK_INVESTIGATOR_MODEL": "us.anthropic.claude-sonnet-4-6",
+            "BEDROCK_VERIFIER_MODEL": "test-haiku",
         }
         with patch.dict(os.environ, environment, clear=True):
             module.write_environment()
@@ -41,6 +42,7 @@ class ComposeEnvironmentTests(unittest.TestCase):
         self.assertEqual(backend["LANGSMITH_TRACING"], "true")
         self.assertEqual(backend["BEDROCK_INVESTIGATOR_MODEL"],
                          environment["BEDROCK_INVESTIGATOR_MODEL"])
+        self.assertEqual(backend["BEDROCK_VERIFIER_MODEL"], "test-haiku")
         self.assertEqual(backend["LANGFUSE_SECRET_KEY"], before["LANGFUSE_SECRET_KEY"])
         self.assertEqual(backend["LANGFUSE_BASE_URL"], "http://langfuse-web:3000")
         self.assertEqual(backend["AGENT_MODE"], "gemini")

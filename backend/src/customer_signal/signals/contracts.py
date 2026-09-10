@@ -58,6 +58,7 @@ class MetricValue(Contract):
 class Measurement(Contract):
     measurement_id: str
     definition_fingerprint: str
+    pipeline_version: str = "signal-sql-v1"
     start_at: AwareDatetime
     end_at: AwareDatetime
     measured_at: AwareDatetime = Field(default_factory=now)

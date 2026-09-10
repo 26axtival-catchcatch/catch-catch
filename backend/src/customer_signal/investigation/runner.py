@@ -16,11 +16,13 @@ from customer_signal.domain.analysis import PublicRunError
 from customer_signal.investigation.activity import ActivityStream, ActivityDetails, role_details
 from customer_signal.investigation.contracts import (
     Coordination,
+    Decision,
     InvestigationResult,
     Narrative,
     Task,
     Verification,
 )
+from customer_signal.investigation.verification import VERIFIER_CONCURRENCY, verifier_task_id
 from customer_signal.investigation.data import query_owner
 from customer_signal.signals.workbench import SignalWorkbench
 from customer_signal.investigation.projection import InvestigationProjection, goal_and_plan
@@ -38,7 +40,7 @@ _COMMON = """사용자의 질문과 지정 기간, 현재 제공된 데이터 �
 의도 근거(검색어/메뉴/상담 내용), 순서와 동일 고객 연결, 정상 탐색 반례, 최종 해결을 함께 확인하세요.
 헤맨 뒤 결국 해결한 고객도 대상입니다. 앱 미완료와 최종 미해결은 다릅니다. 세션/날짜를 넘길 때 동일 의도 근거가 필요합니다.
 숫자, 고객, 근거를 만들지 마세요. cohort_query_id는 실행한 SELECT DISTINCT customer_id 결과 ID입니다.
-LIMIT으로 일부만 뽑은 질의를 전체 고객 집계로 사용하지 마세요. query rows는 표시만 100개이며 전체 결과는 서버에 보관됩니다.
+LIMIT으로 일부만 뽑은 질의를 전체 고객 집계로 사용하지 마세요. query rows는 일부 미리보기이며 전체 결과는 서버에 보관됩니다. 추가 행은 read_query_result로 조회하세요.
 가설의 분모와 비교 조건을 명시하세요. 근거가 부족하면 candidate로 남기고 필요한 데이터를 설명합니다.
 개선안은 검증되지 않은 제안으로 표현합니다. 모든 답변은 한국어 공개 요약이며 비공개 추론을 반환하지 않습니다.
 결과의 display_summary에는 화면에 표시할 수행 내용과 관찰 결과를 500자 이내 한국어로 작성하세요. 개인정보, SQL 원문, 비공개 추론은 포함하지 마세요.
@@ -125,7 +127,7 @@ class InvestigationRunner:
                 await publish_fact(fact, note)
                 limitations, candidates, decisions = [], [], []
 
-                def query_handoff(items):
+                def query_handoff(items, *, preview_rows=3):
                     references = {
                         q
                         for candidate in items
@@ -134,7 +136,7 @@ class InvestigationRunner:
                     return [
                         {
                             **data.queries[q],
-                            "rows": data.queries[q]["rows"][:3],
+                            "rows": data.queries[q]["rows"][:preview_rows],
                             "preview_only": True,
                         }
                         for q in sorted(references)
@@ -145,8 +147,20 @@ class InvestigationRunner:
                     if name == "coordinator":
                         dependencies = []
                     elif name == "investigator":
-                        upstream = "verifier" if round_index else "coordinator"
-                        dependencies = [n.node_id for n in role_nodes if n.role == upstream][-1:]
+                        if round_index:
+                            prior_verifiers = {
+                                verifier_task_id(candidate["candidate_id"], round_index - 1)
+                                for candidate in context.get("prior_candidates", [])
+                            }
+                            dependencies = [
+                                n.node_id
+                                for n in role_nodes
+                                if n.role == "verifier" and n.task_id in prior_verifiers
+                            ]
+                        else:
+                            dependencies = [
+                                n.node_id for n in role_nodes if n.role == "coordinator"
+                            ][-1:]
                     elif name == "verifier":
                         dependencies = [
                             n.node_id
@@ -154,7 +168,7 @@ class InvestigationRunner:
                             if n.role == "investigator" and n.round_index == round_index
                         ]
                     else:
-                        dependencies = [n.node_id for n in role_nodes if n.role == "verifier"][-1:]
+                        dependencies = [n.node_id for n in role_nodes if n.role == "verifier"]
                         if not dependencies:
                             dependencies = [
                                 n.node_id for n in role_nodes if n.role == "investigator"
@@ -196,7 +210,16 @@ class InvestigationRunner:
                                     "request": request.model_dump(mode="json"),
                                     "catalog": data.catalog(),
                                     "signal_tools_enabled": workbench is not None,
-                                    "signal_proposals": workbench.context() if workbench else [],
+                                    "signal_proposals": workbench.context(
+                                        candidate_ids={
+                                            c["candidate_id"] for c in context.get("candidates", [])
+                                        }
+                                        if name == "verifier"
+                                        else None,
+                                        compact=name == "verifier",
+                                    )
+                                    if workbench
+                                    else [],
                                     **context,
                                 },
                                 data=data,
@@ -250,7 +273,7 @@ class InvestigationRunner:
                     finally:
                         query_owner.reset(token)
 
-                async def investigate(task, round_index=0):
+                async def investigate(task, round_index=0, prior=None):
                     try:
                         result = await role(
                             "investigator",
@@ -258,10 +281,12 @@ class InvestigationRunner:
                             "가설을 조사해 후보를 제안하세요. 각 후보는 실제 전체 cohort query, 대표 고객 여정과 정상 비교 근거를 포함해야 합니다. 근거를 못 찾으면 빈 candidates와 limitations를 반환합니다.",
                             {
                                 "task": task.model_dump(mode="json"),
-                                "prior_candidates": [c.model_dump(mode="json") for c in candidates]
+                                "prior_candidates": [
+                                    c.model_dump(mode="json") for c in (prior or [])
+                                ]
                                 if round_index
                                 else [],
-                                "prior_query_evidence": query_handoff(candidates)
+                                "prior_query_evidence": query_handoff(prior or [])
                                 if round_index
                                 else [],
                             },
@@ -307,22 +332,22 @@ class InvestigationRunner:
                         )
                         return []
 
-                async def verify(round_index):
-                    task_id = f"task-verification-{round_index}"
+                async def verify_candidate(candidate, round_index):
+                    task_id = verifier_task_id(candidate.candidate_id, round_index)
                     result = await role(
                         "verifier",
                         task_id,
-                        "독립 검증자입니다. 전달된 query_evidence의 SQL과 원래 cohort를 확인하고 직접 재실행 또는 교정하세요. 각 후보의 representative_customer_ids를 그대로 사용해 customer_journey를 각각 호출하고 정상탐색 반례를 비교하세요. 각 후보에 반드시 판정을 반환하세요. confirmed에는 직접 실행한 cohort_query_id 및 evidence_query_ids가 필요합니다. cohort 교정으로 기존 대표가 빠지면 대표 교체 재조사를 요청하세요. 근거가 약하면 candidate, 목표와 무관하면 rejected, 추가 질의로 풀 수 있으면 reinvestigate와 followup_question을 반환하세요. 헤맴 행동 판정과 앱 결함의 인과 증명은 별개입니다. 로밍 외 후보도 같은 기준으로 검증합니다.",
+                        "독립 검증자입니다. 배정된 후보 하나만 판정하세요. 먼저 recheck_candidate로 배정 SQL 재실행, 대표 여정 조회, 독립 재측정을 한 번에 수행하세요. 기계적 재실행 성공은 의미 검증 성공이 아니므로 SQL 조건과 결과를 검토하고 부족한 정상 반례를 추가 조회하세요. 서로 독립인 추가 질의는 한 응답에서 함께 요청하세요. 전체 데이터 공간은 정상 반례와 교차 검증을 위해 계속 조회할 수 있습니다. 전달된 SQL을 직접 재실행 또는 교정하고, 배정 후보의 대표 고객 여정을 각각 확인하세요. 정상 비교군에 같은 실패/부정 피드백이 없는지, 개선안의 피드백이 같은 고객과 의도에 속하는지, 실제 시간 순서와 최종 해결 상태가 주장과 일치하는지 확인하세요. 반복이나 상담 요청만으로 헤맴을 확정하지 마세요. confirmed에는 이 task가 query_data 또는 recheck_candidate로 직접 실행한 cohort_query_id와 evidence_query_ids, 원래 대표 여정 확인, 독립 measure_signal 결과가 모두 필요합니다. measure_signal 내부 ID나 다른 task의 query ID는 독립 질의 근거로 사용할 수 없습니다. 근거가 부족하면 candidate, 무관하면 rejected, 추가 조사로 해결할 수 있으면 reinvestigate와 followup_question을 반환하세요. UI 결함 인과와 헤맴 관측을 구분하세요.",
                         {
-                            "candidates": [c.model_dump(mode="json") for c in candidates],
-                            "query_evidence": query_handoff(candidates),
+                            "candidates": [candidate.model_dump(mode="json")],
+                            "query_evidence": query_handoff([candidate], preview_rows=0),
                         },
                         Verification,
                         round_index,
                     )
                     valid = []
                     seen = set()
-                    candidate_by_id = {c.candidate_id: c for c in candidates}
+                    candidate_by_id = {candidate.candidate_id: candidate}
                     for decision in result.decisions:
                         if (
                             decision.candidate_id not in candidate_by_id
@@ -382,6 +407,36 @@ class InvestigationRunner:
                     await activity.assessment(node, valid)
                     return valid
 
+                async def verify(round_index, selected):
+                    semaphore = asyncio.Semaphore(VERIFIER_CONCURRENCY)
+
+                    async def one(candidate):
+                        nonlocal decisions
+                        async with semaphore:
+                            try:
+                                valid = await verify_candidate(candidate, round_index)
+                            except (TimeoutError, ValueError, RuntimeError):
+                                valid = []
+                            if not valid:
+                                valid = [
+                                    Decision(
+                                        candidate_id=candidate.candidate_id,
+                                        verdict="candidate",
+                                        reason="이 후보의 독립 검증이 완료되지 않았습니다.",
+                                    )
+                                ]
+                                limitations.append(
+                                    f"검증 미완료 [{candidate.candidate_id}]: 미확정 후보로 보존했습니다."
+                                )
+                            # Preserve finished siblings even if the enclosing deadline cancels gather.
+                            decisions = [
+                                d for d in decisions if d.candidate_id != candidate.candidate_id
+                            ] + valid
+
+                    await asyncio.gather(*(one(c) for c in selected))
+                    order = {c.candidate_id: i for i, c in enumerate(candidates)}
+                    decisions.sort(key=lambda d: order[d.candidate_id])
+
                 try:
                     async with asyncio.timeout(remaining(self.investigation_seconds)):
                         coordination = await role(
@@ -398,7 +453,7 @@ class InvestigationRunner:
                             if candidate.candidate_id not in {c.candidate_id for c in candidates}:
                                 candidates.append(candidate)
                         if candidates:
-                            decisions = await verify(0)
+                            await verify(0, list(candidates))
                             round_index = 0
                             while followups := [
                                 d for d in decisions if d.verdict == "reinvestigate"
@@ -412,6 +467,11 @@ class InvestigationRunner:
                                                 question=f"기존 후보 ID {d.candidate_id}를 유지하세요. {d.followup_question or d.reason}",
                                             ),
                                             round_index,
+                                            prior=[
+                                                c
+                                                for c in candidates
+                                                if c.candidate_id == d.candidate_id
+                                            ],
                                         )
                                         for i, d in enumerate(followups)
                                     )
@@ -420,7 +480,12 @@ class InvestigationRunner:
                                 for candidate in (c for batch in revised for c in batch):
                                     by_id[candidate.candidate_id] = candidate
                                 candidates = list(by_id.values())
-                                decisions = await verify(round_index)
+                                changed = {c.candidate_id for batch in revised for c in batch}
+                                changed.update(d.candidate_id for d in followups)
+                                await verify(
+                                    round_index,
+                                    [c for c in candidates if c.candidate_id in changed],
+                                )
                 except TimeoutError:
                     limitations.append(
                         "조사 시간 한계에 도달해 확보한 근거로 부분 결과를 정리했습니다. 미확정 후보는 추가 조사가 필요합니다."

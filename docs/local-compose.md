@@ -41,7 +41,9 @@ python3 scripts/compose.py verify --mode bedrock
 기본 `make compose-verify`는 외부 모델을 호출하지 않습니다.
 `BEDROCK_INVESTIGATOR_MODEL`은 조사 역할의 모델이며 Compose Backend에도 전달합니다.
 현재 기본값은 `us.anthropic.claude-sonnet-4-6`입니다.
-조율, 검증, 보고 역할은 `BEDROCK_MODEL`을 사용합니다.
+조율과 보고 역할은 `BEDROCK_MODEL`을 사용합니다.
+검증 역할도 기본적으로 같은 모델을 사용하며, 선택 설정인 `BEDROCK_VERIFIER_MODEL`로
+별도 지정할 수 있습니다. Compose는 이 설정을 Backend에만 전달합니다.
 모델 오류 뒤 서버 대체 요약으로 실행이 종료되면 trace 적재가 성공했더라도
 실제 모델 검증은 종료 코드 1을 반환합니다. 결과의 `model_execution`과
 `provider_error_types`에서 부분 실행 여부와 오류 종류를 확인합니다.

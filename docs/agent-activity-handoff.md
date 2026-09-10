@@ -26,16 +26,17 @@ flowchart LR
   C[총괄: 가설 배분] --> I1[조사 A]
   C --> I2[조사 B]
   C --> I3[조사 C]
-  I1 --> V0[독립 검증 0]
-  I2 --> V0
-  I3 --> V0
-  V0 --> R1[재조사 1]
-  R1 --> V1[독립 검증 1]
-  V1 --> O[보고서 작성]
+  I1 & I2 & I3 --> VA[후보 A 검증 0]
+  I1 & I2 & I3 --> VB[후보 B 검증 0]
+  VA --> R1[후보 A 재조사 1]
+  R1 --> VA1[후보 A 검증 1]
+  VA & VB & VA1 --> O[보고서 작성]
 ```
 
-조사는 실제 배분된 1~3개 가설에 따라 동적으로 생깁니다. 재조사가 없으면 검증에서 보고로
-진행하며, 후보가 없으면 검증을 건너뛸 수 있습니다. 재조사는 여러 회차로 이어질 수 있습니다.
+조사는 실제 배분된 1~3개 가설에 따라 동적으로 생깁니다. 검증은 후보별로 분리하며
+최대 6개를 병렬 실행합니다. 재조사는 그 후보를 판정한 검증 노드에 연결하고,
+보고서는 실행된 모든 검증 노드에 연결합니다. 후보가 없으면 검증을 건너뛸 수 있습니다.
+재조사는 여러 회차로 이어질 수 있으며, 변경된 후보만 다시 검증합니다.
 미리 고정한 노드 수나 가상 퍼센트로 전체 진행률을 계산하면 안 됩니다.
 
 | 필드 | 화면 매핑과 의미 |
@@ -64,6 +65,9 @@ flowchart LR
 `queued`는 실행 준비가 된 역할의 등록 시점입니다. 총괄 모델이 가설을 배분하기 전에는
 조사 노드가 존재하지 않습니다. 같은 회차의 조사 노드는 병렬로 실행되므로 도착 순서가 달라질 수 있습니다.
 모델과 도구는 역할 아래의 형제 노드이며, 호출별 세부 순서는 SSE `id`로 확인합니다.
+검증 도구 `read_query_result`와 `recheck_candidate`는 각각 `질의 결과 추가 조회`와
+`후보 근거 재검증`으로 표시합니다. 다른 도구와 같은 응답에서 제출한 `finish`는
+실패 이벤트를 남깁니다. 모델이 도구 결과를 읽고 다음 응답에서 단독 제출하면 완료할 수 있습니다.
 
 ## 상세 값
 
@@ -153,8 +157,10 @@ for await (const event of client.streamRunEvents(runId, { lastEventId })) {
 | `frontend/src/features/customer-intelligence/run-client.ts` | 기존 스트림 구독에서 새 이벤트 수신 |
 | `frontend/src/features/customer-intelligence/AgentTrace.tsx` | 기존 타임라인에 공개 설명과 호출 상태 표시 |
 
-기존 FE reducer는 액티비티를 `events`에 보존합니다. 전용 노드 그래프, 후보 상세 패널과
-`signal-catcher` 화면의 실데이터 연결은 FE 후속 구현 범위입니다.
+기존 FE reducer는 액티비티를 `events`에 보존합니다. `signal-catcher`의 동적 그래프는
+단계와 로그 건수로 구성하므로 실제 역할 액티비티 연결은 FE 후속 구현 범위입니다.
+후보별 검증과 재조사 연결에는 서버가 보낸 `depends_on`을 사용하며,
+노드 도착 순서로 부모를 추정하면 안 됩니다.
 기존 `step_started/completed`는 Fact 투영 단계이므로 실제 조사 시간에는 `agent_activity`를 사용합니다.
 Swagger `/docs`의 SSE 응답에는 `RunEventEnvelope`, `AgentActivityPayload`, `ActivityDetails` 스키마를 노출합니다.
 

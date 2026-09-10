@@ -187,6 +187,8 @@ async def test_tool_loop_runs_authorized_data_queries_off_thread_and_finishes():
     assert {tool["name"] for tool in provider.tools} == {
         "catalog_data",
         "query_data",
+        "read_query_result",
+        "recheck_candidate",
         "customer_journey",
         "find_signals",
         "measure_signal",

@@ -18,6 +18,8 @@ from customer_signal.signals.contracts import (
     SignalStatus,
 )
 from customer_signal.signals.measurement import definition_fingerprint
+from customer_signal.signals.contracts import now
+from customer_signal.signals.scheduling import ensure_schedule, initialize_schedules
 
 
 def _measurement_json(measurement: Measurement) -> str:
@@ -66,6 +68,8 @@ class SignalStore:
                 CREATE INDEX IF NOT EXISTS proposals_by_run ON signal_proposals(run_id);
                 CREATE INDEX IF NOT EXISTS measurements_by_signal ON signal_measurements(signal_id);
             """)
+
+            initialize_schedules(db, now())
 
     @staticmethod
     def _migrate_nullable_proposal(db):
@@ -179,6 +183,7 @@ class SignalStore:
                 (proposal_id, signal.signal_id),
             )
             persisted = self._insert_measurement(db, signal.signal_id, proposal.measurement)
+            ensure_schedule(db, signal.signal_id)
             return signal, persisted
 
     def register_definition(
@@ -234,6 +239,7 @@ class SignalStore:
                     (signal.signal_id, fingerprint, None, signal.model_dump_json()),
                 )
             persisted = self._insert_measurement(db, signal.signal_id, measurement)
+            ensure_schedule(db, signal.signal_id)
             return signal, persisted
 
     def list_signals(self) -> list[Signal]:
