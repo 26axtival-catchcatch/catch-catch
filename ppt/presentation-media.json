@@ -1,0 +1,113 @@
+{
+  "slides": 12,
+  "web_path": "/presentation",
+  "media": [
+    {
+      "slide": 6,
+      "file": "frontend/public/presentation/media/scene-01-2x.mp4",
+      "duration_seconds": 60.5,
+      "size_bytes": 23374770,
+      "sha256": "412144aa1882adf6b29ad584c486daa1aad1a8d2836403cd7430148a723a62fd",
+      "width": 2560,
+      "height": 1440,
+      "fps": "60/1",
+      "audio": false
+    },
+    {
+      "slide": 7,
+      "file": "frontend/public/presentation/media/langfuse-trace.mp4",
+      "duration_seconds": 8,
+      "size_bytes": 3406422,
+      "sha256": "7f0a27956a9a143f90e599095cf4faf9feeddcd37eae10e9bcd1b6ba929280cd",
+      "width": 1920,
+      "height": 1320,
+      "fps": "30/1",
+      "audio": false
+    },
+    {
+      "slide": 8,
+      "file": "frontend/public/presentation/media/scene-02-2x.mp4",
+      "duration_seconds": 51.5,
+      "size_bytes": 18873882,
+      "sha256": "50d50cb3a61a9f9c93751b4f1dd881ea07ebc7a4b865220e3a13dd75e5e348f3",
+      "width": 2560,
+      "height": 1440,
+      "fps": "60/1",
+      "audio": false
+    }
+  ],
+  "trace": {
+    "run_id": "14c4a166-47d8-45e2-a63a-b8478667e3f9",
+    "trace_id": "14c4a16647d845e2a63ab8478667e3f9",
+    "name": "customer_signal.turn",
+    "question": "부가서비스를 이용중인 고객이 겪는 문제 알려줘",
+    "observation_count": 234,
+    "project_url": "http://100.54.240.157:3210/project/catch-catch-local/traces?search=14c4a16647d845e2a63ab8478667e3f9",
+    "source_recording": "20260911-langfuse/raw/langfuse-trace-full.mov",
+    "source_sha256": "19cc120b9f654316162f24a083b32a502acbe8b75a7230070b42bfee188e5565",
+    "source_duration_seconds": 55.288333,
+    "source_ranges_seconds": [
+      [
+        0.5,
+        2
+      ],
+      [
+        4.5,
+        6
+      ],
+      [
+        18,
+        19.5
+      ],
+      [
+        25.5,
+        29
+      ]
+    ],
+    "capture_started_at": "2026-09-10T18:54:36.737762+00:00",
+    "edit": {
+      "source_ranges_seconds": [
+        [
+          0.5,
+          2
+        ],
+        [
+          4.5,
+          6
+        ],
+        [
+          18,
+          19.5
+        ],
+        [
+          25.5,
+          29
+        ]
+      ],
+      "duration_seconds": 8,
+      "crop": [
+        360,
+        76,
+        3480,
+        2392
+      ],
+      "size": [
+        1920,
+        1320
+      ],
+      "fps": 30,
+      "speed": 1
+    },
+    "credentials_included": false
+  },
+  "validation": {
+    "typecheck": "passed",
+    "production_build": "passed",
+    "standalone_static_routes": "passed",
+    "media_range_requests": "passed",
+    "browser_playback": "passed",
+    "pause_on_slide_leave": "passed",
+    "trace_full_decode": "passed",
+    "verified_at": "2026-09-10T19:01:19.757027+00:00"
+  }
+}

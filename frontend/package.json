@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "presentation:sync": "node ../scripts/sync-presentation.mjs",
     "dev": "next dev --hostname 127.0.0.1",
     "build": "next build",
     "start": "next start --hostname 127.0.0.1",
