@@ -137,6 +137,10 @@ export interface CatchReport {
   analyzedAt: string;
   datasetVersion: string;
   adapterVersions: Record<SourceId, string>;
+  /** 로딩 중 실제 SSE에서 받은 문장. 결과 화면에서 같은 실행 기록을 재생한다. */
+  traceLog: (StageTick & { stage: StageKey })[];
+  /** 동적으로 등록된 Source도 사람이 읽을 수 있는 이름으로 표시한다. */
+  sourceLabels: Record<SourceId, string>;
 }
 
 /** 액션 적용 전후를 비교할 시안 한 장. */

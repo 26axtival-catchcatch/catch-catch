@@ -58,6 +58,47 @@ const validReport = {
   limitations: [],
 };
 
+const currentBackendJourneyEvents = [
+  {
+    event_id: "event-app-1",
+    evidence_id: "evidence-app-1",
+    source_id: "hackathon_app_behavior",
+    occurred_at: "2026-09-04T12:09:00+09:00",
+    event_type: "interaction",
+    action: "roaming_plan_list_opened",
+    topic: "roaming_plan_selection",
+    outcome: "plan_browsing",
+    text: "로밍 요금제 목록",
+  },
+  {
+    event_id: "event-billing-1",
+    evidence_id: "evidence-billing-1",
+    source_id: "hackathon_billing_profile",
+    occurred_at: "2026-09-04T23:00:00+09:00",
+    event_type: "billing_profile",
+    action: "review_profile",
+    topic: "5G 스탠다드",
+    outcome: "A",
+    text: "5G 스탠다드",
+  },
+  {
+    event_id: "event-roaming-1",
+    evidence_id: "evidence-roaming-1",
+    source_id: "hackathon_roaming_usage",
+    occurred_at: "2026-09-04T21:00:00+09:00",
+    event_type: "roaming_usage_snapshot",
+    action: "review_roaming_usage",
+    topic: "해외 로밍 이용",
+    outcome: "A",
+    text: "합성 로밍패스 4GB",
+  },
+];
+
+const currentBackendReport = {
+  ...genericReport,
+  representative_journeys: currentBackendJourneyEvents,
+};
+
 function frame(runId: string, id: number, type: string, payload: unknown): string {
   return `id: ${id}\nevent: ${type}\ndata: ${JSON.stringify({
     run_id: runId,
@@ -104,6 +145,55 @@ describe("RunClient", () => {
     expect(events[0]).toMatchObject({ type: "result", data: { agent_mode: "bedrock" } });
     expect((await client.getRunArtifact(genericArtifact.run_id)).versions.agent_mode).toBe("bedrock");
     expect((await client.getRunArtifact(genericArtifact.run_id)).versions.model_version).toBe("us.anthropic.claude-opus-4-6-v1");
+  });
+
+  it("accepts source-manifest event types from current result, snapshot and journey contracts", async () => {
+    const fetchImpl: typeof fetch = async (input) => {
+      const url = String(input);
+      if (url.endsWith("/events")) {
+        return responseStream([
+          frame("run-1", 1, "result", {
+            agent_mode: "bedrock",
+            report: currentBackendReport,
+          }),
+          frame("run-1", 2, "done", { status: "completed" }),
+        ]);
+      }
+      if (url.endsWith("/journey")) {
+        return Response.json({
+          result_id: "journey-current-contract",
+          customer_id: "customer-current-contract",
+          events: currentBackendJourneyEvents,
+          evidence_ids: currentBackendJourneyEvents.map((event) => event.evidence_id),
+          stats: { scanned_rows: 3, returned_rows: 3 },
+        });
+      }
+      return Response.json({
+        run_id: "run-1",
+        status: "completed",
+        request: genericArtifact.request,
+        created_at: genericArtifact.created_at,
+        updated_at: genericArtifact.updated_at,
+        agent_mode: "bedrock",
+        report: currentBackendReport,
+        error: null,
+        plan_history: [genericPlan],
+      });
+    };
+    const client = new RunClient({ apiBaseUrl: "http://api.test", fetchImpl });
+
+    const events = await consume(client);
+    const snapshot = await client.getRun("run-1");
+    const journey = await client.getJourney("run-1", "customer-current-contract");
+    const expectedTypes = ["interaction", "billing_profile", "roaming_usage_snapshot"];
+
+    expect(events[0]).toMatchObject({
+      type: "result",
+      data: { report: { representative_journeys: currentBackendJourneyEvents } },
+    });
+    expect(snapshot.report?.representative_journeys.map((event) => event.event_type))
+      .toEqual(expectedTypes);
+    expect(journey.events.map((event) => event.event_type)).toEqual(expectedTypes);
   });
 
   afterEach(() => {
@@ -158,6 +248,30 @@ describe("RunClient", () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(request),
     });
+  });
+
+  it("can pin the run provider for a feature-specific client", async () => {
+    const calls: string[] = [];
+    const fetchImpl: typeof fetch = async (input) => {
+      calls.push(String(input));
+      return Response.json(
+        {
+          run_id: "run-1",
+          status_url: "/api/runs/run-1",
+          events_url: "/api/runs/run-1/events",
+        },
+        { status: 202 },
+      );
+    };
+    const client = new RunClient({
+      apiBaseUrl: "http://api.test",
+      fetchImpl,
+      agentMode: "bedrock",
+    });
+
+    await client.createRun(request);
+
+    expect(calls).toEqual(["http://api.test/api/runs?mode=bedrock"]);
   });
 
   it("calls a browser-style fetch with the global receiver", async () => {

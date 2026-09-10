@@ -16,7 +16,9 @@ interface TraceScreenProps {
  */
 export function TraceScreen({ report, question, onBack }: TraceScreenProps) {
   const { score } = report;
-  const passRate = Math.round((score.claimsPassed / score.claimsTotal) * 100);
+  const passRate = score.claimsTotal
+    ? Math.round((score.claimsPassed / score.claimsTotal) * 100)
+    : 0;
 
   return (
     <div className={styles.screen}>

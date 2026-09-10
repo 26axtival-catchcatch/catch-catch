@@ -2,24 +2,32 @@
 
 import { useEffect } from "react";
 
+import type { EvidenceRecord, SourceId } from "../../customer-intelligence/contracts";
+
 import { Overlay } from "../Overlay";
-import { EVIDENCE, SOURCE_OPTIONS } from "../state/mock";
 
 import styles from "./result.module.css";
 
 interface EvidencePanelProps {
   evidenceId: string;
+  record: EvidenceRecord | null;
+  loading: boolean;
+  failed: boolean;
+  sourceLabels: Record<SourceId, string>;
+  onRetry: () => void;
   onClose: () => void;
 }
 
-function sourceLabel(id: string): string {
-  return SOURCE_OPTIONS.find((source) => source.id === id)?.label ?? id;
-}
-
 /** Tier 2. 결과 화면을 떠나지 않고 원본 한 건까지 확인한다. */
-export function EvidencePanel({ evidenceId, onClose }: EvidencePanelProps) {
-  const record = EVIDENCE[evidenceId];
-
+export function EvidencePanel({
+  evidenceId,
+  record,
+  loading,
+  failed,
+  sourceLabels,
+  onRetry,
+  onClose,
+}: EvidencePanelProps) {
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
       if (event.key === "Escape") onClose();
@@ -42,14 +50,18 @@ export function EvidencePanel({ evidenceId, onClose }: EvidencePanelProps) {
           </button>
         </header>
 
-        {record ? (
+        {loading ? (
+          <div className={styles.drawerBody} role="status">
+            <p className={styles.drawerSummary}>마스킹된 원본 근거를 불러오고 있어요.</p>
+          </div>
+        ) : record ? (
           <div className={styles.drawerBody}>
             <p className={styles.drawerSummary}>{record.summary}</p>
 
             <dl className={styles.drawerMeta}>
               <div>
                 <dt>데이터 원천</dt>
-                <dd>{sourceLabel(record.source_id)}</dd>
+                <dd>{sourceLabels[record.source_id] ?? record.source_id}</dd>
               </div>
               <div>
                 <dt>발생 시각</dt>
@@ -76,6 +88,13 @@ export function EvidencePanel({ evidenceId, onClose }: EvidencePanelProps) {
             <p className={styles.drawerNote}>
               고객 식별자는 마스킹된 값이고, 데이터는 모두 합성입니다.
             </p>
+          </div>
+        ) : failed ? (
+          <div className={styles.drawerBody} role="alert">
+            <p className={styles.drawerSummary}>이 근거를 불러오지 못했어요.</p>
+            <button type="button" className={styles.ghostBtn} onClick={onRetry}>
+              다시 불러오기
+            </button>
           </div>
         ) : (
           <div className={styles.drawerBody}>

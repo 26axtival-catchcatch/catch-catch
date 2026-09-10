@@ -43,7 +43,7 @@ function syncUrl(phase: string, push: boolean) {
 export function SignalCatcherApp() {
   const options = useDemoOptions();
   const controller = useCatchSession(options);
-  const { session } = controller;
+  const { session, reset, restore } = controller;
 
   const experiments = useExperiments();
   const [question, setQuestion] = useState("");
@@ -77,14 +77,14 @@ export function SignalCatcherApp() {
     function onPop() {
       const view = new URL(window.location.href).searchParams.get("view");
       if (view === "result" || view === "trace" || view === "action") {
-        controller.restore(view, session.question || DEMO_QUESTION);
+        restore(view, session.question || DEMO_QUESTION);
       } else {
-        controller.reset();
+        reset();
       }
     }
     window.addEventListener("popstate", onPop);
     return () => window.removeEventListener("popstate", onPop);
-  }, [controller, session.question, options.pause]);
+  }, [restore, reset, session.question, options.pause]);
 
   // 자동 진입이나 새로고침 복원으로 들어와도 입력창에 질문이 남아 있어야 한다.
   useEffect(() => {
@@ -136,16 +136,32 @@ export function SignalCatcherApp() {
               <BriefingScreen
                 briefing={{
                   ...DEMO_BRIEFING,
+                  signals: options.briefingEmpty ? [] : DEMO_BRIEFING.signals,
                   requestCount: DEMO_BRIEFING.requestCount + watchRequests.length,
                 }}
+                question={question}
+                onQuestionChange={setQuestion}
+                notice={session.failureReason}
+                suggestedQuestions={session.suggestedQuestions}
+                sourceCount={controller.sourceCount}
+                fixedPeriodLabel={controller.periodLabel}
+                conditionsLocked={controller.conditionsLocked}
+                periodLocked={controller.periodLocked}
+                sourceOptions={controller.sourceOptions}
+                initialStartAt={controller.periodStartAt}
+                initialEndAt={controller.periodEndAt}
                 onOpenSignal={(signal) => {
                   const asked = `${signal.name} 시그널을 확인해줘`;
                   setQuestion(asked);
                   controller.start(asked);
                 }}
-                onAsk={(asked) => {
+                onAsk={(asked, conditions) => {
                   setQuestion(asked);
-                  controller.start(asked);
+                  controller.start(asked, {
+                    enabledSources: conditions.enabledSources,
+                    startAt: conditions.startAt,
+                    endAt: conditions.endAt,
+                  });
                 }}
                 onRequestWatch={(request) =>
                   setWatchRequests((list) => [...list, request])
@@ -155,9 +171,20 @@ export function SignalCatcherApp() {
               <AskScreen
                 question={question}
                 onQuestionChange={setQuestion}
-                onSubmit={() => controller.start(question)}
+                onSubmit={(conditions) => controller.start(question, {
+                  enabledSources: conditions.enabledSources,
+                  startAt: conditions.startAt,
+                  endAt: conditions.endAt,
+                })}
                 notice={session.failureReason}
                 suggestedQuestions={session.suggestedQuestions}
+                sourceCount={controller.sourceCount}
+                fixedPeriodLabel={controller.periodLabel}
+                conditionsLocked={controller.conditionsLocked}
+                periodLocked={controller.periodLocked}
+                sourceOptions={controller.sourceOptions}
+                initialStartAt={controller.periodStartAt}
+                initialEndAt={controller.periodEndAt}
               />
             )}
           </div>
@@ -194,6 +221,10 @@ export function SignalCatcherApp() {
               highlightActionId={highlightActionId}
               onHighlightSeen={() => setHighlightActionId(null)}
               applied={experiments.experiments}
+              evidence={controller.evidence}
+              evidenceLoadingId={controller.evidenceLoadingId}
+              evidenceErrorId={controller.evidenceErrorId}
+              onLoadEvidence={controller.loadEvidence}
             />
           </div>
         ) : null}
