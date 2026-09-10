@@ -77,6 +77,14 @@ def select(registered, *, threshold=None, revision=0):
     )
 
 
+def test_explicit_empty_selection_is_remembered(registered):
+    _, alerts, sid, _ = registered
+    first = alerts.replace_rules(sid, RuleSelection(revision=0, items=[]))
+    assert first.revision == 1 and first.items == []
+    assert alerts.get_rules(sid) == first
+    assert alerts.replace_rules(sid, RuleSelection(revision=1, items=[])) == first
+
+
 def test_opt_in_boundary_dedup_rearm_and_restart(registered):
     store, alerts, sid, _ = registered
     store.add_measurement(sid, measured(1, 30))

@@ -68,13 +68,13 @@ describe("SignalClient", () => {
     );
   });
 
-  it("registers the proposal selected by the user", async () => {
+  it.each(["measurement", "model", "fixture"])("registers a proposal with %s criteria", async (source) => {
     const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue(Response.json({
       signal_id: "signal-1",
       proposal_id: "proposal-1",
       alert_recommendations: {
         status: "ready",
-        source: "model",
+        source,
         items: [{
           recommendation_id: "rec-1",
           metric_key: "affected_customer_rate",
@@ -98,7 +98,7 @@ describe("SignalClient", () => {
       proposalId: "proposal-1",
       alertRecommendations: {
         status: "ready",
-        source: "model",
+        source,
         items: [{
           recommendationId: "rec-1",
           metricKey: "affected_customer_rate",

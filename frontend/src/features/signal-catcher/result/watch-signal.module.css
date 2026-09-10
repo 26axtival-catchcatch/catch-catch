@@ -184,9 +184,22 @@
   padding: 0;
 }
 
+.signalGroup + .signalGroup {
+  margin-top: 1.3rem;
+}
+
+.signalGroup h3 {
+  margin: 0 0 0.65rem;
+  color: var(--chalk);
+  font-size: 0.9rem;
+  font-weight: 500;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
 .metricList li {
   display: grid;
-  grid-template-columns: minmax(11rem, 1.25fr) minmax(5.5rem, 0.55fr) minmax(12.5rem, 1fr);
+  grid-template-columns: minmax(0, 1.25fr) minmax(4.5rem, 0.55fr) minmax(9rem, 1fr);
   align-items: center;
   gap: 0.8rem 1rem;
   padding: 0.9rem 1rem;
@@ -299,6 +312,8 @@
 
 .threshold {
   min-width: 7.4rem;
+  display: grid;
+  gap: 0.3rem;
 }
 
 .threshold label {
@@ -325,6 +340,11 @@
   font-family: var(--font-mono);
   font-size: 0.78rem;
   font-variant-numeric: tabular-nums;
+}
+
+.threshold label:focus-within {
+  outline: 2px solid var(--signal);
+  outline-offset: 2px;
 }
 
 .threshold em {
