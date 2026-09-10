@@ -111,6 +111,137 @@ async def test_followup_only_rechecks_changed_candidate(tmp_path):
     assert [(cid, r) for cid, r, _ in model.verifications if r] == [("pattern-0", 1)]
 
 
+@pytest.mark.parametrize("provider_kind", ["gemini", "bedrock"])
+@pytest.mark.parametrize("fail_measurement", [False, True])
+async def test_prepared_verification_can_finish_in_one_model_call(
+    tmp_path, provider_kind, fail_measurement, monkeypatch
+):
+    from customer_signal.investigation.contracts import Verification
+    from customer_signal.investigation.model import (
+        BedrockInvestigationModel,
+        GeminiInvestigationModel,
+    )
+    from customer_signal.signals.contracts import SignalDefinition
+    from customer_signal.signals.store import SignalStore
+    from customer_signal.signals.workbench import SignalWorkbench
+    from test_investigation_model import ScriptedProvider, call, investigation_candidate
+
+    data = make_data(REQUEST)
+    wb = SignalWorkbench(data=data, store=SignalStore(tmp_path / "signals.sqlite3"), run_id="test")
+    data.signal_workbench = wb
+    try:
+        original = data.query("SELECT DISTINCT customer_id FROM events")
+        definition = SignalDefinition(
+            source_ids=["app"],
+            cohort_sql=original["sql"],
+            population_description="전체",
+            normal_comparison="정상 완료와 비교",
+        )
+        wb.propose("candidate-1", wb.measure(definition)["measurement_id"])
+        if fail_measurement:
+
+            def failed_measurement(_):
+                raise ValueError("private measurement failure")
+
+            monkeypatch.setattr(wb, "measure", failed_measurement)
+        context = {
+            "candidates": [
+                investigation_candidate(
+                    cohort_query_id=original["query_id"],
+                    evidence_query_ids=[original["query_id"]],
+                    representative_customer_ids=sorted(data.customer_ids),
+                )
+            ]
+        }
+
+        async def decide_from_prepared_evidence():
+            messages = provider.calls[-1]["messages"]
+            prepared = [m for m in messages if isinstance(m, ToolMessage)]
+            assert prepared, "Required local checks must precede the first model round trip"
+            evidence = json.loads(prepared[-1].content)
+            assert evidence["cohort"]["owner"] == "task-verifier"
+            assert evidence["cohort"]["query_id"] != original["query_id"]
+            if fail_measurement:
+                assert evidence["measurement"] == {"error": "measurement_failed"}
+            else:
+                assert evidence["measurement"]["status"] == "success"
+            assert {j["customer_id"] for j in evidence["journeys"]} == data.customer_ids
+            return call(
+                "finish",
+                document=json.dumps(
+                    {
+                        "decisions": [
+                            {
+                                "candidate_id": "candidate-1",
+                                "verdict": "confirmed",
+                                "reason": "직접 검증",
+                                "cohort_query_id": evidence["cohort"]["query_id"],
+                                "evidence_query_ids": [evidence["cohort"]["query_id"]],
+                            }
+                        ],
+                        "limitations": [],
+                    }
+                ),
+            )
+
+        async def keep_failed_measurement_unconfirmed():
+            feedback = json.loads(provider.calls[-1]["messages"][-1].content)
+            assert feedback["error"] == "result_reference_invalid"
+            assert feedback["issues"][0]["problem"] == "independent_signal_measurement_required"
+            return call(
+                "finish",
+                document=json.dumps(
+                    {
+                        "decisions": [
+                            {
+                                "candidate_id": "candidate-1",
+                                "verdict": "candidate",
+                                "reason": "재측정 미완료",
+                            }
+                        ],
+                        "limitations": [],
+                    }
+                ),
+            )
+
+        provider = ScriptedProvider(
+            {
+                "test": [
+                    decide_from_prepared_evidence,
+                    keep_failed_measurement_unconfirmed,
+                ]
+            }
+        )
+        model = (
+            BedrockInvestigationModel(api_key="test", model="test", model_factory=provider)
+            if provider_kind == "bedrock"
+            else GeminiInvestigationModel(
+                api_key="test", primary_model="test", fallback_model="test", model_factory=provider
+            )
+        )
+        token = query_owner.set("task-verifier")
+        try:
+            result = await model.run_role(
+                role="verifier",
+                task_id="task-verifier",
+                instruction="독립 검증",
+                context=context,
+                data=data,
+                result_type=Verification,
+            )
+        finally:
+            query_owner.reset(token)
+        assert result.decisions[0].verdict == ("candidate" if fail_measurement else "confirmed")
+        assert len(provider.calls) == (2 if fail_measurement else 1)
+        assert (
+            bool(wb.verified_measurement(result.decisions[0], "task-verifier")) != fail_measurement
+        )
+        assert data.queries[original["query_id"]]["owner"] == "server"
+        assert "prepared_evidence" not in context
+    finally:
+        data.close()
+
+
 def test_query_page_recovers_rows_without_granting_query_ownership():
     data = make_data(REQUEST)
     try:
