@@ -122,7 +122,7 @@
     .demo .title { font-size: 2.65cqw; }
     .media-slot { position: relative; height: 37.4cqw; margin-top: 1.5cqw; overflow: hidden; border: 1px solid var(--line); background: #2a1224; }
     .media-slot img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: 50% 8%; filter: saturate(.55) brightness(.55); }
-    .media-slot::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, rgb(23 7 18 / 73%), rgb(23 7 18 / 20%) 66%, rgb(23 7 18 / 4%)); }
+    .media-slot video { display: block; width: 100%; height: 100%; object-fit: contain; background: #160d14; }
     .media-copy { position: absolute; z-index: 1; top: 50%; left: 3.3cqw; width: 42cqw; transform: translateY(-50%); color: #fff; }
     .media-copy small { display: block; color: rgb(255 255 255 / 66%); font: .85cqw "IBM Plex Mono", monospace; letter-spacing: .14em; }
     .media-copy strong { display: block; margin-top: 1cqw; font-size: 2.18cqw; line-height: 1.25; }
@@ -143,7 +143,11 @@
     .arch-node.is-output { border: 2px solid var(--signal); background: var(--wash); }
     .arch-node.is-output small, .arch-node.is-output strong { color: var(--signal); }
     .arch-gif { position: relative; min-height: 0; border: 1px solid var(--line); background: linear-gradient(135deg, #321127, #180b1d); overflow: hidden; }
-    .arch-gif::before { content: "LANGFUSE\A TRACE LOOP"; white-space: pre; position: absolute; inset: 0; display: grid; place-content: center; color: rgb(255 255 255 / 12%); font: 2.2cqw "IBM Plex Mono", monospace; letter-spacing: .08em; text-align: center; }
+    .arch-gif { display: flex; flex-direction: column; justify-content: center; background: #101010; }
+    .arch-gif video { display: block; width: 100%; min-height: 0; flex: 1; object-fit: contain; }
+    .trace-caption { margin: 0; padding: .9cqw 1.1cqw; border-top: 1px solid #333; color: #fff; font-size: .9cqw; line-height: 1.5; }
+    .trace-caption strong { display: block; font-size: 1.12cqw; }
+    .trace-caption span { color: #bbb; }
     .arch-gif .gif-copy { position: absolute; left: 2cqw; right: 2cqw; bottom: 2cqw; z-index: 1; color: #fff; }
     .gif-copy strong { display: block; font-size: 1.55cqw; }
     .gif-copy span { display: block; margin-top: .45cqw; color: rgb(255 255 255 / 72%); font-size: .97cqw; line-height: 1.45; }
@@ -319,9 +323,10 @@
           <p class="eyebrow">DEMO 01 · FRONTEND</p>
           <h2 class="title"><em>진짜</em> 고객 여정을 <em>전체</em>로 확장해 봅니다</h2>
           <div class="media-slot">
-            <img src="presentation-assets/analysis-703.png" alt="캐치캐치 분석 화면 포스터" />
-            <div class="media-copy"><small>고객 화면</small><strong>고객 관점의 실제 사용 씬</strong><span>질문 입력부터 Source 확장, 고객 여정과 근거 확인까지 보여줍니다.</span><b class="edit">편집필요 · 프론트 실제 화면 영상 삽입</b></div>
-            <span class="media-duration">VIDEO</span>
+            <video controls muted playsinline preload="metadata" poster="../frontend/public/presentation/media/scene-01-poster.jpg" aria-label="장면 1: 질문부터 고객 여정과 근거 확인까지, 2배속, 1분 0.5초">
+              <source src="../frontend/public/presentation/media/scene-01-2x.mp4" type="video/mp4" />
+              <a href="../frontend/public/presentation/media/scene-01-2x.mp4">장면 1 영상 열기</a>
+            </video>
           </div>
         </div>
         <div class="progress"><i style="width:60%"></i></div>
@@ -341,7 +346,13 @@
               <div class="arch-node"><small>03 · AGENTS</small><div><strong>후보 발견과 재측정</strong><span>고객 단위로 연결하고, 후보를 같은 기준으로 다시 계산합니다.</span></div></div>
               <div class="arch-node is-output"><small>04 · OUTPUT</small><div><strong>근거가 있는 분석 결과와 시그널 정의</strong><span>사람이 반복 관찰할 항목만 등록할 수 있게 제안합니다.</span></div></div>
             </div>
-            <div class="arch-gif"><div class="gif-copy"><strong>실행 Trace · Langfuse</strong><span>Agent가 어떤 Source를 호출했고, 어떤 근거로 결과를 만들었는지 루프 영상으로 보여줍니다.</span><b class="edit">편집필요 · Langfuse GIF 삽입</b></div></div>
+            <div class="arch-gif">
+              <video controls muted loop playsinline preload="metadata" poster="../frontend/public/presentation/media/langfuse-trace-poster.jpg" aria-label="시연과 동일한 실행의 Langfuse 트레이스, 8초 반복 영상">
+                <source src="../frontend/public/presentation/media/langfuse-trace.mp4" type="video/mp4" />
+                <a href="../frontend/public/presentation/media/langfuse-trace.mp4">Langfuse 트레이스 영상 열기</a>
+              </video>
+              <p class="trace-caption"><strong>실행 Trace / Langfuse</strong><span>시연과 동일한 실행의 에이전트와 도구 호출 234개<br />실행 트리 → 타임라인 → Source와 분석 결과 확인</span></p>
+            </div>
           </div>
         </div>
         <div class="progress"><i style="width:70%"></i></div>
@@ -355,9 +366,10 @@
           <p class="eyebrow">DEMO 02 · SIGNAL MONITORING</p>
           <h2 class="title">필요한 시그널은 계속 지켜보고 다시 캐치합니다</h2>
           <div class="media-slot">
-            <img src="presentation-assets/watchlist-5.png" alt="캐치캐치 시그널 목록 화면 포스터" />
-            <div class="media-copy"><small>BACKEND DEMO</small><strong>시그널 등록에서 지표 추적까지</strong><span>등록한 정의를 기준으로 데이터를 일별 측정하고, 변화 이력을 쌓는 과정을 보여줍니다.</span><b class="edit">편집필요 · 시그널 등록 → 지표 영상 삽입</b></div>
-            <span class="media-duration">VIDEO</span>
+            <video controls muted playsinline preload="metadata" poster="../frontend/public/presentation/media/scene-02-poster.jpg" aria-label="장면 2: 시그널 등록부터 알림과 지표 추적까지, 2배속, 51.5초">
+              <source src="../frontend/public/presentation/media/scene-02-2x.mp4" type="video/mp4" />
+              <a href="../frontend/public/presentation/media/scene-02-2x.mp4">장면 2 영상 열기</a>
+            </video>
           </div>
         </div>
         <div class="progress"><i style="width:80%"></i></div>
@@ -447,10 +459,24 @@
     (() => {
       const stage = document.getElementById('stage'); const frames = [...document.querySelectorAll('.frame')]; const prev = document.getElementById('prev'); const next = document.getElementById('next'); const count = document.getElementById('count'); let current = 0;
       function fit(){ const scale = Math.min(innerWidth / 1280, innerHeight / 720); stage.style.transform = `translate(-50%, -50%) scale(${scale})`; }
-      function show(index){ current = Math.max(0, Math.min(frames.length - 1, index)); frames.forEach((f,i) => f.classList.toggle('active', i === current)); count.textContent = `${String(current+1).padStart(2,'0')} / ${String(frames.length).padStart(2,'0')}`; prev.disabled = current === 0; next.disabled = current === frames.length - 1; history.replaceState(null, '', `#${current+1}`); }
+      function show(index){
+        current = Math.max(0, Math.min(frames.length - 1, index));
+        frames.forEach((frame, i) => {
+          const active = i === current;
+          frame.classList.toggle('active', active);
+          frame.querySelectorAll('video').forEach(video => {
+            video.pause();
+            video.currentTime = 0;
+            if (active) video.play().catch(() => { /* Native controls remain available if autoplay is blocked. */ });
+          });
+        });
+        count.textContent = `${String(current+1).padStart(2,'0')} / ${String(frames.length).padStart(2,'0')}`;
+        prev.disabled = current === 0; next.disabled = current === frames.length - 1;
+        history.replaceState(null, '', `#${current+1}`);
+      }
       function full(){ document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen?.(); }
       prev.onclick = () => show(current - 1); next.onclick = () => show(current + 1); document.getElementById('full').onclick = full; document.getElementById('print').onclick = () => print();
-      addEventListener('resize', fit); addEventListener('keydown', (e) => { if(['ArrowRight','PageDown',' '].includes(e.key)){e.preventDefault();show(current+1)} if(['ArrowLeft','PageUp'].includes(e.key)){e.preventDefault();show(current-1)} if(e.key.toLowerCase()==='f'){e.preventDefault();full()} if(e.key==='Home')show(0); if(e.key==='End')show(frames.length-1); });
+      addEventListener('resize', fit); addEventListener('keydown', (e) => { if(e.target.closest('video, input, textarea, select, [contenteditable="true"]') || (e.key === ' ' && e.target.closest('button, a'))) return; if(['ArrowRight','PageDown',' '].includes(e.key)){e.preventDefault();show(current+1)} if(['ArrowLeft','PageUp'].includes(e.key)){e.preventDefault();show(current-1)} if(e.key.toLowerCase()==='f'){e.preventDefault();full()} if(e.key==='Home')show(0); if(e.key==='End')show(frames.length-1); });
       fit(); const requested = Number(location.hash.slice(1)) - 1; show(Number.isFinite(requested) && requested >= 0 ? requested : 0);
     })();
   </script>
