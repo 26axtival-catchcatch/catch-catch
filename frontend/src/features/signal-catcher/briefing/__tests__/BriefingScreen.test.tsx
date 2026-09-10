@@ -5,9 +5,59 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { BriefingScreen } from "../BriefingScreen";
 import { DEMO_BRIEFING } from "../briefing-mock";
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.unstubAllGlobals();
+});
 
 describe("BriefingScreen", () => {
+  it.each([
+    { state: "loading", loading: true, error: null },
+    { state: "failed", loading: false, error: "브리핑 조회 실패" },
+    { state: "empty", loading: false, error: null },
+  ])("allows a new signal request when briefing is $state", async ({ loading, error }) => {
+    vi.stubGlobal("matchMedia", () => ({ matches: true }));
+    const user = userEvent.setup();
+    const onAsk = vi.fn();
+    const onRetry = vi.fn();
+    const question = "상담 뒤 같은 문의를 반복한 고객";
+    render(
+      <BriefingScreen
+        briefing={{ ...DEMO_BRIEFING, signals: [], total: 0, nextOffset: null }}
+        loading={loading}
+        error={error}
+        question={question}
+        onQuestionChange={vi.fn()}
+        onOpenSignal={vi.fn()}
+        onAsk={onAsk}
+        onRetry={onRetry}
+        notice={null}
+        suggestedQuestions={[]}
+        sourceOptions={[{
+          id: "hackathon_voc",
+          label: "상담 이력",
+          note: "상담 데이터",
+          topics: [],
+          interval: "2026-09-04 – 2026-09-11",
+        }]}
+        initialStartAt="2026-09-04T00:00:00+09:00"
+        initialEndAt="2026-09-11T00:00:00+09:00"
+      />,
+    );
+
+    expect(screen.getByRole("textbox", { name: "분석 질문" })).toHaveValue(question);
+    await user.click(screen.getByRole("button", { name: "고객 변화 찾기" }));
+    expect(onAsk).toHaveBeenCalledWith(question, {
+      enabledSources: ["hackathon_voc"],
+      startAt: "2026-09-04T00:00:00+09:00",
+      endAt: "2026-09-11T00:00:00+09:00",
+    });
+    if (error) {
+      await user.click(screen.getByRole("button", { name: "다시 불러오기" }));
+      expect(onRetry).toHaveBeenCalledOnce();
+    }
+  });
+
   it("opens the full discovery composer and returns with ordinary buttons", async () => {
     const user = userEvent.setup();
     render(

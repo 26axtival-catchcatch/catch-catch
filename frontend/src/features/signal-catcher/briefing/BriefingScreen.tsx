@@ -176,7 +176,10 @@ export function BriefingScreen({
           </div>
           {onRetry ? <button type="button" onClick={onRetry}>다시 불러오기</button> : null}
         </article>
-      ) : current ? (
+      ) : null}
+
+      {/* 브리핑 조회 상태와 무관하게 첫 시그널을 요청할 수 있어야 한다. */}
+      {!loading && !error && current ? (
         <>
           <h1 className={styles.lede}>
             <Highlight text={briefing.lede} />
@@ -333,17 +336,19 @@ export function BriefingScreen({
             </button>
           </div>
         </>
-      ) : (
+      ) : signals.length === 0 ? (
         <article className={styles.emptyBriefing} aria-label="브리핑 없음">
-          <div className={styles.emptyStatus}>
-            <span className={styles.emptyPulse} aria-hidden="true" />
-            <p>
-              <b>오늘 먼저 알려드릴 변화는 없어요.</b>
-              <span>브리핑을 기다리지 않고 직접 찾아볼 수 있어요.</span>
-            </p>
-          </div>
+          {!loading && !error ? (
+            <div className={styles.emptyStatus}>
+              <span className={styles.emptyPulse} aria-hidden="true" />
+              <p>
+                <b>오늘 먼저 알려드릴 변화는 없어요.</b>
+                <span>브리핑을 기다리지 않고 직접 찾아볼 수 있어요.</span>
+              </p>
+            </div>
+          ) : null}
           <AskScreen
-            mode="empty-briefing"
+            mode={loading || error ? "briefing-request" : "empty-briefing"}
             question={question}
             onQuestionChange={onQuestionChange}
             onSubmit={(conditions) => onAsk(question, conditions)}
@@ -358,7 +363,7 @@ export function BriefingScreen({
             initialEndAt={initialEndAt}
           />
         </article>
-      )}
+      ) : null}
 
       {signals.length > 0 ? (
         <div className={styles.foot}>
