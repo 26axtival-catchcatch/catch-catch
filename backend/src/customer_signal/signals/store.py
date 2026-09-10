@@ -20,6 +20,7 @@ from customer_signal.signals.contracts import (
 from customer_signal.signals.measurement import definition_fingerprint
 from customer_signal.signals.contracts import now
 from customer_signal.signals.scheduling import ensure_schedule, initialize_schedules
+from customer_signal.signals.alerts import evaluate_measurement, initialize_alerts
 
 
 def _measurement_json(measurement: Measurement) -> str:
@@ -70,6 +71,7 @@ class SignalStore:
             """)
 
             initialize_schedules(db, now())
+            initialize_alerts(db)
 
     @staticmethod
     def _migrate_nullable_proposal(db):
@@ -326,7 +328,9 @@ class SignalStore:
                 measurement.source_ids
             ):
                 raise ValueError("measurement does not match the registered definition")
-            return self._insert_measurement(db, signal_id, measurement)
+            persisted = self._insert_measurement(db, signal_id, measurement)
+            evaluate_measurement(db, signal, persisted)
+            return persisted
 
     def list_measurements(self, signal_id: str) -> list[Measurement]:
         with self._connection() as db:

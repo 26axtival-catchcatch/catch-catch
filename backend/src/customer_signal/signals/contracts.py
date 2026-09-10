@@ -8,6 +8,7 @@ from typing import Literal, Self
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, FiniteFloat, model_validator
 
 from customer_signal.domain.types import SourceId
+from customer_signal.signals.alert_contracts import RecommendationSet
 
 SignalStatus = Literal["active", "paused", "archived"]
 _RESERVED = {"affected_customer_count", "denominator_customer_count", "affected_customer_rate"}
@@ -107,3 +108,4 @@ class Signal(Contract):
     created_at: AwareDatetime = Field(default_factory=now)
     proposal_id: str | None = None
     origin: Literal["analysis", "user_defined"] = "analysis"
+    alert_recommendations: RecommendationSet | None = None

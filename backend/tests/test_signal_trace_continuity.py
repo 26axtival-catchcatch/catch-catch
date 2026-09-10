@@ -111,13 +111,18 @@ def test_analysis_groups_every_pattern_and_registration_resumes_selected_pattern
 
         service = SignalService(store=store, load_data=lambda _: pytest.fail("must not remeasure"))
         selected = service.register_proposal(proposals[0], trace_run_id=str(uuid4()))
-        assert len(client.calls) == 5
-        assert client.calls[-1]["metadata"]["operation"] == "registration"
-        assert client.calls[-1]["trace_context"] == {
+        assert len(client.calls) == 6
+        assert client.calls[-2]["metadata"]["operation"] == "registration"
+        assert client.calls[-2]["trace_context"] == {
             "trace_id": context.trace_id,
             "parent_span_id": first.id,
         }
-        assert client.spans[-1].updates[-1]["output"]["signal_id"] == selected.signal_id
+        assert client.spans[-2].updates[-1]["output"]["signal_id"] == selected.signal_id
+        assert client.calls[-1]["name"] == "customer_signal.alert_recommendation"
+        assert client.calls[-1]["trace_context"] == {
+            "trace_id": context.trace_id, "parent_span_id": client.spans[-2].id,
+        }
+        assert client.spans[-1].updates[-1]["output"]["status"] == "ready"
     finally:
         data.close()
 
@@ -156,8 +161,10 @@ def test_legacy_proposal_registration_uses_original_trace_without_new_workflow(
             )
         service = SignalService(store=store, load_data=lambda _: None)
         service.register_proposal(store.get_proposal("legacy"))
-        assert len(client.calls) == 1
+        assert len(client.calls) == 2
         assert client.calls[0]["name"] == "customer_signal.signal"
         assert client.calls[0]["trace_context"] == {"trace_id": proposal.run_id.replace("-", "")}
+        assert client.calls[1]["name"] == "customer_signal.alert_recommendation"
+        assert client.calls[1]["trace_context"]["parent_span_id"] == client.spans[0].id
     finally:
         data.close()
