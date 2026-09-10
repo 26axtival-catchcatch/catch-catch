@@ -4,11 +4,18 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import math
 from collections.abc import Callable
 from typing import Any
 
-from botocore.exceptions import ClientError
+from botocore.exceptions import (
+    ClientError,
+    ConnectionClosedError,
+    ConnectTimeoutError,
+    EndpointConnectionError,
+    ReadTimeoutError,
+)
 from langchain_aws import ChatBedrockConverse
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage, ToolMessage
 from langchain_google_genai import ChatGoogleGenerativeAI
@@ -28,6 +35,13 @@ from customer_signal.investigation.verification import (
 from customer_signal.investigation.data import InvestigationData
 from customer_signal.observability.langfuse import build_langfuse_config, public_observation
 from customer_signal.signals.workbench import MeasureArgs, ProposeArgs
+
+
+logger = logging.getLogger(__name__)
+_BEDROCK_RETRY_DELAYS = (1, 2, 4)
+_BEDROCK_CONNECTION_ERRORS = (
+    ConnectionClosedError, ConnectTimeoutError, EndpointConnectionError, ReadTimeoutError,
+)
 
 
 class _NoArgs(BaseModel):
@@ -486,6 +500,7 @@ class GeminiInvestigationModel:
         role: str,
         task_id: str,
         round_index: int,
+        retry_attempt: int | None = None,
     ) -> AIMessage:
         model = self._models.get(model_name)
         if model is None:
@@ -502,6 +517,8 @@ class GeminiInvestigationModel:
             model=model_name,
             context_bytes=message_bytes(messages),
         )
+        if retry_attempt is not None:
+            config["metadata"]["retry_attempt"] = retry_attempt
         async with operation("model", "generation", model=model_name) as activity:
             async with asyncio.timeout(self._timeout_seconds):
                 # Keep Langfuse callbacks while disabling legacy LangSmith tracing.
@@ -569,6 +586,40 @@ class BedrockInvestigationModel(GeminiInvestigationModel):
             return self._verifier_model
         return self._investigator_model if role == "investigator" else self._primary_model
 
+    async def _invoke_model(
+        self,
+        model_name: str,
+        messages: list[BaseMessage],
+        *,
+        role: str,
+        task_id: str,
+        round_index: int,
+    ) -> AIMessage:
+        # Retry only the interrupted model request, never completed data tools.
+        # Each attempt retains its own activity and Langfuse generation span.
+        retry_attempt = 0
+        while True:
+            try:
+                return await super()._invoke_model(
+                    model_name,
+                    messages,
+                    role=role,
+                    task_id=task_id,
+                    round_index=round_index,
+                    retry_attempt=retry_attempt,
+                )
+            except _BEDROCK_CONNECTION_ERRORS as error:
+                if retry_attempt == len(_BEDROCK_RETRY_DELAYS):
+                    raise
+                delay = _BEDROCK_RETRY_DELAYS[retry_attempt]
+                retry_attempt += 1
+                # Provider messages can contain private payloads or credentials.
+                logger.warning(
+                    "Bedrock connection retry %d/%d in %ds (%s)",
+                    retry_attempt, len(_BEDROCK_RETRY_DELAYS), delay, type(error).__name__,
+                )
+                await asyncio.sleep(delay)
+
     def _create_model(self, model_name: str):
         return self._model_factory(
             model=model_name,
@@ -576,6 +627,7 @@ class BedrockInvestigationModel(GeminiInvestigationModel):
             api_key=SecretStr(self._api_key) if self._api_key else None,
             max_tokens=None,
             timeout=self._timeout_seconds,
+            # The async adapter owns retries, avoiding a second SDK retry loop.
             max_retries=0,
         )
 

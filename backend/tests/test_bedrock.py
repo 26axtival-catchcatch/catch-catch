@@ -2,7 +2,13 @@ import asyncio
 import json
 
 import pytest
-from botocore.exceptions import ClientError
+from botocore.exceptions import (
+    ClientError,
+    ConnectionClosedError,
+    ConnectTimeoutError,
+    EndpointConnectionError,
+    ReadTimeoutError,
+)
 from langchain_core.messages import AIMessage
 from pydantic import SecretStr
 
@@ -70,6 +76,7 @@ async def test_bedrock_tool_roundtrip_and_provider_metadata():
     assert model.agent_mode == "bedrock"
     assert provider.models[0]["region_name"] == "us-east-1"
     assert provider.models[0]["api_key"].get_secret_value() == "bedrock-test-secret"
+    assert provider.models[0]["max_retries"] == 0  # Avoid nested SDK retries.
     config = provider.calls[0]["config"]
     assert config["run_name"] == "customer_signal.reporter"
     assert config["metadata"]["provider"] == "bedrock"
@@ -103,6 +110,109 @@ async def test_bedrock_cancellation_propagates():
     model = make_model(ScriptedProvider({"test-model": [asyncio.CancelledError()]}))
     with pytest.raises(asyncio.CancelledError):
         await run_role(model)
+
+
+@pytest.fixture
+def retry_delays(monkeypatch):
+    delays = []
+
+    async def sleep(seconds):
+        delays.append(seconds)
+
+    monkeypatch.setattr(investigation_model.asyncio, "sleep", sleep)
+    return delays
+
+
+@pytest.mark.parametrize(
+    "error_type",
+    [ConnectionClosedError, ConnectTimeoutError, EndpointConnectionError, ReadTimeoutError],
+)
+async def test_bedrock_connection_recovers_on_third_retry(error_type, retry_delays):
+    provider = ScriptedProvider({"test-model": [
+        *(error_type(endpoint_url="https://private.invalid") for _ in range(3)),
+        finish(),
+    ]})
+    result = await run_role(make_model(provider))
+
+    assert result.headline == "검증 결과"
+    assert retry_delays == [1, 2, 4]
+    assert len(provider.calls) == 4
+    assert all(entry["messages"] == provider.calls[0]["messages"] for entry in provider.calls)
+    assert [entry["config"]["metadata"]["retry_attempt"] for entry in provider.calls] == [0, 1, 2, 3]
+    assert all(entry["config"]["metadata"]["task_id"] == "task-report" for entry in provider.calls)
+    assert [entry["model"] for entry in provider.models] == ["test-model"]
+
+
+async def test_bedrock_connection_retry_exhaustion_is_bounded_and_safe(retry_delays, caplog):
+    provider = ScriptedProvider({"test-model": [
+        *(ConnectionClosedError(endpoint_url="https://private.invalid") for _ in range(4)),
+        finish(),
+    ]})
+    with pytest.raises(investigation_model.BedrockInvestigationError) as caught:
+        await run_role(make_model(provider))
+
+    assert caught.value.code == "bedrock_provider_failed"
+    assert retry_delays == [1, 2, 4]
+    assert len(provider.calls) == 4
+    assert "private.invalid" not in str(caught.value) + caplog.text
+    assert "bedrock-test-secret" not in caplog.text
+
+
+async def test_bedrock_retry_preserves_tools_and_resets_for_next_call(retry_delays):
+    sql = "SELECT customer_id FROM events"
+    provider = ScriptedProvider({"test-model": [
+        ConnectionClosedError(endpoint_url="https://private.invalid"),
+        call("query_data", sql=sql),
+        ConnectionClosedError(endpoint_url="https://private.invalid"),
+        finish(),
+    ]})
+    data = Data()
+    result = await make_model(provider).run_role(
+        role="reporter", task_id="task-report", instruction="요약", context={},
+        data=data, result_type=Narrative,
+    )
+
+    assert result.headline == "검증 결과"
+    assert retry_delays == [1, 1]
+    assert [entry["config"]["metadata"]["retry_attempt"] for entry in provider.calls] == [0, 1, 0, 1]
+    assert sum(entry[0] == "query" for entry in data.calls) == 1
+    assert provider.calls[2]["messages"] == provider.calls[3]["messages"]
+
+
+@pytest.mark.parametrize("code", ["AccessDeniedException", "ValidationException", "ResourceNotFoundException"])
+async def test_bedrock_permanent_error_stops_retrying_immediately(code, retry_delays):
+    provider = ScriptedProvider({"test-model": [
+        ConnectionClosedError(endpoint_url="https://private.invalid"),
+        ClientError({"Error": {"Code": code, "Message": "private"}}, "Converse"),
+        finish(),
+    ]})
+    with pytest.raises(investigation_model.BedrockInvestigationError):
+        await run_role(make_model(provider))
+    assert retry_delays == [1]
+    assert len(provider.calls) == 2
+
+
+async def test_bedrock_cancellation_during_backoff_stops_retries(monkeypatch):
+    backoff_started = asyncio.Event()
+
+    async def sleep(seconds):
+        backoff_started.set()
+        await asyncio.Future()
+
+    monkeypatch.setattr(investigation_model.asyncio, "sleep", sleep)
+    provider = ScriptedProvider({"test-model": [
+        ConnectionClosedError(endpoint_url="https://private.invalid"), finish(),
+    ]})
+    task = asyncio.create_task(run_role(make_model(provider)))
+    try:
+        await asyncio.wait_for(backoff_started.wait(), timeout=1)
+        task.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await task
+        assert len(provider.calls) == 1
+    finally:
+        task.cancel()
+        await asyncio.gather(task, return_exceptions=True)
 
 
 async def test_bedrock_routes_concurrent_roles_to_their_configured_models():
