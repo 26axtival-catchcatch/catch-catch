@@ -21,6 +21,7 @@ from customer_signal.investigation.contracts import (
     Verification,
 )
 from customer_signal.investigation.data import query_owner
+from customer_signal.signals.workbench import SignalWorkbench
 from customer_signal.investigation.projection import InvestigationProjection, goal_and_plan
 from customer_signal.observability.langfuse import (
     agent_observation,
@@ -52,6 +53,7 @@ class InvestigationRunner:
         artifact_directory: Path,
         investigation_seconds: float | None = None,
         total_seconds: float | None = None,
+        signal_store=None,
     ):
         self.model = model
         self.agent_mode = getattr(model, "agent_mode", "gemini")
@@ -59,6 +61,7 @@ class InvestigationRunner:
         self.artifact_directory = Path(artifact_directory)
         self.investigation_seconds = investigation_seconds
         self.total_seconds = total_seconds
+        self.signal_store = signal_store
 
     async def run(self, request, *, emit):
         run_id = current_run_id() or str(uuid4())
@@ -109,6 +112,10 @@ class InvestigationRunner:
                 ) as observation:
                     data = await asyncio.to_thread(self.data_factory, request)
                     observation.update(output=data.catalog())
+                workbench = None
+                if self.signal_store is not None:
+                    workbench = SignalWorkbench(data=data, store=self.signal_store, run_id=run_id)
+                    data.signal_workbench = workbench
                 projection = InvestigationProjection(data, goal, plan)
                 fact, note = projection.catalog()
                 await publish_fact(fact, note)
@@ -151,6 +158,8 @@ class InvestigationRunner:
                                 context={
                                     "request": request.model_dump(mode="json"),
                                     "catalog": data.catalog(),
+                                    "signal_tools_enabled": workbench is not None,
+                                    "signal_proposals": workbench.context() if workbench else [],
                                     **context,
                                 },
                                 data=data,
@@ -296,6 +305,12 @@ class InvestigationRunner:
                                             "reason": "검증 고객 집계와 일치하는 대표 여정의 독립 확인이 부족합니다.",
                                         }
                                     )
+                        if decision.verdict == "confirmed" and workbench is not None:
+                            if workbench.verified_measurement(decision, task_id) is None:
+                                decision = decision.model_copy(update={
+                                    "verdict": "candidate",
+                                    "reason": "고정 지표 정의의 독립 재측정이 완료되지 않았습니다.",
+                                })
                         valid.append(decision)
                     limitations.extend(result.limitations)
                     return valid
@@ -389,6 +404,9 @@ class InvestigationRunner:
                     model_name=self.model.model_name,
                     agent_mode=self.agent_mode,
                 )
+                if workbench is not None:
+                    saved = await asyncio.to_thread(workbench.persist, candidates, decisions)
+                    audit["signal_proposal_ids"] = [p.proposal_id for p in saved]
                 for fact, note in zip(projection.facts[1:], projection.notes[1:], strict=True):
                     await publish_fact(fact, note)
                 await event(

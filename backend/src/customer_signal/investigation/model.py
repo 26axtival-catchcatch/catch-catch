@@ -19,6 +19,7 @@ from customer_signal.agent.generic_gemini import _is_typed_not_found
 from customer_signal.investigation.contracts import InvestigationResult, Verification
 from customer_signal.investigation.data import InvestigationData
 from customer_signal.observability.langfuse import build_langfuse_config, public_observation
+from customer_signal.signals.workbench import MeasureArgs, ProposeArgs
 
 
 class _NoArgs(BaseModel):
@@ -50,6 +51,9 @@ _TOOL_CONTRACTS = {
         _JourneyArgs,
         "Read the ordered public journey for one customer_id found in this data space.",
     ),
+    "find_signals": (_NoArgs, "Find registered signals and fixed metric definitions before proposing duplicates."),
+    "measure_signal": (MeasureArgs, "Execute a reusable signal definition on its fixed source set in this run window. Returns server-calculated metrics and measurement_id. Never supply numeric values. Use SQL without fixed dates, customer IDs or sample LIMIT."),
+    "propose_signal": (ProposeArgs, "Propose a candidate using your own successful measurement_id. Does NOT register a signal; user selection is required. candidate_id must match your finish result."),
     "finish": (
         _FinishArgs,
         "Submit the role result as a JSON string matching the provided result_schema. Validation feedback permits correction.",
@@ -82,6 +86,21 @@ For cohort_query_id, execute a SELECT returning distinct customer_id rows for th
 Use aggregate queries for counts; preview rows may be truncated and are not the whole population.
 Only cite query IDs actually returned by query_data. The final result must follow result_schema
 and be submitted with finish(document=<JSON string>). Write public results in Korean.
+When signal_tools_enabled is true, investigators MUST measure_signal and propose_signal for
+supported candidates BEFORE finish when measurable. If a reusable metric cannot be established,
+retain the analytical candidate with explicit limitations; it stays unconfirmed and unregistrable.
+A signal is a reusable definition, not a one-week sample.
+Use required source_ids, population_description, normal_comparison, cohort_sql returning customer_id;
+optional denominator_sql returns all eligible customer_id rows and must contain the affected cohort.
+The server counts DISTINCT customers and calculates percent. Optional metrics use scalar SELECTs.
+All source tables are already restricted to the requested period: NEVER hardcode dates or customer IDs,
+never use LIMIT for cohort definitions. Use stable observed behavior, not invented labels or outcomes.
+If measurement fails, repair the SQL/definition, or omit unsupported optional metrics/denominator.
+Verifier MUST inspect every proposed definition and independently call measure_signal with it before
+confirming; its affected cohort must match the verifier's directly queried final cohort. If correcting
+the definition, call propose_signal with the same candidate_id and the new measurement first.
+Reporter explains proposed metrics and limitations; it cannot register or change definitions.
+No tool registers signals. Registration is a separate human-selected API action.
 """
 
 
@@ -258,7 +277,17 @@ class GeminiInvestigationModel:
             input={"task_id": task_id, "arguments": arguments},
         ) as observation:
             try:
-                if isinstance(validated, _QueryArgs):
+                workbench = getattr(data, "signal_workbench", None)
+                if name in {"find_signals", "measure_signal", "propose_signal"}:
+                    if workbench is None:
+                        raise ValueError("signal tools are not enabled for this run")
+                    if isinstance(validated, MeasureArgs):
+                        output = await asyncio.to_thread(workbench.measure, validated.definition)
+                    elif isinstance(validated, ProposeArgs):
+                        output = workbench.propose(validated.candidate_id, validated.measurement_id)
+                    else:
+                        output = await asyncio.to_thread(workbench.find)
+                elif isinstance(validated, _QueryArgs):
                     output = await asyncio.to_thread(data.query, validated.sql)
                 elif isinstance(validated, _JourneyArgs):
                     output = data.journey(validated.customer_id)
@@ -413,6 +442,7 @@ def _reference_feedback(
                     problem = "representative_outside_cohort"
                 elif any(query_id not in data.queries for query_id in candidate.evidence_query_ids):
                     problem = "evidence_query_unknown"
+
             if problem:
                 issues.append(
                     {
@@ -422,7 +452,7 @@ def _reference_feedback(
                         "instruction": (
                             "Execute SELECT DISTINCT customer_id for the full intended cohort, without a sample LIMIT. "
                             "Set cohort_query_id to that executed query, keep all representative IDs inside its rows, "
-                            "and cite only executed evidence query IDs. If unsupported, remove the candidate and state the limitation."
+                            "and cite only executed evidence query IDs. When signal tools are enabled, measure_signal a reusable definition and propose_signal with this candidate_id before finish. If unsupported, remove the candidate and state the limitation."
                         ),
                     }
                 )
@@ -462,6 +492,9 @@ def _reference_feedback(
                         if missing:
                             problem = "representative_not_reviewed"
                             representatives = sorted(missing)
+            if problem is None and (workbench := getattr(data, "signal_workbench", None)) is not None:
+                if workbench.verified_measurement(decision, task_id) is None:
+                    problem = "independent_signal_measurement_required"
             if problem:
                 issues.append(
                     {
@@ -473,7 +506,7 @@ def _reference_feedback(
                             "At least one listed original representative must remain in the verified cohort. "
                             "Call customer_journey for each listed representative in that cohort (or directly query its event_id, "
                             "customer_id, occurred_at and action rows). Do not substitute a different sample. "
-                            "If this cannot be established, finish with verdict candidate or reinvestigate rather than confirmed."
+                            "Independently measure_signal the proposed definition and ensure its cohort equals this verified cohort. If changing the definition, propose_signal the new measurement with the same candidate_id. If this cannot be established, finish with verdict candidate or reinvestigate rather than confirmed."
                         ),
                     }
                 )

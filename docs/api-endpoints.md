@@ -86,3 +86,27 @@ SSE, `customer_signal` 보고서 스키마는 유지합니다. 진행 중 실행
 
 `/mcp` 에는 FastMCP 서버가 별도 ASGI 앱으로 mount 되어 있습니다. mount 된 앱은
 FastAPI OpenAPI 스키마에 포함되지 않으므로 Swagger UI 에 나타나지 않습니다.
+
+## signals
+
+시그널은 사용자가 선택해 등록한 고정 패턴 정의입니다. 기존 보고서의 일회성 `AnalysisSignal`과 구분합니다.
+에이전트의 지표 계산·후보 제안은 등록 행위가 아닙니다. 완료된 분석의 독립 검증 후보만 등록할 수 있습니다.
+
+| Method | 경로 | 설명 | 응답 |
+| --- | --- | --- | --- |
+| GET | `/api/runs/{run_id}/signal-proposals` | 완료된 분석의 등록 가능 후보 | `ProposalList` |
+| GET | `/api/runs/{run_id}/signal-proposals/{proposal_id}` | 후보 정의·최초 측정·근거 | `Proposal` |
+| POST | `/api/signals` | `proposal_id`로 사용자 선택 등록, 재시도 시 같은 ID | `Signal` |
+| GET | `/api/signals` | 등록된 시그널 목록 | `SignalList` |
+| GET | `/api/signals/{signal_id}` | 고정 정의와 상태 조회 | `Signal` |
+| PATCH | `/api/signals/{signal_id}` | `status`: active/paused/archived | `Signal` |
+| POST | `/api/signals/{signal_id}/measurements` | `start_at`, `end_at` 지정 재측정 | `Measurement` |
+| GET | `/api/signals/{signal_id}/measurements` | 전체 이력·기간별 최신 성공 값·비교 가능 여부 | `MeasurementHistory` |
+
+등록과 재측정은 HTTP 200을 반환합니다. 없는 시그널/후보는 404, 완료되지 않은 Run의 후보 조회·등록은 409,
+잘못된 요청은 422입니다. 측정 데이터가 부족하거나 SQL이 실패하면 HTTP 200의 `status=unavailable`로 이력을
+남깁니다. `values[].value=null`을 0으로 표시하면 안 됩니다. `reason`에는 공개 가능한 실패 사유만 포함합니다.
+같은 정의/관측 기간/데이터 스냅샷의 재측정은 기존 측정 ID를 반환합니다. 데이터가 변경되면 새 측정으로 보존합니다.
+`latest_by_window`는 기간별 최신 성공 값을 우선하며, 실패 이력은 `items`에 남습니다.
+관측 기간 길이·정의·Source 범위/버전이 다르거나 기간이 겹치면 비교 불가 사유를 반환합니다.
+자세한 연결 순서와 수치 해석은 [시그널 FE 인계](signal-fe-handoff.md)를 참고합니다.
