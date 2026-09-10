@@ -50,26 +50,30 @@ def create_alert_router(*, service) -> APIRouter:
 
     @router.get(
         "/api/signals/{signal_id}/alert-recommendations",
-        summary="시그널의 모델 추천 알림 조건 조회",
+        summary="시그널의 측정 지표별 알림 기준 조회",
     )
     def recommendations(signal_id: str) -> RecommendationSet | None:
         return signal_or_404(signal_id).alert_recommendations
 
     @router.post(
         "/api/signals/{signal_id}/alert-recommendations",
-        summary="기존 시그널의 알림 조건 생성 또는 실패한 추천 재시도",
+        summary="기존 시그널의 측정 지표로 알림 기준 준비",
     )
     def generate(signal_id: str, response: Response) -> RecommendationSet:
         signal = signal_or_404(signal_id)
-        if signal.alert_recommendations and signal.alert_recommendations.status == "ready":
+        if (
+            signal.alert_recommendations
+            and signal.alert_recommendations.status == "ready"
+            and signal.alert_recommendations.source == "measurement"
+        ):
             return signal.alert_recommendations
         measurements = [m for m in store.list_measurements(signal_id) if m.status == "success"]
         if not measurements:
-            raise HTTPException(409, "추천에 사용할 성공한 측정값이 없습니다.")
+            raise HTTPException(409, "알림 기준에 사용할 성공한 측정값이 없습니다.")
         trace = LangfuseRunContext(
             str(uuid4()),
             "generic",
-            f"시그널 알림 추천: {signal.title}",
+            f"시그널 알림 기준: {signal.title}",
             tuple(signal.definition.source_ids),
         )
         response.headers["X-Langfuse-Trace-Id"] = trace.trace_id
@@ -99,7 +103,7 @@ def create_alert_router(*, service) -> APIRouter:
             ) from None
         except ValueError:
             raise HTTPException(
-                422, "이 시그널의 추천 ID와 임계값 범위를 확인해야 합니다."
+                422, "이 시그널의 알림 기준 ID와 임계값 범위를 확인해야 합니다."
             ) from None
 
     @router.get("/api/signal-alert-events", summary="커서 이후의 시그널 알림 이벤트 폴링")

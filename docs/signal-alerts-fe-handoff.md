@@ -1,6 +1,7 @@
 # 시그널 알림 임계점 프론트 인계
 
 작성일: 2026-09-10
+수정일: 2026-09-11
 
 시그널 등록 응답의 `alert_recommendations`를 보여주고, 사용자가 고른 조건을 저장한 뒤
 `GET /api/signal-alert-events`를 폴링하면 됩니다. 이벤트는 백엔드의 일일 자동 측정과
@@ -15,10 +16,10 @@
 5. 전체 앱에서 `GET /api/signal-alert-events` 폴링
 6. 이벤트의 `signal_id`로 시그널 상세 연결
 
-추천은 자동 활성화되지 않습니다. 별도 프론트 화면과 브라우저 알림 표시는 프론트에서 구현합니다.
+알림 기준은 자동 활성화되지 않습니다. 별도 프론트 화면과 브라우저 알림 표시는 프론트에서 구현합니다.
 선택 조건은 시그널당 하나의 공유 설정입니다. 현재 애플리케이션에는 사용자별 설정과 이벤트 분리가 없습니다.
 
-## 등록 응답과 추천 조건
+## 등록 응답과 측정 지표별 기준
 
 기존 등록 요청과 응답 필드는 유지하며 `Signal`에 다음 필드가 추가됩니다.
 
@@ -26,19 +27,19 @@
 {
   "alert_recommendations": {
     "status": "ready",
-    "source": "model",
+    "source": "measurement",
     "items": [
       {
         "recommendation_id": "example-recommendation",
         "metric_key": "affected_customer_rate",
         "metric_label": "대상 고객 비율",
         "metric_unit": "percent",
-        "kind": "absolute_change",
+        "kind": "value",
         "operator": "gte",
         "threshold": 10,
-        "comparison_unit": "percentage_points",
+        "comparison_unit": "percent",
         "window_seconds": 86400,
-        "rationale": "직전 비교 가능한 하루보다 대상 고객 비율이 10%p 늘면 확인하는 조건을 제안합니다."
+        "rationale": "매일 측정한 값이 설정한 값 이상이면 알려드려요."
       }
     ],
     "reason": null,
@@ -48,21 +49,25 @@
 ```
 
 예시 ID는 설명용입니다. 실제 요청에는 서버가 반환한 ID를 사용해야 합니다.
-기본 지표와 사용자 정의 지표를 모두 추천할 수 있으므로 `metric_key` 목록을 고정하면 안 됩니다.
-추천 개수는 1~20개이며 같은 지표의 다른 비교 방식이나 임계값을 함께 제안할 수 있습니다.
+기준은 상세 화면과 `customer_signal.signal` span의 `measurement.values`를 재사용합니다.
+기본 지표와 사용자 정의 지표의 키, 표시명, 단위를 그대로 사용합니다.
+측정 불가 값과 확인용 지표(`val_count`, 표시명에 `확인용` 포함)는 제외합니다.
+지표마다 `kind=value`, `operator=gte`인 기준 하나를 제공합니다. 새로운 변화량 지표를 생성하거나 모델을 호출하지 않습니다.
+초기 임계값은 분석 당시 측정값이며, 사용자에게 하루 기준으로 조정할 수 있도록 표시합니다.
+분석 기간이 여러 날이어도 고객 수를 임의로 하루 평균으로 환산하지 않습니다.
 
 | 필드 | 의미 |
 | --- | --- |
 | `metric_key` | 실제 서버 측정값의 지표 키 |
 | `metric_label`, `metric_unit` | 서버 측정값의 표시명과 단위 |
 | `kind=value` | 현재 하루의 지표값 |
-| `kind=absolute_change` | 비교 기준 대비 차이, 현재값에서 기준값을 뺀 값 |
-| `kind=relative_change_percent` | `(현재값 - 기준값) / abs(기준값) * 100` |
+| `kind=absolute_change` | 기존 저장 조건 호환용 차이 계산 |
+| `kind=relative_change_percent` | 기존 저장 조건 호환용 변화율 계산 |
 | `operator` | `gt`: 초과, `gte`: 이상, `lt`: 미만, `lte`: 이하 |
-| `threshold` | 사용자가 선택할 추천 임계값 |
+| `threshold` | 초기에는 분석 당시 값, 저장 후에는 사용자가 정한 기준값 |
 | `comparison_unit` | 임계값과 이벤트의 `observed_value` 표시 단위 |
 | `window_seconds` | `86400`, 하루 측정에 적용하는 조건 |
-| `rationale` | 모델이 작성한 추천 이유 |
+| `rationale` | 하루 측정값과 기준값을 비교하는 방법 |
 
 예를 들어 비율이 10%에서 15%로 변하면 `absolute_change=5 percentage_points`,
 `relative_change_percent=50 percent`입니다. 기준값이 0이면 상대 변화율은 계산하지 않습니다.
@@ -71,31 +76,29 @@
 Source 범위와 버전, 파이프라인 버전이 달라 비교할 수 없으면 변화 조건은 평가하지 않습니다.
 사용자가 선택하지 않은 다른 지표의 결측값은 해당 조건 평가를 막지 않습니다.
 
-추천은 등록 당시 집계값과 지표 의미로 작성한 제안입니다. 실측값, 확정된 업무 규칙,
-통계적으로 검증된 경계로 표시하면 안 됩니다. 주간 관측값으로 등록해도 추천은 하루 기준입니다.
-
-## 추천 조회와 재시도
+## 기준 조회와 준비
 
 | Method | 경로 | 동작 |
 | --- | --- | --- |
-| GET | `/api/signals/{signal_id}/alert-recommendations` | 저장된 추천 조회, 모델 호출 없음 |
-| POST | `/api/signals/{signal_id}/alert-recommendations` | 추천 없는 기존 시그널의 생성 또는 실패 재시도 |
+| GET | `/api/signals/{signal_id}/alert-recommendations` | 저장된 기준 조회 |
+| POST | `/api/signals/{signal_id}/alert-recommendations` | 측정값으로 기준 준비 또는 기존 추천을 지표별 기준으로 전환 |
 
 | 상태 | 프론트 처리 |
 | --- | --- |
-| `null` | 기존 시그널 또는 추천 저장 전 상태, 생성 버튼 표시 |
-| `status=ready` | 선택지 표시 |
-| `status=unavailable` | `reason` 표시와 재시도 버튼 제공, 시그널 등록은 유지 |
-| `source=fixture` | 외부 모델을 호출하지 않은 합성 데모 추천 |
-| `source=model` | 서버의 Gemini 또는 Bedrock 모델 추천 |
+| `null` | 기존 시그널 또는 기준 저장 전 상태 |
+| `status=ready`, `source=measurement` | 지표별 기준값 편집 |
+| `status=unavailable` | `reason` 표시와 다시 불러오기 제공, 시그널 등록 유지 |
+| `source=fixture`, `source=model` | 과거 저장 형식, POST 또는 재등록으로 전환 |
 
-이미 `ready`인 추천에 POST하면 같은 내용을 반환합니다. 성공한 추천 ID는 고정하며,
-이후 조회나 재측정으로 추천을 다시 생성하지 않습니다. 실패 시 고정 숫자 추천으로 대체하지 않습니다.
-중복 등록도 저장된 추천을 유지합니다. 추천 실패의 재시도는 위 POST로 명시적으로 요청합니다.
+모든 `AGENT_MODE`에서 외부 모델 호출 없이 같은 측정 지표를 사용합니다.
+`source=measurement`인 성공 기준은 ID와 초기값을 유지합니다. 재측정이 기준값을 바꾸지 않습니다.
+기존 추천을 전환해도 사용자가 저장한 `alert-rules`와 이벤트는 유지합니다.
+새 기준의 저장은 사용자가 화면에서 저장 버튼을 눌렀을 때 수행합니다.
 
-등록과 추천 생성은 동기 HTTP 요청입니다. 모델 공급자 요청 제한은 40초이며 초기 측정과
-서버 처리 시간이 추가됩니다. 프론트 요청 제한은 60초 이상으로 잡고 처리 중 상태를 표시합니다.
-알림 추천은 서버 `AGENT_MODE` 설정을 사용하며, 원본 분석 Run의 `mode`를 상속하지 않습니다.
+화면은 시그널 이름 아래에 지표를 묶고 분석 당시 값과 편집할 기준값을 나란히 보여줍니다.
+제목은 “어떤 변화가 생기면 알려드릴까요?”, 기준 설명은 “이상이면 알려드려요”로 표시합니다.
+기존 조건 중 같은 지표의 `value/gte` 조건만 숫자를 이어받습니다.
+변화율과 절대값은 단위가 다르므로 과거 변화율 숫자를 새 절대값 기준에 넣지 않습니다.
 
 ## 조건 조회와 저장
 
@@ -105,8 +108,8 @@ Source 범위와 버전, 파이프라인 버전이 달라 비교할 수 없으�
 {"signal_id":"example-signal","revision":0,"items":[]}
 ```
 
-추천을 선택하고 임계값을 바꾸는 요청입니다. `threshold`를 생략하거나 `null`로 보내면
-원래 추천 임계값을 사용합니다.
+지표별 기준을 선택하고 임계값을 바꾸는 요청입니다. `threshold`를 생략하거나 `null`로 보내면
+서버가 반환한 초기 임계값을 사용합니다.
 
 ```http
 PUT /api/signals/example-signal/alert-rules
@@ -122,10 +125,9 @@ Content-Type: application/json
 }
 ```
 
-응답은 `signal_id`, 갱신된 `revision`, 선택된 `items`입니다. 각 항목은 추천의 모든 필드와
+응답은 `signal_id`, 갱신된 `revision`, 선택된 `items`입니다. 각 항목은 기준의 모든 필드와
 `rule_id`를 포함하며 `threshold`에는 현재 사용자가 선택한 값이 들어갑니다.
-`rationale`은 원래 모델 추천 이유를 유지합니다. 수정한 조건 문구는 `kind`, `operator`,
-현재 `threshold`, `comparison_unit`으로 만들고, 추천 이유는 별도로 표시합니다.
+`rationale`은 비교 방법을 설명합니다. 수정한 조건 문구에는 현재 `threshold`와 `comparison_unit`을 사용합니다.
 
 - `items`는 전체 교체 목록, 최대 20개
 - 여러 조건은 각각 독립 평가, 하나라도 진입하면 해당 조건의 이벤트 발생
@@ -133,7 +135,7 @@ Content-Type: application/json
 - 임계값은 유한한 JSON 숫자, 숫자 문자열과 Boolean 불가
 - 비율 지표의 `value` 임계값은 `0~100`, 기본 고객 수의 `value` 임계값은 `0` 이상
 - 변화량 조건은 음수 가능, 감소 알림은 예를 들어 `lte -10`으로 표현
-- 비교 방식과 방향은 추천에 고정, 사용자는 해당 추천 선택 여부와 숫자만 변경
+- 신규 기준은 `value/gte` 고정, 사용자는 지표 선택 여부와 숫자만 변경
 
 전체 해제 요청은 현재 `revision`과 빈 `items`입니다.
 
@@ -142,6 +144,7 @@ Content-Type: application/json
 ```
 
 동일한 선택과 임계값을 같은 최신 `revision`으로 다시 저장하면 버전과 상태를 유지합니다.
+처음 빈 목록을 저장할 때도 `revision=1`을 기록하므로, 화면을 다시 열어도 전체 해제를 유지합니다.
 다른 요청이 먼저 저장했다면 `409`입니다. 다시 GET하여 화면을 갱신한 후 사용자 선택을 저장해야 합니다.
 오래된 요청을 자동으로 최신 버전에 덮어쓰면 안 됩니다.
 
@@ -280,9 +283,9 @@ export async function pollSignalAlerts(
 | 상태 코드 | 조건 |
 | --- | --- |
 | `404` | 없는 시그널 |
-| `409` | 규칙 `revision` 충돌 또는 추천에 사용할 성공 측정 없음 |
+| `409` | 규칙 `revision` 충돌 또는 기준에 사용할 성공 측정 없음 |
 | `422` | 잘못된 추천 ID, 중복 선택, 임계값 타입/범위, 커서/페이지 크기 |
-| `200` + `status=unavailable` | 모델 추천 실패, 등록 자체는 유지 |
+| `200` + `status=unavailable` | 측정 지표 없음 또는 기준 준비 실패, 등록 자체는 유지 |
 
 Swagger의 `signals` 태그에서 요청과 응답 전체 스키마를 확인할 수 있습니다.
 실측 검증 절차와 결과는 [알림 검증 기록](verification/signal-alerts.md)에 정리했습니다.

@@ -19,7 +19,7 @@ from customer_signal.signals.measurement import measure_definition, unavailable_
 from customer_signal.signals.store import SignalStore
 from customer_signal.signals.alerts import AlertStore
 from customer_signal.signals.alert_contracts import RecommendationSet
-from customer_signal.signals.alert_recommendations import fixture_recommendations
+from customer_signal.signals.alert_recommendations import measurement_recommendations
 
 
 class MeasurementUnavailable(ValueError):
@@ -29,7 +29,7 @@ class MeasurementUnavailable(ValueError):
 class SignalService:
     def __init__(
         self, *, store: SignalStore, load_data: Callable,
-        recommend: Callable[[Signal, Measurement], RecommendationSet] = fixture_recommendations,
+        recommend: Callable[[Signal, Measurement], RecommendationSet] = measurement_recommendations,
     ):
         self.store = store
         self.load_data = load_data
@@ -40,18 +40,20 @@ class SignalService:
     ) -> Signal:
         signal = self.store.get_signal(signal.signal_id)
         current = signal.alert_recommendations
-        if current is not None and (current.status == "ready" or not retry):
+        if current is not None and current.source == "measurement" and (
+            current.status == "ready" or not retry
+        ):
             return signal
         with public_observation(
-            name="customer_signal.alert_recommendation", stage="alert_recommendation",
+            name="customer_signal.signal_alert_criteria", stage="signal_alert_criteria",
             input={"signal_id": signal.signal_id, "measurement_id": measurement.measurement_id},
         ) as observation:
             try:
                 recommendations = self.recommend(signal, measurement)
             except Exception:
                 recommendations = RecommendationSet(
-                    status="unavailable", source="model",
-                    reason="추천 조건을 생성하지 못했습니다. 다시 시도할 수 있습니다.",
+                    status="unavailable", source="measurement",
+                    reason="측정 지표를 불러오지 못했습니다. 다시 시도할 수 있습니다.",
                 )
             updated = AlertStore(self.store).save_recommendations(signal.signal_id, recommendations)
             observation.update(output=updated.alert_recommendations.model_dump(mode="json"))

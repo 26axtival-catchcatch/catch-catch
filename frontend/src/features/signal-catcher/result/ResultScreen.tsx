@@ -593,7 +593,7 @@ export function ResultScreen({
           runId={report.runId}
           fallbackMetrics={report.metrics}
           onClose={() => setWatchOpen(false)}
-          onSaved={() => setWatching(true)}
+          onSaved={(count) => setWatching(count > 0)}
           onGoHome={onGoHome}
         />
       ) : null}

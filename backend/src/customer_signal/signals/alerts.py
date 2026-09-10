@@ -74,10 +74,12 @@ class AlertStore:
         with self.store._connection() as db:
             db.execute("BEGIN IMMEDIATE")
             signal = self.store._read(db, "signals", "signal_id", signal_id, Signal)
-            # The first successful recommendation set is immutable: selections reference its IDs.
+            # Measurement criteria are stable. Upgrade legacy recommendations without
+            # changing the user's active rules; those remain effective until the next save.
             current = signal.alert_recommendations
             if current is not None and current.status == "ready":
-                return signal
+                if current.source == "measurement" or recommendations.source != "measurement":
+                    return signal
             signal = signal.model_copy(update={"alert_recommendations": recommendations})
             db.execute(
                 "UPDATE signals SET payload=? WHERE signal_id=?",
@@ -123,7 +125,9 @@ class AlertStore:
                 validate_threshold(rule)
                 selected.append(rule)
             selected.sort(key=lambda r: r.recommendation_id)
-            if selected == existing.items:
+            # Revision zero means the user has never saved a choice. Remember an
+            # explicit initial opt-out so reopening the editor keeps everything off.
+            if selected == existing.items and existing.revision > 0:
                 return existing
             latest = db.execute(
                 "SELECT MAX(end_at) FROM signal_measurements WHERE signal_id=?",

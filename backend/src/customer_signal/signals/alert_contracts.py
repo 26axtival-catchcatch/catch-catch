@@ -30,7 +30,7 @@ class Recommendation(RecommendationDraft):
 
 class RecommendationSet(AlertContract):
     status: Literal["ready", "unavailable"]
-    source: Literal["model", "fixture"]
+    source: Literal["measurement", "model", "fixture"]
     items: list[Recommendation] = Field(default_factory=list, max_length=20)
     reason: str | None = None
     generated_at: AwareDatetime = Field(default_factory=lambda: datetime.now(timezone.utc))

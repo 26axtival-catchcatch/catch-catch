@@ -38,18 +38,24 @@ async function registerFromAnalysis(page: Page) {
   await page.goto(`/runs/${runId}`);
   const registration = page.waitForResponse((response) => response.url().endsWith("/api/signals") && response.request().method() === "POST");
   await page.getByRole("button", { name: "변화 캐치 맡기기" }).click();
-  // Opening the dialog registers the measured proposal and loads recommendations.
+  // Reuse the measured signal directly, with no second AI recommendation step.
   const dialog = page.getByRole("dialog");
+  await expect(dialog.getByRole("heading", { name: "어떤 변화가 생기면 알려드릴까요?" })).toBeVisible();
   const threshold = dialog.getByRole("spinbutton", { name: "대상 고객 수 기준값" });
   await expect(threshold).toBeVisible();
+  await expect(dialog.getByText("이상이면 알려드려요").first()).toBeVisible();
+  expect(await dialog.getByText(/AI.*제안/).count()).toBe(0);
+  await dialog.screenshot({ path: test.info().outputPath("signal-metric-thresholds.png"), animations: "disabled" });
   await threshold.fill("1");
-  // The rate recommendation is optional: one SQL-backed count alert is enough.
+  // Select only the original count metric for this alert flow.
   const rate = dialog.getByRole("checkbox", { name: /대상 고객 비율/ });
   if (await rate.count() && await rate.isChecked()) await rate.locator("..").click();
   await dialog.getByRole("button", { name: "변화 캐치 시작하기" }).click();
   await expect(dialog.getByRole("heading", { name: "이제 변화는 캐치캐치가 볼게요" })).toBeVisible();
   const registered = await (await registration).json();
   expect(registered.proposal_id).toBe(seed.proposal_id);
+  expect(registered.alert_recommendations.source).toBe("measurement");
+  expect(registered.alert_recommendations.items.every((item: { kind: string; operator: string }) => item.kind === "value" && item.operator === "gte")).toBe(true);
   await dialog.getByRole("button", { name: "메인화면으로 돌아가기" }).click();
   return registered.signal_id as string;
 }
