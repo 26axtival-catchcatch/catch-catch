@@ -29,6 +29,16 @@ function activity(overrides: Partial<AgentActivity> = {}): AgentActivity {
 }
 
 describe("TopologyActivityStream", () => {
+  it("keeps chat-only prose out of both execution rows and their payload disclosure", () => {
+    const { container } = render(<TopologyActivityStream halted={false} activities={[
+      activity({ kind: "model", display_text: "모델 응답 생성", status: "completed",
+        message_kind: "commentary", message_text: "단톡방에만 표시할 진행 설명입니다." }),
+    ]} />);
+    expect(screen.getByText("모델 응답 생성")).toBeInTheDocument();
+    expect(container).not.toHaveTextContent("단톡방에만 표시할 진행 설명입니다.");
+    expect(container).not.toHaveTextContent("message_text");
+  });
+
   it("groups model and tool activity below its topology role and exposes public details", () => {
     render(
       <TopologyActivityStream

@@ -11,6 +11,8 @@ export interface AgentActivity {
   status: "queued" | "started" | "completed" | "failed" | "cancelled";
   name: string;
   display_text: string;
+  message_kind?: "commentary" | "summary" | null;
+  message_text?: string | null;
   occurred_at: string;
   duration_ms: number | null;
   model: string | null;
@@ -107,6 +109,10 @@ export function decodeAgentActivity(value: unknown): AgentActivity {
     task_id: text(p.task_id), round_index: integer(p.round_index),
     status: choice(p.status, ["queued", "started", "completed", "failed", "cancelled"]),
     name: text(p.name), display_text: text(p.display_text), occurred_at,
+    ...("message_kind" in p ? {
+      message_kind: p.message_kind == null ? null : choice(p.message_kind, ["commentary", "summary"]),
+    } : {}),
+    ...("message_text" in p ? { message_text: p.message_text == null ? null : text(p.message_text) } : {}),
     duration_ms: p.duration_ms === null ? null : integer(p.duration_ms),
     model: p.model === null ? null : text(p.model), details,
   };

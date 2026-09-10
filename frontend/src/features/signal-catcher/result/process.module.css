@@ -6,6 +6,14 @@
   overflow: hidden;
 }
 
+.detailEntry { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1.3rem 1.2rem; border-bottom: 1px solid var(--line); }
+.detailEntry strong { color: var(--chalk); font-size: .9rem; font-weight: 500; }
+.detailEntry p { margin: .4rem 0 0; color: var(--fog-dim); font-size: .76rem; line-height: 1.6; }
+.detailEntry button { display: flex; flex: none; align-items: center; gap: .8rem; padding: .65rem .9rem; border: 1px solid color-mix(in srgb, var(--signal) 30%, transparent); border-radius: 7px; background: var(--signal-wash); color: var(--signal-soft); font: inherit; font-size: .75rem; cursor: pointer; }
+.detailEntry button:hover { border-color: var(--signal); }
+.detailEntry button:focus-visible { outline: 2px solid var(--signal); outline-offset: 3px; }
+@media (max-width: 560px) { .detailEntry { flex-wrap: wrap; } }
+
 /* ── Toggle ──────────────────────────────────────────── */
 .toggle {
   width: 100%;

@@ -324,4 +324,32 @@ describe("useLiveCatchSession", () => {
     expect(result.current.session.question).toBe("저장된 고객 여정을 보여줘");
     expect(result.current.session.report?.runId).toBe("run-saved-1");
   });
+  it("restores an active run from cursor zero so earlier agent messages remain visible", async () => {
+    const snapshot: RunSnapshot = {
+      run_id: "run-resume", status: "running",
+      request: { question: "진행 기록 복원", start_at: LIVE_START_AT, end_at: LIVE_END_AT, enabled_sources: ["hackathon_voc"] },
+      created_at: "2026-09-11T00:00:00Z", updated_at: "2026-09-11T00:00:03Z",
+      agent_mode: "bedrock", report: null, error: null, plan_history: [], facts: [], last_event_id: 4,
+    };
+    let options: { lastEventId?: number } | undefined;
+    const client: SignalCatcherClient = {
+      listSources: vi.fn(async () => apiSources), createRun: vi.fn(), getRun: vi.fn(async () => snapshot),
+      async *streamRunEvents(_runId, streamOptions) {
+        options = streamOptions;
+        yield { id: 1, type: "clarification_required", data: { kind: "clarification", clarification_id: "answered", question: "이미 답한 질문" } };
+        const past = streamEvents().filter(event => event.type === "agent_activity");
+        for (const event of past) if (event.id > (streamOptions?.lastEventId ?? 0)) yield event;
+        await new Promise<void>(resolve => streamOptions?.signal?.addEventListener("abort", () => resolve()));
+      },
+      submitClarification: vi.fn(), getJourney: vi.fn(), getEvidence: vi.fn(),
+    };
+    const { result, unmount } = renderHook(() => useLiveCatchSession(client));
+    act(() => result.current.restoreRun("run-resume"));
+    await waitFor(() => expect(options).toBeDefined());
+    expect(options?.lastEventId).toBe(0);
+    await waitFor(() => expect(result.current.activities.length).toBeGreaterThan(0));
+    expect(result.current.session.clarification).toBeNull();
+    unmount();
+  });
+
 });

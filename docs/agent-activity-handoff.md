@@ -52,6 +52,8 @@ flowchart LR
 | `status` | `queued`, `started`, `completed`, `failed`, `cancelled` |
 | `name` | 역할 이름, 모델 호출의 `generation`, 실제 도구 이름, 서버의 `verification_policy` |
 | `display_text` | 화면에 표시할 한국어 작업 설명 또는 공개 결과 요약 |
+| `message_kind` | 대화 분류: `commentary`는 모델의 일반 진행 설명, `summary`는 역할 결과 요약, `null`은 실행 로그 |
+| `message_text` | 단톡방 전용 문장. 기존 `display_text`와 별도로 저장하며 대화 외 화면에서는 사용하지 않는 필드 |
 | `occurred_at` | 이벤트 발생 시각, UTC ISO 8601 |
 | `duration_ms` | 시작부터 종료까지의 실제 경과 시간. 시작 전과 판정 이벤트는 `null` |
 | `model` | 개별 모델 호출이 사용한 모델 ID. 다른 종류는 `null` |
@@ -61,6 +63,19 @@ flowchart LR
 모델과 도구는 `started → completed/failed/cancelled`로 진행합니다.
 `assessment`는 서버 검사를 마친 시점의 `completed` 한 건입니다.
 `cancelled`에는 역할 시간 제한에 따른 중단도 포함합니다.
+
+대화 화면은 `status=completed`이며 `message_kind`가 `commentary` 또는 `summary`인 이벤트만
+`message_text`를 말풍선으로 표시합니다. 기존 `display_text`, 실행 상태, 노드와 도구 호출 계약은
+유지합니다. 모델 응답의 일반 문자열과 `type=text` 블록에서 진행 설명을 수집하며,
+도구를 실행하기 전에 같은 모델 노드의 완료 이벤트로 저장합니다. 추론과 thinking 블록,
+`thought=true` 블록, 도구 인자, SQL과 구조화된 원문은 대화에 포함하지 않습니다.
+연락처와 고객 식별자를 가리고 최대 1,000자로 제한합니다. 추가 모델 호출은 발생하지 않습니다.
+
+참여 에이전트와 상태는 모든 이벤트로 계산하므로 아직 말한 내용이 없는 에이전트도 목록에
+표시합니다. 실행 로그는 기존 토폴로지에서 계속 확인할 수 있습니다.
+`message_kind`가 없는 과거 기록은 `kind=agent`, `status=completed`인 공개 요약만 대화에
+표시하며 `조사 배분`, `가설 조사`, `독립 검증`, `보고서 작성` 같은 고정 상태 문구는 제외합니다.
+과거에 저장하지 않은 모델 텍스트를 Langfuse에서 자동으로 복원하지 않습니다.
 
 `queued`는 실행 준비가 된 역할의 등록 시점입니다. 총괄 모델이 가설을 배분하기 전에는
 조사 노드가 존재하지 않습니다. 같은 회차의 조사 노드는 병렬로 실행되므로 도착 순서가 달라질 수 있습니다.

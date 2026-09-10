@@ -1,4 +1,4 @@
-"""Replayable UI activity, projected from execution rather than model transcripts."""
+"""Replayable execution activity and explicitly classified public conversation text."""
 
 from __future__ import annotations
 
@@ -70,6 +70,13 @@ class AgentActivityPayload(PublicContract):
     status: Literal["queued", "started", "completed", "failed", "cancelled"]
     name: Identifier
     display_text: str = Field(min_length=1, max_length=1000)
+    message_kind: Literal["commentary", "summary"] | None = Field(
+        default=None, description="대화로 표시할 진행 설명 또는 결과 요약. null은 실행 상태 로그입니다."
+    )
+    message_text: str | None = Field(
+        default=None, min_length=1, max_length=1000,
+        description="단톡방 전용 공개 텍스트. 기존 display_text와 실행 상태는 유지합니다.",
+    )
     occurred_at: AwareDatetime
     duration_ms: int | None = Field(default=None, ge=0)
     model: Identifier | None = None
@@ -100,7 +107,8 @@ class ActivityStream:
     def __init__(self, emit):
         self.emit = emit
 
-    async def publish(self, node, status, *, text=None, details=None, duration_ms=None):
+    async def publish(self, node, status, *, text=None, details=None, duration_ms=None,
+                      message_kind=None, message_text=None):
         from customer_signal.agent.contracts import AnalysisEvent
 
         value = node.model_copy(
@@ -108,6 +116,8 @@ class ActivityStream:
                 "status": status,
                 "occurred_at": datetime.now(timezone.utc),
                 "display_text": text or node.display_text,
+                "message_kind": message_kind,
+                "message_text": message_text or (text if message_kind == "summary" else None),
                 "duration_ms": duration_ms,
                 "details": details or ActivityDetails(),
             }
@@ -162,6 +172,7 @@ class Operation:
     def __init__(self):
         self.details = ActivityDetails()
         self.failed = False
+        self.commentary: str | None = None
 
 
 @asynccontextmanager
@@ -200,7 +211,9 @@ async def operation(kind, name, *, model=None):
         raise
     finally:
         await stream.publish(
-            node, status, details=result.details, duration_ms=int((monotonic() - started) * 1000)
+            node, status, details=result.details, duration_ms=int((monotonic() - started) * 1000),
+            message_text=result.commentary if status == "completed" else None,
+            message_kind="commentary" if status == "completed" and result.commentary else None,
         )
 
 
