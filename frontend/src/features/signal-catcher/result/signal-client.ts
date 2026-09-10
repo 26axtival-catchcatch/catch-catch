@@ -104,6 +104,17 @@ export interface DailyResults {
   pendingDays: number;
 }
 
+export interface FastForwardResult {
+  requestId: string;
+  items: Array<{
+    signalId: string;
+    status: "completed" | "skipped";
+    reason: string | null;
+    dailyResults: DailyResult[];
+    alertCount: number;
+  }>;
+}
+
 export interface MeasurementHistory {
   items: SignalMeasurement[];
   latestByWindow: SignalMeasurement[];
@@ -443,6 +454,31 @@ export class SignalClient {
   constructor(options: SignalClientOptions = {}) {
     this.apiBaseUrl = (options.apiBaseUrl ?? DEFAULT_API_BASE_URL).replace(/\/$/, "");
     this.fetchImpl = options.fetchImpl ?? globalThis.fetch.bind(globalThis);
+  }
+
+  async fastForward(requestId: string): Promise<FastForwardResult> {
+    const response = await this.request("/api/signals/fast-forward", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ request_id: requestId, days: 1 }),
+    });
+    const payload = recordOf(await response.json(), "fast-forward");
+    if (!Array.isArray(payload.items)) throw new SignalClientError("빨리감기 응답 형식이 올바르지 않습니다.");
+    return {
+      requestId: stringOf(payload.request_id, "fast-forward.request_id"),
+      items: payload.items.map((value, index) => {
+        const path = `fast-forward.items[${index}]`;
+        const item = recordOf(value, path);
+        if (!Array.isArray(item.alert_events)) throw new SignalClientError("빨리감기 알림 응답 형식이 올바르지 않습니다.");
+        return {
+          signalId: stringOf(item.signal_id, `${path}.signal_id`),
+          status: oneOf(item.status, ["completed", "skipped"], `${path}.status`),
+          reason: nullableStringOf(item.reason, `${path}.reason`),
+          dailyResults: dailyResultsOf({ items: item.daily_results, next_before: null, pending_days: 0 }, path).items,
+          alertCount: item.alert_events.length,
+        };
+      }),
+    };
   }
 
   async listProposals(runId: string, signal?: AbortSignal): Promise<SignalProposal[]> {

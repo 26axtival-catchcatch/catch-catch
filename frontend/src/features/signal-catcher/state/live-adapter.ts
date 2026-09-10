@@ -18,7 +18,8 @@ import type {
 } from "./types";
 
 export const LIVE_START_AT = "2026-09-04T00:00:00+09:00";
-export const LIVE_END_AT = "2026-09-18T00:00:00+09:00";
+// Reserve the following week of synthetic data for daily fast-forward analysis.
+export const LIVE_END_AT = "2026-09-11T00:00:00+09:00";
 
 /**
  * 시딩 Source가 함께 반환되면 기존 내장 Source 대신 시딩 Source만 활성화한다.

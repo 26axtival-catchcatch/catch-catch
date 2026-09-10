@@ -72,7 +72,7 @@ class Data:
         self.calls.append(("catalog",))
         return {"columns": ["customer_id"], "tables": ["events"]}
 
-    def query(self, sql):
+    def query(self, sql, **options):
         self.calls.append(("query", sql, threading.get_ident(), query_owner.get()))
         return {"query_id": "query-1", "rows": [{"customer_id": "customer-1"}]}
 
@@ -99,7 +99,7 @@ class ReferenceData(Data):
             raise ValueError("private database detail")
         return [row["customer_id"] for row in self.queries[query_id]["rows"]]
 
-    def query(self, sql):
+    def query(self, sql, **options):
         self.queries["query-fixed"] = {
             "owner": query_owner.get(),
             "rows": self.queries["query-full"]["rows"],
@@ -205,6 +205,73 @@ async def test_tool_loop_runs_authorized_data_queries_off_thread_and_finishes():
     messages = provider.calls[-1]["messages"]
     assert sum(isinstance(message, ToolMessage) for message in messages) == 3
     assert "untrusted" in messages[0].content.lower()
+
+
+@pytest.mark.parametrize("provider_kind", ["gemini", "bedrock"])
+async def test_investigator_receives_compact_results_with_recoverable_owned_evidence(
+    tmp_path, provider_kind
+):
+    from customer_signal.agent.contracts import RunRequest
+    from customer_signal.investigation.data import InvestigationData, query_owner as owner
+    from customer_signal.investigation.model import BedrockInvestigationModel
+    from customer_signal.signals.store import SignalStore
+    from customer_signal.signals.workbench import SignalWorkbench
+    from test_investigation_data import event
+
+    request = RunRequest(question="조사", start_at="2026-09-04T00:00:00Z",
+                         end_at="2026-09-11T00:00:00Z", enabled_sources=["app"])
+    data = InvestigationData(request=request, events=[event(i, customer=f"c-{i}") for i in range(41)],
+                             manifests=[], snapshot_id="test")
+    wb = data.signal_workbench = SignalWorkbench(
+        data=data, store=SignalStore(tmp_path / "signals.sqlite3"), run_id="test"
+    )
+
+    async def finish_candidate():
+        query_id = next(iter(data.queries))
+        return call("finish", document=json.dumps({
+            "candidates": [investigation_candidate(
+                cohort_query_id=query_id, evidence_query_ids=[query_id],
+                representative_customer_ids=data.cohort(query_id)[:2],
+            )],
+            "limitations": [],
+        }))
+
+    provider = ScriptedProvider({"primary": [
+        call("query_data", sql="SELECT DISTINCT customer_id FROM events"),
+        call("measure_signal", definition={
+            "source_ids": ["app"], "cohort_sql": "SELECT DISTINCT customer_id FROM events",
+            "population_description": "전체 고객", "normal_comparison": "정상 비교",
+        }),
+        finish_candidate,
+    ]})
+    model = (BedrockInvestigationModel(api_key="test-key", model="primary", model_factory=provider)
+             if provider_kind == "bedrock" else GeminiInvestigationModel(
+                 api_key="test-key", primary_model="primary", fallback_model="primary",
+                 model_factory=provider))
+    token = owner.set("task-research")
+    try:
+        result = await model.run_role(role="investigator", task_id="task-research",
+                                     instruction="합성 조사", context={}, data=data,
+                                     result_type=InvestigationResult)
+        returned = {m.name: json.loads(m.content) for m in provider.calls[-1]["messages"]
+                    if isinstance(m, ToolMessage)}
+        measurement = returned["measure_signal"]
+        assert "queries" not in measurement  # Scoped IDs are not valid investigation references.
+        assert measurement["status"] == "success"
+        assert measurement["values"][0]["value"] == 41
+        assert wb.measurements[measurement["measurement_id"]][2].query_results
+        preview = returned["query_data"]
+        assert len(preview["rows"]) == 20 and preview["row_count"] == 41
+        assert preview["next_offset"] == 20 and preview["truncated"]
+        assert "sql" not in preview
+        query_id = result.candidates[0].cohort_query_id
+        assert len(data.cohort(query_id)) == 41
+        assert data.queries[query_id]["owner"] == "task-research"
+        page = data.read_query_result(query_id, offset=20, limit=20)
+        assert len(page["rows"]) == 20 and page["next_offset"] == 40
+    finally:
+        owner.reset(token)
+        data.close()
 
 
 async def test_invalid_finish_recovers_with_bounded_feedback_without_private_values():

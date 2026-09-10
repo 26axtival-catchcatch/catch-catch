@@ -121,18 +121,27 @@ class InvestigationData:
         )
         if self.events:
             self._db.execute("BEGIN TRANSACTION")
-            self._db.executemany(
-                "INSERT INTO events VALUES (" + ",".join("?" for _ in self.columns) + ")",
-                [
-                    [
-                        e[c].astimezone(timezone.utc).replace(tzinfo=None)
+            # Bind one JSON string per batch: binding individual Python cells
+            # repeatedly probes optional pandas types, even inside list parameters.
+            # Strict typed conversion preserves NULLs, numbers and UTC timestamps
+            # without enabling file access or adding a dataframe dependency.
+            structure = json.dumps([types])
+            for offset in range(0, len(self.events), 10_000):
+                batch = self.events[offset : offset + 10_000]
+                rows = [
+                    {
+                        c: e[c].astimezone(timezone.utc).replace(tzinfo=None)
                         if c == "occurred_at"
                         else e.get(c)
                         for c in self.columns
-                    ]
-                    for e in self.events
-                ],
-            )
+                    }
+                    for e in batch
+                ]
+                self._db.execute(
+                    "INSERT INTO events SELECT "
+                    "unnest(json_transform_strict(?, ?), recursive := true)",
+                    [json.dumps(rows, ensure_ascii=False, default=str), structure],
+                )
             self._db.execute("COMMIT")
         for source_id in request.enabled_sources:
             self._db.execute(

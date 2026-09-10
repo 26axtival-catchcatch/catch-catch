@@ -159,6 +159,13 @@
   flex: 1;
 }
 
+@media (max-width: 35rem) {
+  .bar { gap: .55rem; padding: 1rem; flex-wrap: wrap; }
+  .brandText small { display: none; }
+  .brandText strong { font-size: .85rem; }
+  .brand { gap: .35rem; }
+}
+
 .signature {
   align-self: flex-end;
   padding: 0.125rem clamp(1.25rem, 4vw, 2.5rem) 1rem;
