@@ -452,6 +452,12 @@ def create_app(
         status_code=status.HTTP_202_ACCEPTED,
         tags=["runs"],
         summary="분석 Run 생성",
+        description=(
+            "Bedrock/Gemini는 스냅샷 전에 질문을 판정합니다. 모호하면 "
+            "clarification_required로 답변을 기다리며, 범위 밖 요청은 input_out_of_scope, "
+            "인젝션·권한 우회 요청은 input_unsafe, 판정 실패는 intake_failed 오류로 종료합니다. "
+            "접수는 202이며 판정 결과는 Run 상태와 SSE로 확인합니다."
+        ),
     )
     async def create_run(
         request: RunRequest,
@@ -484,6 +490,10 @@ def create_app(
         status_code=status.HTTP_202_ACCEPTED,
         tags=["runs"],
         summary="Clarification 답변 제출",
+        description=(
+            "같은 Run의 확인 질문에 답합니다. Bedrock/Gemini는 이전 대화와 새 답변을 함께 "
+            "다시 판정합니다. 모호하면 재질문하고 범위 밖 요청이나 인젝션은 차단합니다."
+        ),
     )
     async def answer_clarification(
         run_id: str,

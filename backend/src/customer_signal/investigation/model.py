@@ -23,6 +23,8 @@ from langsmith import tracing_context
 from pydantic import BaseModel, ConfigDict, Field, SecretStr, ValidationError
 
 from customer_signal.agent.generic_gemini import _is_typed_not_found
+from customer_signal.agent.contracts import RunRequest
+from customer_signal.investigation.intake import INTAKE_PROMPT, INTAKE_TOOLS, IntakeDecision
 from customer_signal.investigation.activity import ActivityDetails, operation, tool_details
 from customer_signal.investigation.commentary import public_model_text
 from customer_signal.investigation.contracts import InvestigationResult, Verification
@@ -481,6 +483,25 @@ class GeminiInvestigationModel:
     def _model_for_role(self, role: str) -> str:
         return self._selected_model
 
+    async def classify_input(self, request: RunRequest) -> IntakeDecision:
+        """One bounded model decision with no access to investigation tools or data."""
+        messages = [
+            SystemMessage(content=INTAKE_PROMPT),
+            HumanMessage(content=request.model_dump_json()),
+        ]
+        async with asyncio.timeout(45):
+            response = await self._invoke(
+                messages, role="intake", task_id="input-intake", round_index=0,
+            )
+        if (
+            not isinstance(response, AIMessage)
+            or len(response.tool_calls) != 1
+            or response.invalid_tool_calls
+            or response.tool_calls[0]["name"] != "submit_intake"
+        ):
+            raise ValueError("invalid intake response")
+        return IntakeDecision.model_validate(response.tool_calls[0]["args"])
+
     async def _invoke(
         self,
         messages: list[BaseMessage],
@@ -535,7 +556,7 @@ class GeminiInvestigationModel:
         if model is None:
             model = self._create_model(model_name)
             self._models[model_name] = model
-        chain = model.bind_tools(_TOOLS)
+        chain = model.bind_tools(INTAKE_TOOLS if role == "intake" else _TOOLS)
         config = build_langfuse_config(
             run_name=f"customer_signal.{role}", provider=self.agent_mode, stage=role
         )

@@ -11,6 +11,10 @@ from test_investigation_data import event
 class ScriptedModel:
     model_name = "scripted-gemini"
 
+    async def classify_input(self, request):
+        return {"action": "proceed", "reason": "supported", "question": "",
+                "analysis_question": request.question}
+
     def __init__(self):
         self.calls = []
         self.query_id = None

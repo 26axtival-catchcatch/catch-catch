@@ -244,6 +244,8 @@ export interface CatchSession {
   outcome: RunOutcome | null;
   report: CatchReport | null;
   failureReason: string | null;
+  /** 공개 API 오류 코드. 질문 차단과 재시도 가능한 오류를 구분한다. */
+  failureCode?: string | null;
   suggestedQuestions: string[];
 }
 

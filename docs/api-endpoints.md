@@ -33,6 +33,24 @@ Backend 를 실행하면 FastAPI 가 다음 경로를 자동으로 제공합니�
 
 ## runs
 
+Bedrock/Gemini는 데이터 스냅샷, Goal/Plan 및 SQL 조사 전에 LLM으로 입력을 판정합니다.
+판정 모델에는 결과 제출 도구만 제공하며 데이터 조회나 SQL 실행 도구는 제공하지 않습니다.
+구체적인 고객 분석은 계속하고, “이상한 고객좀 찾아줘봐”처럼 기준이 모호하면
+`clarification_required`를 보내 `awaiting_clarification` 상태로 대기합니다.
+`POST /api/runs/{run_id}/clarification`의 답변은 같은 Run에서 전체 확인 대화와 함께
+재검사하며, 여전히 모호하면 새 확인 질문을 보냅니다. 대기 중에는 `done`이 없습니다.
+
+첫 POST는 기존처럼 `202`를 반환하고 아래 판정 결과는 Run/SSE의 `error`와 `done(failed)`로 전달합니다.
+
+| 오류 코드 | 의미 | 다음 행동 |
+| --- | --- | --- |
+| `input_out_of_scope` | 요리 등 고객 데이터 분석과 무관한 요청 | 고객 행동에 관한 질문으로 수정 |
+| `input_unsafe` | 프롬프트/SQL 인젝션, 권한 우회, 비공개 정보·쓰기 요청 | 안전한 자연어 분석 질문으로 수정 |
+| `intake_failed` | 판정 호출 실패·45초 초과·응답 계약 오류 | 잠시 후 재시도 |
+
+위 경우에는 스냅샷과 조사 역할을 실행하지 않습니다. Fixture는 기존 결정론적 분류를 유지합니다.
+LLM 판정은 보조 방어이며 실행 시의 읽기 전용 SQL, Source 범위, 외부 접근 차단 검증도 유지합니다.
+
 | Method | 경로 | 설명 | 응답 |
 | --- | --- | --- | --- |
 | POST | `/api/runs` | 분석 Run 생성. `mode` 쿼리로 agent 모드 지정 가능 | `202` + `RunAccepted` |

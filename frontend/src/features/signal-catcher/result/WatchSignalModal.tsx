@@ -290,7 +290,7 @@ export function WatchSignalModal({ runId, fallbackMetrics, onClose, onSaved, onG
             <h2 id="watch-title">{savedCount ? "이제 변화는 캐치캐치가 볼게요" : "알림 설정을 저장했어요"}</h2>
             <p id="watch-description">{savedCount ? `선택한 ${savedCount}개 지표를 매일 확인해요. 설정한 값 이상이면 알려드릴게요.` : "선택한 지표의 알림을 모두 껐어요."}</p>
             {savedCount > 0 ? <BrowserNotificationSettings /> : null}
-            {savedCount > 0 ? <p>상단의 하루 빨리감기로 다음 날짜의 변화를 확인할 수 있어요.</p> : null}
+            {savedCount > 0 ? <p style={{ display: "none" }}>상단의 하루 빨리감기로 다음 날짜의 변화를 확인할 수 있어요.</p> : null}
             <button type="button" className={styles.submit} onClick={onGoHome}>메인화면으로 돌아가기</button>
           </div>}
         </div>

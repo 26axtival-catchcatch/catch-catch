@@ -41,20 +41,24 @@ export function CatchingScreen({
   onGiveUp,
 }: CatchingScreenProps) {
   const failed = session.outcome === "failed";
+  const inputBlocked = session.failureCode === "input_out_of_scope"
+    || session.failureCode === "input_unsafe";
   const halted = flatline || failed || Boolean(session.clarification);
   const activeIndex = session.stages.findIndex((stage) => stage.status === "active");
   const active = activeIndex < 0 ? null : session.stages[activeIndex];
   const graphTopology = useMemo(() => createAgentTopology(topologyEvents), [topologyEvents]);
   const { stats: graphStats } = graphTopology;
   const isConnecting = topologyEvents.length === 0;
+  const isCheckingInput = !topologyEvents.some((event) => event.type === "goal_created")
+    && (session.activeStage === null || session.activeStage === "goal");
   const isAssigningRoles = !isConnecting && activities.length === 0;
 
   const lead = flatline
     ? "연결 문제로 분석이 잠시 멈췄어요"
     : session.clarification
       ? "분석 기준을 정확히 맞추기 위해 확인이 필요해요"
-      : isConnecting
-        ? "질문을 분석 공간에 연결하고 있어요"
+      : isCheckingInput
+        ? "입력한 질문이 분석 가능한지 확인하고 있어요"
         : isAssigningRoles
           ? "분석 목표를 정하고 역할을 나누고 있어요"
       : active?.key === "analyze" || active?.key === "verify"
@@ -71,18 +75,20 @@ export function CatchingScreen({
         {failed ? (
           <div className={styles.failure} role="alert">
             <p className={styles.failureTitle}>
-              <span className={styles.failureBadge}>분석 중단</span>
-              분석을 완료하지 못했어요
+              <span className={styles.failureBadge}>{inputBlocked ? "질문 확인" : "분석 중단"}</span>
+              {inputBlocked ? "이 질문으로는 분석을 시작할 수 없어요" : "분석을 완료하지 못했어요"}
             </p>
             <p className={styles.failureReason}>{session.failureReason}</p>
             <p className={styles.failureNote}>
-              질문과 조건은 그대로 유지했어요. 같은 조건으로 처음부터 다시 분석할 수 있어요.
+              {inputBlocked
+                ? "고객 행동이나 상담 데이터로 확인하고 싶은 내용을 질문으로 적어 주세요."
+                : "질문과 조건은 그대로 유지했어요. 같은 조건으로 처음부터 다시 분석할 수 있어요."}
             </p>
             <div className={styles.failureActions}>
-              <button type="button" className={styles.failureRetry} onClick={onRetry}>
+              {inputBlocked ? null : <button type="button" className={styles.failureRetry} onClick={onRetry}>
                 같은 조건으로 다시 분석
-              </button>
-              <button type="button" className={styles.failureGhost} onClick={onGiveUp}>
+              </button>}
+              <button type="button" className={inputBlocked ? styles.failureRetry : styles.failureGhost} onClick={onGiveUp}>
                 질문 수정하기
               </button>
             </div>
@@ -92,7 +98,7 @@ export function CatchingScreen({
             <div className={styles.head}>
               <div>
                 <p className={styles.kicker}>
-                  {isConnecting ? "분석 연결 중" : activeIndex >= 0
+                  {isCheckingInput ? "질문 확인 중" : activeIndex >= 0
                     ? `분석 진행 · ${String(activeIndex + 1).padStart(2, "0")} / ${String(session.stages.length).padStart(2, "0")}`
                     : "분석 완료"}
                 </p>
@@ -102,8 +108,8 @@ export function CatchingScreen({
                 </p>
               </div>
               <span className={styles.count}>
-                {isConnecting
-                  ? "실행 흐름 연결 중"
+                {isCheckingInput
+                  ? "입력 확인 중"
                   : <>역할 {graphStats.agents}개 · 도구 호출 {graphStats.tools}회 · <b>확정 {graphStats.catches}건</b></>}
               </span>
             </div>
@@ -116,6 +122,7 @@ export function CatchingScreen({
 
       {session.clarification ? (
         <ClarificationModal
+          key={session.clarification.clarificationId}
           prompt={session.clarification}
           onAnswer={onAnswerClarification}
         />

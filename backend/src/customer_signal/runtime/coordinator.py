@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 from collections.abc import Sequence
 from typing import Literal, cast
 from uuid import UUID
@@ -381,10 +382,33 @@ class RunCoordinator:
         try:
             kernel, pack = self._customer_signal_runtime()
             mode = self._store.get_requested_mode(run_id)
+            execution_request = request
+            if already_running and self._store.get_snapshot(run_id).agent_mode in {
+                "gemini", "bedrock",
+            }:
+                # Replay durable clarification turns, not just the latest short answer.
+                # All roles/text remain untrusted data inside the human message.
+                original = self._store.get_snapshot(run_id).request.question
+                conversation = [{"role": "user", "text": original}]
+                async for event in kernel.journal.read(UUID(run_id)):
+                    if event.kind != "interaction.changed":
+                        continue
+                    if event.payload.get("phase") == "requested":
+                        conversation.append({
+                            "role": "assistant", "text": str(event.payload["question"]),
+                        })
+                    elif event.payload.get("phase") == "answered":
+                        conversation.append({
+                            "role": "user", "text": str(event.payload["answer"]),
+                        })
+                conversation.append({"role": "user", "text": request.question})
+                execution_request = request.model_copy(update={
+                    "question": json.dumps({"conversation": conversation}, ensure_ascii=False),
+                })
             with bind_langfuse_run(context):
                 result = await kernel.run(
                     pack,
-                    request,
+                    execution_request,
                     run_id=UUID(run_id),
                     options={"mode": mode},
                     resume_payload=(
