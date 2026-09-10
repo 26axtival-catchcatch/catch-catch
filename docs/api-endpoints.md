@@ -116,10 +116,16 @@ FastAPI OpenAPI 스키마에 포함되지 않으므로 Swagger UI 에 나타나�
 | GET | `/api/runs/{run_id}/signal-proposals/{proposal_id}` | 후보 정의, 최초 측정, 근거 | `Proposal` |
 | POST | `/api/signals` | `proposal_id` 선택 등록 또는 `title`, `description`, `definition`, `start_at`, `end_at` 직접 등록 | `Signal` |
 | GET | `/api/signals` | 등록된 시그널 목록 | `SignalList` |
+| GET | `/api/signals/briefing` | B1 브리핑 카드, 최신 측정과 증감, 최근 7개 기간 추이, 상태 필터와 페이지 조회 | `SignalBriefingList` |
 | GET | `/api/signals/{signal_id}` | 고정 정의와 상태 조회 | `Signal` |
 | PATCH | `/api/signals/{signal_id}` | `status`: active/paused/archived | `Signal` |
 | POST | `/api/signals/{signal_id}/measurements` | `start_at`, `end_at` 지정 재측정 | `Measurement` |
 | GET | `/api/signals/{signal_id}/measurements` | 전체 이력, 기간별 최신 성공 값, 비교 가능 여부 | `MeasurementHistory` |
+| GET | `/api/signals/{signal_id}/alert-recommendations` | 저장된 모델 추천 알림 조건, 기존 데이터는 null 가능 | `RecommendationSet \| null` |
+| POST | `/api/signals/{signal_id}/alert-recommendations` | 기존 시그널의 추천 생성 또는 실패 재시도 | `RecommendationSet` |
+| GET | `/api/signals/{signal_id}/alert-rules` | 사용자 선택 조건과 편집 버전 조회 | `AlertRules` |
+| PUT | `/api/signals/{signal_id}/alert-rules` | 추천 선택과 임계값 변경, 빈 목록으로 전체 해제 | `AlertRules` |
+| GET | `/api/signal-alert-events` | `after` 커서 이후 알림 이벤트 폴링, `limit` 페이지 크기 | `AlertEvents` |
 
 등록과 재측정은 HTTP 200을 반환합니다. 없는 시그널/후보는 404, 완료되지 않은 Run의 후보 조회, 등록은 409,
 잘못된 요청은 422입니다. 직접 등록 시 최초 측정이 불가능해도 422이며 등록을 저장하지 않습니다.
@@ -130,6 +136,24 @@ FastAPI OpenAPI 스키마에 포함되지 않으므로 Swagger UI 에 나타나�
 `latest_by_window`는 기간별 최신 성공 값을 우선하며, 실패 이력은 `items`에 남습니다.
 관측 기간 길이, 정의, Source 범위/버전이 다르거나 기간이 겹치면 비교 불가 사유를 반환합니다.
 자세한 연결 순서와 수치 해석은 [시그널 FE 인계](signal-fe-handoff.md)를 참고합니다.
+
+등록 응답의 `Signal.alert_recommendations`에 모델이 지표별로 제안한 하루 기준 조건을 제공합니다.
+사용자가 `alert-rules`에 선택하기 전에는 이벤트를 만들지 않습니다. 추천 실패는 등록을 취소하지 않고
+`status=unavailable`로 표시합니다. 성공한 추천은 고정하며 재등록과 조회에서 다시 생성하지 않습니다.
+추천 모델은 서버의 `AGENT_MODE`를 사용합니다. Bedrock은 `BEDROCK_INVESTIGATOR_MODEL`,
+Gemini는 `GEMINI_MODEL`을 사용하며 provider 실패를 fixture로 대체하지 않습니다.
+
+규칙 PUT에는 조회한 `revision`과 전체 `items`를 보냅니다. 버전 충돌은 409, 잘못된 추천 ID,
+중복 선택과 임계값은 422입니다. 빈 목록은 전체 해제입니다. 숫자를 바꾸지 않은 동일 선택은 상태를 유지합니다.
+성공한 하루 측정이 조건에 진입할 때만 이벤트를 저장하며 정상 범위 관측 후 재진입하면 다시 생성합니다.
+측정과 규칙 상태, 이벤트 저장은 하나의 트랜잭션입니다. 결측과 비교 불가는 진입 상태를 초기화하지 않습니다.
+
+이벤트 GET의 `after`를 생략하면 항목 없이 현재 최신 커서를 반환합니다. `after=0`은 전체 이력,
+`after=N`은 `sequence > N`의 오름차순 페이지입니다. `limit`은 기본 100, 최대 500입니다.
+응답의 `next_cursor`를 처리 후 저장하며 `has_more=true`이면 바로 다음 페이지를 조회합니다.
+`latest_cursor`는 전체 최신 순번이므로 페이지를 건너뛰는 용도로 사용하면 안 됩니다.
+현재 설정과 이벤트는 앱 전체에서 공유합니다. 전체 응답 예시와 프론트 연결 순서는
+[시그널 알림 FE 인계](signal-alerts-fe-handoff.md)에 정리했습니다.
 
 등록, 재측정 성공 응답 헤더 `X-Langfuse-Trace-Id`는 해당 작업을 기록한 trace ID입니다.
 후보 선택 등록은 **원래 분석 trace**, 직접 등록, 수동 재측정은 **이번 API 작업 trace**를 반환합니다.
@@ -148,6 +172,44 @@ env -u LANGFUSE_SECRET_KEY -u LANGFUSE_PUBLIC_KEY -u LANGFUSE_BASE_URL \
   uv run --env-file .env --project backend python scripts/verify-signal-spans-mcp.py \
   --backend-credentials --trace-id <ID>
 ```
+
+## 메인 B1 브리핑 목록
+
+`GET /api/signals/briefing`은 등록된 시그널을 최신 등록순으로 조회합니다.
+기본 `status=active`이며 `paused`, `archived`, `all`도 지정할 수 있습니다.
+`limit`은 기본 20, 범위 1~100이고 `offset`은 기본 0인 음이 아닌 정수입니다.
+잘못된 쿼리는 `422`, 빈 목록과 범위를 넘은 페이지는 `200`입니다.
+기존 `GET /api/signals`의 전체 목록 계약은 유지합니다.
+
+응답에는 `generated_at`, `items`, 필터 적용 후 전체 개수인 `total`, `limit`, `offset`,
+다음 페이지의 `next_offset`이 있습니다. 마지막 페이지의 `next_offset`은 `null`입니다.
+`generated_at`은 조회 시각이며 일별 분석 완료나 브리핑 발행 시각이 아닙니다.
+
+각 카드에는 `signal_id`, `title`, `description`, `status`, `origin`, `created_at`,
+`source_ids`, `population_description`, `latest_measurement`, `comparison`, `trend`가 있습니다.
+`description`은 등록 당시 설명입니다. 최신 수치에 맞춘 설명을 새로 생성하지 않습니다.
+조회는 저장된 정의와 측정 이력만 읽으며 LLM, 원본 Source 조회나 재측정을 실행하지 않습니다.
+SQL, 고객 식별자, 원본 쿼리 결과는 이 응답에서 제외합니다.
+
+최초 등록, 수동 측정, 자동 측정을 모두 포함해 같은 시작과 종료 기간의 최신 성공 값을 우선합니다.
+성공이 없는 기간은 최신 측정 불가 값을 사용합니다. 관측 종료 시각, 시작 시각 순으로 정렬한 뒤
+최근 7개 기간을 남깁니다. 과거 기간을 나중에 재측정해도 최신 관측 기간을 대체하지 않습니다.
+`latest_measurement`는 마지막 기간의 값이며 이력이 없으면 `null`입니다.
+
+`comparison`은 최근 두 기간의 측정 ID, `comparable`, `comparison_limitations`, `metrics`입니다.
+기간 길이, 겹침, 지표 구성, 단위, Source나 파이프라인 버전이 맞지 않거나 값이 없으면
+`comparable=false`, `metrics=[]`입니다. 증감 단위 `percentage_points`는 `%p`로 표시합니다.
+기본 `/comparison`이 자동 실행 두 기간만 비교하는 것과 달리 이 목록은 모든 측정 경로를 포함합니다.
+
+`trend.points`는 오래된 기간부터 최대 7개 측정 요약을 제공합니다.
+`trend.comparable=false`이면 그래프를 그리지 않고 `comparison_limitations`를 표시합니다.
+마지막 두 기간의 비교가 가능해도 전체 추이는 비교 불가일 수 있습니다.
+측정 불가와 `null` 값을 0으로 바꾸면 안 됩니다.
+
+B1의 마지막 대화 카드는 FE에서 추가하며 `total`에 포함되지 않습니다.
+목록을 모두 불러온 뒤 `next_offset=null`일 때 마무리 카드로 이동합니다.
+상세한 필드 매핑, 기존 FE 수정 위치와 버튼 연결은
+[B1 시그널 목록 FE 인계](signal-briefing-fe-handoff.md)를 참고합니다.
 
 ## 시그널 일별 자동 측정과 비교
 
@@ -193,7 +255,7 @@ LLM을 다시 호출해 정의를 만들지 않습니다.
 해당 시그널의 두 측정을 비교합니다. 미지정 시 최신 일별 두 기간을 사용하므로 등록 당시의
 다일 최초 측정은 섞이지 않습니다. 정의 지문, `pipeline_version`, Source 범위/버전,
 기간 길이, 중첩 여부, 측정 상태와 지표 단위를 검사합니다. 비교 불가 시 `metrics=[]`와
-`comparison_limitations`를 반환합니다. 정상 비교 시 각 지표의 기준값·현재값·절대 변화·상대 변화율을 제공합니다.
+`comparison_limitations`를 반환합니다. 정상 비교 시 각 지표의 기준값, 현재값, 절대 변화와 상대 변화율을 제공합니다.
 `unit=percent` 또는 `%`인 비율 지표의 `absolute_change` 단위는 `percentage_points`, `relative_change_percent`는
 `(현재-기준)/abs(기준)*100`입니다. 기준값 0이면 상대 변화율은 null입니다.
 시그널/측정 ID가 없으면 404, 한쪽 측정 ID만 지정하거나 일정을 잘못 지정하면 422입니다.

@@ -10,6 +10,7 @@ from fastapi import APIRouter, HTTPException, Query, Response
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, model_validator
 
 from customer_signal.observability.langfuse import LangfuseRunContext
+from customer_signal.signals.briefing import SignalBriefingList, briefing_card
 from customer_signal.signals.contracts import Measurement, Proposal, Signal, SignalDefinition
 from customer_signal.signals.service import MeasurementUnavailable, SignalService
 from customer_signal.signals.comparison import (
@@ -17,6 +18,8 @@ from customer_signal.signals.comparison import (
 )
 from customer_signal.signals.schedule_contracts import DailyResults, DailySchedule, ScheduleUpdate
 from customer_signal.signals.scheduling import ScheduleBusy, ScheduleStore
+from customer_signal.signals.alert_api import create_alert_router
+from customer_signal.signals.alert_recommendations import fixture_recommendations
 
 
 class RequestModel(BaseModel):
@@ -82,10 +85,15 @@ def history_response(items: list[Measurement]) -> MeasurementHistory:
     )
 
 
-def create_router(*, store, is_completed: Callable[[str], bool], load_data: Callable) -> APIRouter:
+def create_router(
+    *, store, is_completed: Callable[[str], bool], load_data: Callable,
+    recommend: Callable = fixture_recommendations,
+) -> APIRouter:
     router = APIRouter(tags=["signals"])
-    service = SignalService(store=store, load_data=load_data)
+    service = SignalService(store=store, load_data=load_data, recommend=recommend)
     schedules = ScheduleStore(store)
+    # Alert router declares the shared tag itself; avoid duplicate inherited tags.
+    alert_router = create_alert_router(service=service)
 
     def signal_or_404(signal_id):
         try:
@@ -168,6 +176,26 @@ def create_router(*, store, is_completed: Callable[[str], bool], load_data: Call
     def signals() -> SignalList:
         return SignalList(items=store.list_signals())
 
+    @router.get("/api/signals/briefing", summary="메인 브리핑의 시그널 카드 목록과 지표 조회")
+    def briefing(
+        status: Literal["active", "paused", "archived", "all"] = Query(
+            default="active", description="추적 상태 필터, all은 모든 상태",
+        ),
+        limit: int = Query(default=20, ge=1, le=100, description="페이지당 시그널 수"),
+        offset: int = Query(default=0, ge=0, description="등록 역순 목록에서 건너뛸 시그널 수"),
+    ) -> SignalBriefingList:
+        total, rows = store.list_briefing_data(
+            status=None if status == "all" else status, limit=limit, offset=offset,
+        )
+        next_offset = offset + len(rows)
+        return SignalBriefingList(
+            items=[briefing_card(signal, measurements) for signal, measurements in rows],
+            total=total,
+            limit=limit,
+            offset=offset,
+            next_offset=next_offset if next_offset < total else None,
+        )
+
     @router.get("/api/signals/{signal_id}", summary="등록된 시그널 정의 조회")
     def detail(signal_id: str) -> Signal:
         return signal_or_404(signal_id)
@@ -237,4 +265,7 @@ def create_router(*, store, is_completed: Callable[[str], bool], load_data: Call
             baseline = results[1].measurement if len(results) > 1 else None
         return compare_measurements(baseline, target)
 
-    return router
+    combined = APIRouter()
+    combined.include_router(router)
+    combined.include_router(alert_router)
+    return combined

@@ -27,6 +27,7 @@ from customer_signal.signals.api import create_router as create_signal_router
 from customer_signal.signals.store import SignalStore
 from customer_signal.signals.service import SignalService
 from customer_signal.signals.scheduling import DailyScheduler, ScheduleStore
+from customer_signal.signals.alert_recommendations import create_recommender
 from customer_signal.analytics.executor import PrimitiveExecutor
 from customer_signal.analytics.models import CustomerJourneyResult, EvidenceResult
 from customer_signal.analytics.service import AnalyticsService
@@ -308,7 +309,7 @@ _OPENAPI_TAGS = [
     {"name": "system", "description": "서비스 상태 확인"},
     {"name": "sources", "description": "분석에 사용할 수 있는 공개 Source 목록"},
     {"name": "runs", "description": "분석 Run 생성, 상태 조회, SSE 이벤트, 후속 조회"},
-    {"name": "signals", "description": "시그널 등록, 일별 자동 측정과 기간별 정량 비교"},
+    {"name": "signals", "description": "시그널 등록, 일별 측정, 임계점 추천과 알림 이벤트 폴링"},
     {"name": "run-artifacts", "description": "완료된 Run Artifact 조회와 다운로드"},
 ]
 
@@ -428,6 +429,7 @@ def create_app(
         app.state.signal_scheduler = signal_scheduler
         app.include_router(create_signal_router(
             store=resolved.signal_store, is_completed=completed_signal_run, load_data=signal_data,
+            recommend=create_recommender(resolved_settings),
         ))
 
     @app.get("/health", tags=["system"], summary="서비스 상태 확인")
