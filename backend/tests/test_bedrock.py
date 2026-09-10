@@ -105,6 +105,44 @@ async def test_bedrock_cancellation_propagates():
         await run_role(model)
 
 
+async def test_bedrock_routes_concurrent_roles_to_their_configured_models():
+    async def investigator_response():
+        await asyncio.sleep(0)
+        return AIMessage(content="investigator-result")
+
+    provider = ScriptedProvider({
+        "test-model": [AIMessage(content="base-result")] * 3,
+        "investigator-profile": [investigator_response] * 2,
+    })
+    model = make_model(provider, investigator_model="investigator-profile")
+    roles = ["investigator", "coordinator", "verifier", "investigator", "reporter"]
+    results = await asyncio.gather(*(
+        model._invoke([], role=role, task_id=f"task-{index}", round_index=0)
+        for index, role in enumerate(roles)
+    ))
+    assert [result.content for result in results] == [
+        "investigator-result" if role == "investigator" else "base-result" for role in roles
+    ]
+    assert {entry["model"] for entry in provider.models} == {"test-model", "investigator-profile"}
+    assert len(provider.models) == 2
+    for entry in provider.calls:
+        metadata = entry["config"]["metadata"]
+        assert metadata["model"] == (
+            "investigator-profile" if metadata["role"] == "investigator" else "test-model"
+        )
+    assert model.model_name == "test-model"
+
+
+async def test_investigator_failure_does_not_fall_back_to_base_model():
+    provider = ScriptedProvider({"investigator-profile": [TimeoutError("private")]})
+    model = make_model(provider, investigator_model="investigator-profile")
+    with pytest.raises(investigation_model.BedrockInvestigationError) as caught:
+        await model._invoke([], role="investigator", task_id="task-1", round_index=0)
+    assert caught.value.code == "bedrock_timeout"
+    assert [entry["model"] for entry in provider.models] == ["investigator-profile"]
+    assert len(provider.calls) == 1
+
+
 async def test_bedrock_allows_model_to_finish_after_many_turns():
     provider = ScriptedProvider({"test-model": [AIMessage(content="계속")] * 33 + [finish()]})
     await run_role(make_model(provider))
@@ -126,6 +164,8 @@ def test_api_wires_bedrock_and_exposes_mode_in_swagger(tmp_path):
     deps = _default_dependencies(settings)
     pack = deps.packs.get("customer_signal")
     assert pack._loops["bedrock"].model.agent_mode == "bedrock"
+    assert pack._loops["bedrock"].model._model_for_role("investigator") == settings.bedrock_investigator_model
+    assert pack._loops["bedrock"].model._model_for_role("reporter") == settings.bedrock_model
     assert deps.generic_default_mode == "bedrock"
     schema = create_app(dependencies=deps).openapi()
     parameter = next(

@@ -307,6 +307,9 @@ class GeminiInvestigationModel:
             observation.update(output=output)
             return output
 
+    def _model_for_role(self, role: str) -> str:
+        return self._selected_model
+
     async def _invoke(
         self,
         messages: list[BaseMessage],
@@ -315,7 +318,7 @@ class GeminiInvestigationModel:
         task_id: str,
         round_index: int,
     ) -> AIMessage:
-        selected = self._selected_model
+        selected = self._model_for_role(role)
         try:
             return await self._invoke_model(
                 selected,
@@ -364,7 +367,9 @@ class GeminiInvestigationModel:
         config = build_langfuse_config(
             run_name=f"customer_signal.{role}", provider=self.agent_mode, stage=role
         )
-        config["metadata"].update(task_id=task_id, round_index=round_index, role=role)
+        config["metadata"].update(
+            task_id=task_id, round_index=round_index, role=role, model=model_name
+        )
         async with asyncio.timeout(self._timeout_seconds):
             # Investigation uses Langfuse callbacks even if legacy LangSmith flags
             # remain enabled in the process environment. Restore the caller's context.
@@ -396,12 +401,16 @@ class BedrockInvestigationModel(GeminiInvestigationModel):
         *,
         api_key: str | None,
         model: str,
+        investigator_model: str | None = None,
         region: str = "us-east-1",
         model_factory: Callable[..., Any] = ChatBedrockConverse,
         timeout_seconds: float | None = None,
     ) -> None:
         if not region.strip() or not model.strip():
             raise ValueError("Bedrock region and model must be nonblank")
+        if investigator_model is not None and not investigator_model.strip():
+            raise ValueError("Bedrock investigator model must be nonblank")
+        self._investigator_model = (investigator_model or model).strip()
         self._region = region.strip()
         # Explicit selection: never silently downgrade or switch providers.
         super().__init__(
@@ -411,6 +420,9 @@ class BedrockInvestigationModel(GeminiInvestigationModel):
             model_factory=model_factory,
             timeout_seconds=timeout_seconds,
         )
+
+    def _model_for_role(self, role: str) -> str:
+        return self._investigator_model if role == "investigator" else self._primary_model
 
     def _create_model(self, model_name: str):
         return self._model_factory(

@@ -18,7 +18,7 @@ help:
 	@echo "make setup        의존성과 Playwright Chromium 설치"
 	@echo "make seed         seed=$(SEED) 합성 DuckDB 생성"
 	@echo "make seed-hackathon  개선 전후 2주 테이블형 합성 데이터 생성"
-	@echo "make dev          Bedrock Claude Opus 4.6으로 실행 (기본)"
+	@echo "make dev          Bedrock 실행: investigator Sonnet 4.6, 나머지 Opus 4.6 (기본)"
 	@echo "make dev-auto     API Key 유무로 모드를 고르는 auto 모드로 실행"
 	@echo "make dev-bedrock  Bedrock 전용 모드로 실행"
 	@echo "make dev-fixture  결정론적 fixture 모드로 실행"
