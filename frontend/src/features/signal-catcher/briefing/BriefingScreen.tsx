@@ -30,6 +30,9 @@ interface BriefingScreenProps {
   sourceOptions?: readonly SourceOption[];
   initialStartAt?: string;
   initialEndAt?: string;
+  loading?: boolean;
+  error?: string | null;
+  onRetry?: () => void;
 }
 
 /**
@@ -132,6 +135,9 @@ export function BriefingScreen({
   sourceOptions,
   initialStartAt,
   initialEndAt,
+  loading = false,
+  error = null,
+  onRetry,
 }: BriefingScreenProps) {
   const { signals } = briefing;
   const total = signals.length;
@@ -184,7 +190,23 @@ export function BriefingScreen({
         ) : null}
       </div>
 
-      {current ? (
+      {loading ? (
+        <article className={styles.briefingState} role="status">
+          <span className={styles.statePulse} aria-hidden="true" />
+          <div>
+            <b>지켜보는 변화를 모으고 있어요</b>
+            <p>등록된 시그널의 최근 수치와 흐름을 불러옵니다.</p>
+          </div>
+        </article>
+      ) : error ? (
+        <article className={styles.briefingState} role="alert" data-error="true">
+          <div>
+            <b>브리핑을 불러오지 못했어요</b>
+            <p>{error}</p>
+          </div>
+          {onRetry ? <button type="button" onClick={onRetry}>다시 불러오기</button> : null}
+        </article>
+      ) : current ? (
         <>
           <p className={styles.lede}>
             <Highlight text={briefing.lede} />
@@ -235,7 +257,8 @@ export function BriefingScreen({
                     <span className={styles.metricLabel}>{metric.label}</span>
                     <span className={styles.metricValue}>{metric.value}</span>
                     <span className={styles.metricDelta} data-dir={metric.direction}>
-                      {metric.direction === "up" ? "▲" : "▼"} {metric.delta}
+                      {metric.direction === "up" ? "▲ " : metric.direction === "down" ? "▼ " : ""}
+                      {metric.delta}
                     </span>
                   </li>
                 ))}
@@ -343,12 +366,15 @@ export function BriefingScreen({
       {signals.length > 0 ? (
         <div className={styles.foot}>
           <span>
-            관찰 중인 실험 {briefing.watchingCount}건 · 지난 브리핑{" "}
-            {briefing.pastDates.map((date) => (
-              <span key={date} className={styles.mono}>
-                {date}
-              </span>
-            ))}
+            캐치 중인 시그널 {briefing.watchingCount}건
+            {briefing.pastDates.length ? (
+              <>
+                {" · 최근 측정 "}
+                {briefing.pastDates.map((date) => (
+                  <span key={date} className={styles.mono}>{date}</span>
+                ))}
+              </>
+            ) : null}
           </span>
         </div>
       ) : null}

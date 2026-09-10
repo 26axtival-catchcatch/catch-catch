@@ -195,6 +195,126 @@
   color: var(--fog-dim);
 }
 
+/* 분석 결과를 한 번 보고 끝내지 않고, 다음 변화 관찰로 자연스럽게 넘긴다. */
+.watchCallout {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 0.25rem;
+  padding: 1.05rem 1.1rem;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--signal) 32%, var(--line));
+  border-radius: var(--radius);
+  background:
+    linear-gradient(100deg, var(--signal-wash), transparent 42%),
+    var(--card);
+}
+
+.watchCallout::after {
+  content: "";
+  position: absolute;
+  right: 7rem;
+  width: 9rem;
+  height: 9rem;
+  border: 1px solid rgb(255 46 152 / 10%);
+  border-radius: 50%;
+  box-shadow: 0 0 0 1.5rem rgb(255 46 152 / 3%);
+  pointer-events: none;
+}
+
+.watchCallout[data-watching="true"] {
+  border-color: color-mix(in srgb, var(--signal) 48%, var(--line));
+}
+
+.watchPulse {
+  position: relative;
+  z-index: 1;
+  flex: none;
+  width: 2.75rem;
+  height: 2.75rem;
+  display: grid;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--signal) 62%, transparent);
+  border-radius: 50%;
+  background: var(--signal-wash);
+}
+
+.watchPulse::before,
+.watchPulse::after {
+  content: "";
+  position: absolute;
+  inset: 0.4rem;
+  border: 1px solid rgb(255 46 152 / 32%);
+  border-radius: 50%;
+}
+
+.watchPulse::after {
+  inset: -0.3rem;
+  border-color: rgb(255 46 152 / 10%);
+}
+
+.watchPulse i {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: var(--signal);
+  box-shadow: 0 0 0.8rem var(--signal-glow);
+}
+
+.watchCallout > div {
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+}
+
+.watchCallout p {
+  margin: 0 0 0.12rem;
+  color: var(--signal-soft);
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.13em;
+}
+
+.watchCallout h2 {
+  margin: 0;
+  color: var(--chalk);
+  font-size: 0.95rem;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.watchCallout > div > span {
+  display: block;
+  margin-top: 0.15rem;
+  color: var(--fog-dim);
+  font-size: 0.74rem;
+  line-height: 1.55;
+}
+
+.watchCallout > button {
+  position: relative;
+  z-index: 1;
+  min-height: 2.5rem;
+  border: 1px solid color-mix(in srgb, var(--signal) 60%, transparent);
+  border-radius: 0.62rem;
+  padding: 0.55rem 0.85rem;
+  background: var(--signal);
+  color: var(--u-white);
+  font: inherit;
+  font-size: 0.76rem;
+  font-weight: 600;
+  white-space: nowrap;
+  box-shadow: 0 8px 26px rgb(255 46 152 / 18%);
+}
+
+.watchCallout[data-watching="true"] > button {
+  background: transparent;
+  color: var(--signal-soft);
+  box-shadow: none;
+}
+
 /* ── Blocks ──────────────────────────────────────────── */
 .block {
   margin-top: 2.75rem;
@@ -565,6 +685,30 @@
     gap: 2.25rem;
   }
 
+  .watchCallout {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .watchCallout > button {
+    grid-column: 2;
+    justify-self: start;
+  }
+
+}
+
+@media (max-width: 35rem) {
+  .watchCallout {
+    grid-template-columns: 1fr;
+  }
+
+  .watchPulse {
+    display: none;
+  }
+
+  .watchCallout > button {
+    grid-column: 1;
+    width: 100%;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

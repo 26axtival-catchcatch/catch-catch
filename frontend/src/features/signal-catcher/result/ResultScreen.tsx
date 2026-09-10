@@ -7,6 +7,7 @@ import type { CatchReport, EvidenceMap, RunOutcome } from "../state/types";
 import { EvidencePanel } from "./EvidencePanel";
 import { JourneyFlow } from "./JourneyFlow";
 import { ProcessTrace } from "./ProcessTrace";
+import { WatchSignalModal } from "./WatchSignalModal";
 import styles from "./result.module.css";
 
 interface ResultScreenProps {
@@ -26,6 +27,7 @@ interface ResultScreenProps {
   evidenceLoadingId: string | null;
   evidenceErrorId: string | null;
   onLoadEvidence: (evidenceId: string) => void;
+  onGoHome: () => void;
 }
 
 export function ResultScreen({
@@ -42,9 +44,12 @@ export function ResultScreen({
   evidenceLoadingId,
   evidenceErrorId,
   onLoadEvidence,
+  onGoHome,
 }: ResultScreenProps) {
   const [evidenceId, setEvidenceId] = useState<string | null>(null);
   const [limitsOpen, setLimitsOpen] = useState(false);
+  const [watchOpen, setWatchOpen] = useState(false);
+  const [watching, setWatching] = useState(false);
   const highlightRef = useRef<HTMLLIElement>(null);
 
   /*
@@ -158,6 +163,25 @@ export function ResultScreen({
               );
             })}
           </dl>
+
+          <aside className={styles.watchCallout} data-watching={watching}>
+            <span className={styles.watchPulse} aria-hidden="true">
+              <i />
+            </span>
+            <div>
+              <p>{watching ? "변화 캐치 중" : "발견 다음"}</p>
+              <h2>{watching ? "이 발견의 변화를 계속 보고 있어요" : "이 변화, 놓치지 않게 맡겨두세요"}</h2>
+              <span>
+                {watching
+                  ? "매일 측정할 지표와 감지 기준을 저장해두었어요."
+                  : "의미 있는 수치 변화가 생기는지 캐치캐치가 매일 확인할게요."}
+              </span>
+            </div>
+            <button type="button" onClick={() => setWatchOpen(true)}>
+              {watching ? "감지 기준 다시 보기" : "변화 캐치 맡기기"}
+              <span aria-hidden="true"> →</span>
+            </button>
+          </aside>
         </header>
 
         <section className={styles.block}>
@@ -270,6 +294,16 @@ export function ResultScreen({
           sourceLabels={report.sourceLabels}
           onRetry={() => onLoadEvidence(evidenceId)}
           onClose={() => setEvidenceId(null)}
+        />
+      ) : null}
+
+      {watchOpen ? (
+        <WatchSignalModal
+          runId={report.runId}
+          fallbackMetrics={report.metrics}
+          onClose={() => setWatchOpen(false)}
+          onSaved={() => setWatching(true)}
+          onGoHome={onGoHome}
         />
       ) : null}
     </div>

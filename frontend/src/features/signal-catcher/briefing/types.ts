@@ -1,16 +1,15 @@
 /**
  * 브리핑(메인) 화면이 그리는 값.
- * 지금은 briefing-mock.ts 가 채우고, 나중에 백엔드 브리핑 API 로 갈아끼운다.
- * 그래서 ReactNode 를 담지 않고 전부 직렬화되는 값으로만 둔다.
+ * 실제 브리핑 API와 데모 fixture가 함께 채우므로 ReactNode 없이 직렬화되는 값만 둔다.
  */
 
 /** 카드 안 지표 한 줄. */
 export interface BriefingMetric {
   label: string;
   value: string;
-  /** "5.7%p" 처럼 부호 없는 변화폭. 화살표는 direction 이 붙인다. */
+  /** "5.7%p" 또는 비교 기간이 없을 때 "첫 측정". */
   delta: string;
-  direction: "up" | "down";
+  direction: "up" | "down" | "flat";
 }
 
 export interface BriefingSignal {

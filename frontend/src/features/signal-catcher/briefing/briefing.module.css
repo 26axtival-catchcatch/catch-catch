@@ -75,6 +75,57 @@
   font-weight: 600;
 }
 
+.briefingState {
+  min-height: 18rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.9rem;
+  margin-top: 1.35rem;
+  padding: 2rem;
+  border: 1px dashed color-mix(in srgb, var(--signal) 38%, var(--line));
+  border-radius: var(--radius);
+  background: var(--card);
+  color: var(--fog);
+}
+
+.briefingState > div {
+  display: grid;
+  gap: 0.18rem;
+}
+
+.briefingState b {
+  color: var(--chalk);
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.briefingState p {
+  margin: 0;
+  color: var(--fog-dim);
+  font-size: 0.76rem;
+}
+
+.briefingState button {
+  border: 1px solid color-mix(in srgb, var(--signal) 45%, transparent);
+  border-radius: var(--radius-lg);
+  padding: 0.48rem 0.85rem;
+  background: var(--signal-wash);
+  color: var(--signal-soft);
+  font: inherit;
+  font-size: 0.76rem;
+}
+
+.statePulse {
+  width: 0.62rem;
+  height: 0.62rem;
+  flex: none;
+  border-radius: 50%;
+  background: var(--signal);
+  box-shadow: 0 0 0 0 var(--signal-wash);
+  animation: emptyPulse 1.5s ease-out infinite;
+}
+
 /* 시그널이 0개면 덱 대신 메인 탐색 경험을 스티치 카드 안에 둔다. */
 .emptyBriefing {
   position: relative;

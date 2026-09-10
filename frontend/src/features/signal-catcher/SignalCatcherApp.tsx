@@ -7,6 +7,7 @@ import { ExperimentMenu } from "./action/ExperimentMenu";
 import { AskScreen } from "./ask/AskScreen";
 import { BriefingScreen } from "./briefing/BriefingScreen";
 import { DEMO_BRIEFING } from "./briefing/briefing-mock";
+import { useSignalBriefing } from "./briefing/use-signal-briefing";
 import { SignalMark } from "./brand/Brand";
 import { CatchingScreen } from "./catching/CatchingScreen";
 import { ResultScreen } from "./result/ResultScreen";
@@ -93,6 +94,7 @@ export function SignalCatcherApp({
   );
 
   const experiments = useExperiments();
+  const liveBriefing = useSignalBriefing();
   const [question, setQuestion] = useState("");
   /** 브리핑 화면에서 이번 세션에 새로 건 와쳐 요청. 백엔드가 붙으면 서버로 보낸다. */
   const [watchRequests, setWatchRequests] = useState<string[]>([]);
@@ -200,11 +202,15 @@ export function SignalCatcherApp({
           <div key="ask" className={styles.enter}>
             {options.main === "briefing" ? (
               <BriefingScreen
-                briefing={{
-                  ...DEMO_BRIEFING,
-                  signals: options.briefingEmpty ? [] : DEMO_BRIEFING.signals,
-                  requestCount: DEMO_BRIEFING.requestCount + watchRequests.length,
-                }}
+                briefing={options.briefingEmpty
+                  ? liveBriefing.briefing ?? { ...DEMO_BRIEFING, signals: [], requestCount: 0 }
+                  : {
+                      ...DEMO_BRIEFING,
+                      requestCount: DEMO_BRIEFING.requestCount + watchRequests.length,
+                    }}
+                loading={options.briefingEmpty && liveBriefing.loading}
+                error={options.briefingEmpty ? liveBriefing.error : null}
+                onRetry={liveBriefing.refresh}
                 question={question}
                 onQuestionChange={setQuestion}
                 notice={session.failureReason}
@@ -293,6 +299,10 @@ export function SignalCatcherApp({
               evidenceLoadingId={controller.evidenceLoadingId}
               evidenceErrorId={controller.evidenceErrorId}
               onLoadEvidence={controller.loadEvidence}
+              onGoHome={() => {
+                liveBriefing.refresh();
+                restart();
+              }}
             />
           </div>
         ) : null}
