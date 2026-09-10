@@ -20,3 +20,5 @@ dist/
 backend/data/run-artifacts/
 data/investigation-demo-sources/
 data/live-validation/
+.local/compose/
+.playwright-mcp/
