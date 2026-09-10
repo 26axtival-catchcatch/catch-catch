@@ -125,7 +125,8 @@ FastAPI OpenAPI 스키마에 포함되지 않으므로 Swagger UI 에 나타나�
 | POST | `/api/signals` | `proposal_id` 선택 등록 또는 `title`, `description`, `definition`, `start_at`, `end_at` 직접 등록 | `Signal` |
 | GET | `/api/signals` | 등록된 시그널 목록 | `SignalList` |
 | GET | `/api/signals/briefing` | B1 브리핑 카드, 최신 측정과 증감, 최근 7개 기간 추이, 상태 필터와 페이지 조회 | `SignalBriefingList` |
-| POST | `/api/signals/fast-forward` | 등록 시그널의 마지막 분석 이후 1~7일 실제 재측정과 알림 평가 | `FastForwardResult` |
+| POST | `/api/signals/fast-forward` | 마지막 성공 분석 이후 1~7일 실제 재측정, 데이터 부족 시 중단 | `FastForwardResult` |
+| POST | `/api/signals/fast-forward/reset` | 기존 이력을 보관하고 다음 분석 시작일 재설정 | `FastForwardResetResult` |
 | GET | `/api/signals/{signal_id}` | 고정 정의와 상태 조회 | `Signal` |
 | PATCH | `/api/signals/{signal_id}` | `status`: active/paused/archived | `Signal` |
 | POST | `/api/signals/{signal_id}/measurements` | `start_at`, `end_at` 지정 재측정 | `Measurement` |
@@ -147,18 +148,31 @@ FastAPI OpenAPI 스키마에 포함되지 않으므로 Swagger UI 에 나타나�
 자세한 연결 순서와 수치 해석은 [시그널 FE 인계](signal-fe-handoff.md)를 참고합니다.
 
 빨리감기는 `request_id` UUID와 기본 1인 `days`를 받습니다. `signal_ids`를 생략하면 등록 목록을
-고정해 처리하며, 지정하면 중복 없는 1~100개 ID를 받습니다. 한국 시각 기준으로 마지막 분석의
+고정해 처리하며, 지정하면 중복 없는 1~100개 ID를 받습니다. 한국 시각 기준으로 마지막 성공 분석의
 종료 이후 완전한 하루씩 실제 Source를 조회하고 기존 정의의 SQL을 실행합니다.
 주간 분석 뒤에는 직전 하루도 알림 평가 없이 측정해 변화량 비교 기준을 준비합니다.
 같은 종료 시각에 여러 길이의 성공 측정이 있으면 알림 비교는 하루 측정을 우선합니다.
 시그널의 `paused`, `archived` 상태나 비활성 일정은 사유와 함께 건너뜁니다.
-빨리감기 대상 날짜에 관측 이벤트가 하나도 없으면 `unavailable`로 저장하며 수치를 만들지 않습니다.
+빨리감기 대상 날짜에 데이터가 없거나 SQL 측정이 불가능하면 해당 항목은 `status=blocked`와
+`reason`을 반환합니다. 실패한 날짜의 측정과 일별 실행을 저장하지 않으며 다음 클릭에서도 같은 날짜를
+시도합니다. 여러 날 요청은 성공한 날짜까지 `daily_results`에 담고 첫 실패에서 멈춥니다.
+예전 버전의 `unavailable` 이력은 다음 분석일 계산에서 제외합니다.
 
 같은 `request_id`와 입력을 재전송하면 날짜를 더 전진시키지 않고 저장한 결과를 반환합니다.
 같은 ID에 다른 입력을 보내거나 측정 잠금이 사용 중이면 `409`입니다. 잠금 충돌은 같은 ID로
 재시도합니다. 수동 재측정과 추적 상태 변경도 자동 측정 또는 빨리감기 실행 중이면 `409`입니다.
 응답의 `items[].daily_results`는 실행 결과, `baseline_measurement`는 직전 하루 기준,
 `alert_events`는 해당 실행의 측정에 연결된 실제 알림입니다. 기존 이벤트 폴링 커서는 유지합니다.
+시작일 재설정은 `request_id`, 한국 시각 자정인 `start_at`, 선택 사항인 `signal_ids`를 받습니다.
+생략하면 활성 시그널 중 일별 측정이 켜진 대상만 처리합니다. 모든 대상의 시작일 데이터와 전날
+기준 측정을 검증한 후 한 트랜잭션으로 기존 측정, 일별 실행, 일정, 알림 평가 상태를
+`signal_tracking_archives`에 보관하고 활성 이력을 전날 기준 측정으로 교체합니다.
+시그널 정의, 선택한 알림 조건, 기존 발송 이벤트는 유지합니다. 활성 이력은 기존 조회 API에서,
+이전 이력은 SQLite 보관 테이블에서 확인합니다. 날짜 재설정은 새 알림 평가를 시작하므로 같은 조건이
+다시 충족되면 새 이벤트가 발생할 수 있습니다. 같은 요청의 재전송은 결과만 재생합니다.
+재설정 전에 중단된 빨리감기 예약은 재설정된 대상에 한해 `skipped`로 종료합니다.
+관측 데이터가 없거나 자정이 아닌 입력은 `422`, 비활성 대상을 명시하면 `409`입니다.
+
 호출 예시, 데이터 준비 범위, 실패 복구는 [빨리감기 FE 인계](signal-fast-forward-fe-handoff.md)에 정리했습니다.
 
 등록 응답의 `Signal.alert_recommendations`에 모델이 지표별로 제안한 하루 기준 조건을 제공합니다.

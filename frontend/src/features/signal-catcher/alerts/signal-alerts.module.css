@@ -36,3 +36,8 @@
   .trigger { padding-inline: .55rem; white-space: nowrap; }
   .resultPanel, .panel { position: fixed; top: 5rem; left: 1rem; right: 1rem; width: auto; }
 }
+.forwardActions { display: flex; gap: .35rem; }
+.resetForm { display: grid; gap: .65rem; margin-bottom: .7rem; }
+.resetForm label { color: var(--chalk); font-size: .78rem; }
+.resetForm input { min-width: 0; border: 1px solid var(--line); border-radius: .4rem; padding: .5rem; background: var(--card); color: var(--chalk); font: inherit; color-scheme: dark; }
+.resetForm .trigger { justify-content: center; padding: .6rem; color: var(--chalk); }
