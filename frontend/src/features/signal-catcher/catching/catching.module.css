@@ -1,0 +1,604 @@
+.screen {
+  position: relative;
+  flex: 1;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  padding: 1.75rem 1.5rem 4rem;
+}
+
+/* 질문은 콘텐츠가 아니라 맥락이다. 중앙 스택에서 빼서 상단에 고정한다. */
+.context {
+  justify-self: center;
+  display: inline-block;
+  max-width: min(46rem, 100%);
+  margin: 0;
+  padding: 0.5rem 1.1rem;
+  border: 1px solid var(--line);
+  border-radius: 100px;
+  background: var(--card);
+  color: var(--fog);
+  font-size: 0.86rem;
+  line-height: 1.5;
+  text-align: left;
+}
+
+
+.stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  width: min(48rem, 100%);
+  min-height: 0;
+}
+
+/*
+ * 현재 단계는 이 줄에만 둔다.
+ * 레일 안에 단계 이름을 또 적으면 같은 단어가 화면에 두 번 남는다.
+ */
+.head {
+  margin-bottom: 1.2rem;
+  padding-bottom: 0.85rem;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.headTop {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  margin-bottom: 0.35rem;
+}
+
+/* 지금 어느 단계인지가 화면에서 가장 먼저 읽혀야 한다. */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  color: var(--signal);
+  background: var(--signal-wash);
+  border: 1px solid color-mix(in srgb, var(--signal) 32%, transparent);
+  border-radius: 100px;
+  padding: 0.2rem 0.7rem;
+}
+
+.badge b {
+  font-weight: 500;
+  color: var(--signal-soft);
+}
+
+.lead {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0;
+  font-size: clamp(1.05rem, 2.4vw, 1.32rem);
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  line-height: 1.4;
+  color: var(--chalk);
+}
+
+.lead[data-halted="true"] {
+  color: var(--fog);
+}
+
+.spin {
+  flex: none;
+  width: 0.9rem;
+  height: 0.9rem;
+  border-radius: 50%;
+  border: 2px solid color-mix(in srgb, var(--signal) 28%, transparent);
+  border-top-color: var(--signal);
+  animation: spin 800ms linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.count {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--fog-dim);
+}
+
+.count b {
+  color: var(--signal);
+  font-weight: 500;
+}
+
+/* 위로 지나간 줄이 서서히 지워지는 창. 크레딧처럼 흐려지며 사라진다. */
+.railViewport {
+  position: relative;
+  min-height: 0;
+  height: clamp(19rem, 46vh, 30rem);
+  overflow: hidden;
+  display: flex;
+  align-items: flex-end;
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgb(0 0 0 / 22%) 12%,
+    #000 32%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgb(0 0 0 / 22%) 12%,
+    #000 32%
+  );
+}
+
+.rail {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  animation: push 300ms var(--ease) both;
+}
+
+/*
+ * 레일은 평소 얇은 직선이다.
+ * 단계가 넘어가는 자리에서만 이 선이 박동으로 바뀐다.
+ */
+.row {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1.55rem minmax(0, 1fr) auto;
+  gap: 0.7rem;
+  align-items: start;
+  padding: 0.42rem 0;
+  text-align: left;
+}
+
+.row::before {
+  content: "";
+  position: absolute;
+  left: 0.75rem;
+  top: 1.55rem;
+  bottom: -0.42rem;
+  width: 1px;
+  background: var(--line);
+}
+
+.row:last-child::before {
+  display: none;
+}
+
+.mark {
+  position: relative;
+  z-index: 1;
+  width: 1.55rem;
+  height: 1.55rem;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  background: var(--card-2);
+  font-size: 0.7rem;
+  color: var(--fog);
+}
+
+.row[data-kind="tool"][data-now="true"] .mark {
+  border-color: var(--signal);
+  color: var(--signal);
+  animation: markPulse 1.1s ease-in-out infinite;
+}
+
+@keyframes markPulse {
+  50% {
+    box-shadow: 0 0 0 5px var(--signal-wash);
+  }
+}
+
+/* 사실이 하나 확인될 때마다 그 자리에서 링이 퍼진다. */
+.row[data-kind="fact"] .mark {
+  border-color: var(--signal);
+  background: var(--signal-wash);
+  color: var(--signal);
+  overflow: visible;
+}
+
+.row[data-kind="fact"] .mark::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: var(--radius-sm);
+  border: 2px solid var(--signal);
+  animation: ring 1s var(--ease) 2 both;
+  pointer-events: none;
+}
+
+@keyframes ring {
+  from {
+    opacity: 0.85;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(2.8);
+  }
+}
+
+.row[data-kind="fact"][data-now="true"] {
+  border-radius: var(--radius-sm);
+  animation: hit 1.1s var(--ease) both;
+}
+
+@keyframes hit {
+  from {
+    background: var(--signal-wash);
+  }
+  to {
+    background: transparent;
+  }
+}
+
+.row[data-kind="reject"] .mark {
+  border-color: color-mix(in srgb, var(--amber) 45%, transparent);
+  color: var(--amber);
+}
+
+.row[data-kind="think"] .mark {
+  border-color: transparent;
+  background: none;
+  color: var(--fog-dim);
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.primitive {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--chalk);
+}
+
+.caught {
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: var(--signal);
+}
+
+.dropped {
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: var(--amber);
+}
+
+.text {
+  font-size: 0.8rem;
+  line-height: 1.55;
+  color: var(--fog-dim);
+}
+
+.row[data-kind="think"] .text {
+  font-size: 0.84rem;
+  font-style: italic;
+  color: var(--fog);
+}
+
+.row[data-kind="think"][data-now="true"] .text {
+  color: var(--chalk);
+}
+
+.row[data-kind="halted"] .text {
+  color: var(--fog);
+}
+
+.result {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--fog-dim);
+  padding-top: 0.32rem;
+}
+
+
+/*
+ * 실패. 화면을 자동으로 바꾸지 않고 멎은 심박을 남긴 채 그 자리에 세운다.
+ * 자동 복귀하면 사용자가 왜 첫 화면으로 돌아왔는지 알 수 없다.
+ */
+.failure {
+  display: grid;
+  justify-items: center;
+  gap: 0.55rem;
+  width: min(34rem, 100%);
+  text-align: center;
+  animation: rise 320ms var(--ease) both;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+.failureTitle {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin: 0;
+  font-size: clamp(1.15rem, 2.8vw, 1.4rem);
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  color: var(--chalk);
+}
+
+.failureBadge {
+  font-family: var(--font-mono);
+  font-size: 0.64rem;
+  letter-spacing: 0.1em;
+  color: var(--amber);
+  background: var(--amber-wash);
+  border: 1px solid color-mix(in srgb, var(--amber) 38%, transparent);
+  border-radius: 100px;
+  padding: 0.14rem 0.6rem;
+}
+
+.failureReason {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.65;
+  color: var(--amber);
+}
+
+.failureNote {
+  margin: 0.15rem 0 0.6rem;
+  font-size: 0.86rem;
+  line-height: 1.65;
+  color: var(--fog);
+}
+
+.failureActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+}
+
+.failureRetry {
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: var(--signal);
+  color: var(--u-white);
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 500;
+  padding: 0.55rem 1.1rem;
+  cursor: pointer;
+}
+
+.failureRetry:hover {
+  filter: brightness(1.08);
+}
+
+.failureGhost {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--fog);
+  font: inherit;
+  font-size: 0.88rem;
+  padding: 0.55rem 1.1rem;
+  cursor: pointer;
+}
+
+.failureGhost:hover {
+  color: var(--chalk);
+  border-color: var(--fog-dim);
+}
+
+/* ── Clarification modal ─────────────────────────────── */
+.scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  padding: 1.5rem;
+  background: rgb(12 7 9 / 76%);
+  backdrop-filter: blur(3px);
+  animation: fade 240ms ease both;
+}
+
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.modal {
+  width: min(34rem, 100%);
+  background: var(--raise);
+  border: 1px solid color-mix(in srgb, var(--signal) 34%, transparent);
+  border-radius: var(--radius);
+  box-shadow:
+    var(--shadow),
+    0 0 0 1px rgb(255 46 152 / 8%);
+  padding: 1.6rem 1.6rem 1.35rem;
+  text-align: left;
+  animation: lift 280ms var(--ease) both;
+}
+
+@keyframes lift {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.modalTag {
+  margin: 0 0 0.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.14em;
+  color: var(--signal);
+  text-transform: uppercase;
+}
+
+/* 브랜드 목소리라 강조 서체로 올린다. Agent 의 실제 질문은 그 아래 본문으로. */
+.modalTitle {
+  margin: 0 0 1rem;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(1.25rem, 3.4vw, 1.6rem);
+  line-height: 1.32;
+  letter-spacing: -0.005em;
+  color: var(--chalk);
+}
+
+.modalQuestion {
+  margin: 0;
+  font-size: 0.98rem;
+  font-weight: 400;
+  line-height: 1.68;
+  color: var(--fog);
+  min-height: 3.2rem;
+}
+
+.block {
+  display: inline-block;
+  width: 0.52em;
+  height: 1.05em;
+  margin-left: 2px;
+  background: var(--signal);
+  vertical-align: -0.15em;
+  animation: blink 1s steps(2, start) infinite;
+}
+
+@keyframes blink {
+  to {
+    visibility: hidden;
+  }
+}
+
+.modalHint {
+  margin: 0.7rem 0 0;
+  color: var(--fog-dim);
+  font-size: 0.84rem;
+  line-height: 1.6;
+}
+
+.modalForm {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin-top: 1.2rem;
+  padding: 0.6rem 0.7rem;
+  background: var(--ground);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+}
+
+.modalForm:focus-within {
+  border-color: var(--signal);
+  box-shadow: 0 0 0 3px var(--signal-wash);
+}
+
+.prompt {
+  font-family: var(--font-mono);
+  color: var(--signal);
+  font-size: 0.9rem;
+}
+
+.modalInput {
+  flex: 1;
+  border: 0;
+  background: none;
+  outline: none;
+  color: var(--chalk);
+  font-family: var(--font-mono);
+  font-size: 0.88rem;
+  caret-color: var(--signal);
+}
+
+/* 전역 `.app :focus-visible` 와 명시도가 같으면 순서에 밀린다. 한 단계 올린다. */
+.modalForm .modalInput:focus-visible {
+  outline: none;
+}
+
+.modalInput::placeholder {
+  color: var(--fog-dim);
+}
+
+.modalGo {
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: var(--signal);
+  color: var(--u-white);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 500;
+  padding: 0.35rem 0.85rem;
+  cursor: pointer;
+}
+
+.modalGo:disabled {
+  background: var(--card-2);
+  color: var(--fog-dim);
+  cursor: not-allowed;
+}
+
+.quick {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.85rem;
+}
+
+.quick button {
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--fog);
+  border-radius: 100px;
+  padding: 0.3rem 0.75rem;
+  font: inherit;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.quick button:hover {
+  border-color: var(--signal);
+  color: var(--chalk);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rail,
+  .failure,
+  .modal,
+  .scrim {
+    animation: none;
+  }
+
+  .block,
+  .spin,
+  .row[data-kind="fact"] .mark::after,
+  .row[data-kind="fact"][data-now="true"],
+  .row[data-kind="tool"][data-now="true"] .mark {
+    animation: none;
+  }
+}

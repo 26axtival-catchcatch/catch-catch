@@ -1,0 +1,47 @@
+AI검색 사용자 검색 이력 테이블 - L0UR_SEARCH_HISTORY
+
+---
+
+CSZ 연결키	CZ_LNK_KEY	CSZ 연결키	INTEGER	Y								L0UR_SEARCH_HISTORY_CZ	CZ_LNK_KEY
+
+기준일(파티션키)	P_YYYYMMDD	기준일(파티션키)	DATE	Y								L0UR_SEARCH_HISTORY_CZ	P_YYYYMMDD
+
+테이블 PK	ID	테이블 PK	INTEGER	N									
+
+검색 스레드 ID	THREAD_ID	검색 스레드 ID	STRING	N									
+
+검색 실행 ID	RUN_ID	검색 실행 ID	STRING	N									
+
+사용자가 입력한 검색 쿼리	SEARCH_QUERY	사용자가 입력한 검색 쿼리	STRING	N		Y	메모					L0UR_SEARCH_HISTORY_CZ	SEARCH_QUERY
+
+AI검색 응답 결과	SEARCH_RESULT	AI검색 응답 결과	STRING	N		Y	메모					L0UR_SEARCH_HISTORY_CZ	SEARCH_RESULT
+
+검색 이력 생성 일시	CREATED_AT	검색 이력 생성 일시	DATETIME	N									
+
+검색 이력 상태	STATUS	검색 이력 상태	STRING	N									
+
+최초 응답까지 소요된 시간	FIRST_RESPONSE_LATENCY_MS	최초 응답까지 소요된 시간	FLOAT	N									
+
+검색 이력 수정 일시	MODIFIED_AT	검색 이력 수정 일시	DATETIME	N									
+
+응답 캐시 적중 여부	WAS_CACHE_HIT	응답 캐시 적중 여부	BOOLEAN	N									
+
+검색 쿼리 타입	SEARCH_QUERY_TYPE	검색 쿼리 타입	STRING	N									
+
+재검색 쿼리	REWRITE_SEARCH_QUERY	재검색 쿼리	STRING	N		Y	메모					L0UR_SEARCH_HISTORY_CZ	REWRITE_SEARCH_QUERY
+
+캐시 검색 쿼리	WAS_CACHE_HIT_REWRITE_SEARCH_QUERY	캐시 검색 쿼리	STRING	N		Y	메모					L0UR_SEARCH_HISTORY_CZ	WAS_CACHE_HIT_REWRITE_SEARCH_QUERY
+
+검색 결과 참고	SEARCH_RESULT_REFERENCE_DOCUMENTS	검색 결과 참고	STRING	N									
+
+참조 템플릿명	SEARCH_RESULT_REFERENCE_TEMPLATE_NAME	참조 템플릿명	STRING	N									
+
+대체 검색 결과	IS_FALLBACK_SEARCH_RESULT	대체 검색 결과	STRING	N									
+
+BQ적재일시	BQ_LOAD_DTTM	BQ적재일시	DATETIME	Y								L0UR_SEARCH_HISTORY_CZ	BQ_LOAD_DTTM
+
+BQ적재사용자ID	BQ_LOAD_USER_ID	BQ적재사용자ID	STRING	Y								L0UR_SEARCH_HISTORY_CZ	BQ_LOAD_USER_ID
+
+ 
+
+

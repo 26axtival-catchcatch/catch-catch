@@ -1,0 +1,71 @@
+{
+  "source_id": "hackathon_search_history",
+  "label": "해커톤 AI 검색 이력",
+  "description": "부가서비스, 소액결제, 로밍 개선 전후의 합성 검색 이력",
+  "timestamp_column": "CREATED_AT",
+  "timezone": "Asia/Seoul",
+  "event_type": {
+    "column": null,
+    "const": "search",
+    "value_map": null,
+    "default": null
+  },
+  "action": {
+    "column": "SEARCH_QUERY_TYPE",
+    "const": null,
+    "value_map": {
+      "initial": "search",
+      "repeat": "repeat_search"
+    },
+    "default": null
+  },
+  "topic": {
+    "column": "REWRITE_SEARCH_QUERY",
+    "const": null,
+    "value_map": null,
+    "default": null
+  },
+  "outcome": {
+    "column": "STATUS",
+    "const": null,
+    "value_map": null,
+    "default": null
+  },
+  "text": {
+    "column": "SEARCH_QUERY",
+    "const": null,
+    "value_map": null,
+    "default": null
+  },
+  "identity": {
+    "namespace": "synthetic_customer",
+    "customer_column": "CZ_LNK_KEY",
+    "link_method": "exact",
+    "confidence": 1.0
+  },
+  "dimensions": {
+    "template": {
+      "column": "SEARCH_RESULT_REFERENCE_TEMPLATE_NAME",
+      "semantic_type": "category",
+      "description": "검색 응답 템플릿",
+      "pii_classification": "none",
+      "masking": null
+    },
+    "query_type": {
+      "column": "SEARCH_QUERY_TYPE",
+      "semantic_type": "category",
+      "description": "최초 또는 반복 검색 구분",
+      "pii_classification": "none",
+      "masking": null
+    }
+  },
+  "measures": {
+    "latency_ms": {
+      "column": "FIRST_RESPONSE_LATENCY_MS",
+      "semantic_type": "number",
+      "description": "최초 응답 지연",
+      "unit": "milliseconds"
+    }
+  },
+  "status": "approved"
+}

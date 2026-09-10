@@ -1,0 +1,1027 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      html { color-scheme: light dark; }
+      body { margin: 0; }
+      img { max-width: 100%; }
+      [hidden] { display: none !important; }
+    </style>
+<title>첫 화면과 10분 구성</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gasoek+One&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+KR:wght@300;400;500;600;700&display=swap">
+
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+
+  /* ── 페이지 토큰 (화면 정의서와 동일) ───────────────── */
+  :root {
+    --ground: #0b0710;
+    --raise: #150d1e;
+    --card-2: #241735;
+    --line: #33223f;
+    --line-soft: #261a33;
+    --chalk: #f3edf7;
+    --fog: #a596b2;
+    --fog-dim: #7c6d89;
+    --signal: #ff2e98;
+    --signal-wash: rgb(255 46 152 / 12%);
+    --jade: #4ac9a3;
+    --amber: #edb055;
+    --shadow: 0 24px 60px rgb(0 0 0 / 45%);
+    --measure: 44rem;
+    --wide: 76rem;
+  }
+
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      --ground: #faf6fb; --raise: #ffffff; --card-2: #f4eef7;
+      --line: #e2d5e9; --line-soft: #eee5f2;
+      --chalk: #1c1024; --fog: #6b5c78; --fog-dim: #8b7d97;
+      --signal: #d80077; --signal-wash: rgb(216 0 119 / 8%);
+      --jade: #12876a; --amber: #8a5e0f;
+      --shadow: 0 18px 44px rgb(60 20 70 / 10%);
+    }
+  }
+  :root[data-theme="light"] {
+    --ground: #faf6fb; --raise: #ffffff; --card-2: #f4eef7;
+    --line: #e2d5e9; --line-soft: #eee5f2;
+    --chalk: #1c1024; --fog: #6b5c78; --fog-dim: #8b7d97;
+    --signal: #d80077; --signal-wash: rgb(216 0 119 / 8%);
+    --jade: #12876a; --amber: #8a5e0f;
+    --shadow: 0 18px 44px rgb(60 20 70 / 10%);
+  }
+
+  /* ── 슬라이드 토큰 — 페이지 테마와 분리해서 토글로 바꾼다 ── */
+  :root, :root[data-slide="dark"] {
+    --sl-bg: #0b0710;
+    --sl-ink: #f3edf7;
+    --sl-fog: #8d7d9b;
+    --sl-line: #2e1f3a;
+    --sl-signal: #ff2e98;
+    --sl-glow: rgb(255 46 152 / 30%);
+  }
+  :root[data-slide="light"] {
+    --sl-bg: #fdfbfe;
+    --sl-ink: #17091f;
+    --sl-fog: #7b6a88;
+    --sl-line: #e6dcec;
+    --sl-signal: #e0007e;
+    --sl-glow: rgb(224 0 126 / 22%);
+  }
+
+  /* ── Base ───────────────────────────────────────────── */
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--chalk);
+    font-family: "IBM Plex Sans KR", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 1.0625rem;
+    font-weight: 300;
+    line-height: 1.72;
+    -webkit-font-smoothing: antialiased;
+    word-break: keep-all;
+  }
+  .page { max-width: var(--wide); margin: 0 auto; padding: 0 1.5rem 6rem; }
+  h1, h2, h3 { text-wrap: balance; margin: 0; font-weight: 600; }
+  p { margin: 0; }
+  .mono { font-family: "IBM Plex Mono", ui-monospace, monospace; }
+
+  :focus-visible { outline: 2px solid var(--signal); outline-offset: 3px; border-radius: 3px; }
+
+  /* ── 페이지 헤더 ────────────────────────────────────── */
+  .top { padding: 3.5rem 0 2rem; border-bottom: 1px solid var(--line-soft); }
+  .eyebrow {
+    font-family: "IBM Plex Mono", monospace; font-size: 0.72rem;
+    letter-spacing: 0.22em; text-transform: uppercase; color: var(--fog-dim);
+    margin-bottom: 1.1rem;
+  }
+  .top h1 {
+    font-family: "Gasoek One", "IBM Plex Sans KR", sans-serif; font-weight: 400;
+    font-size: clamp(2rem, 5.5vw, 3.1rem); line-height: 1.06; letter-spacing: -0.01em;
+  }
+  .top h1 em { font-style: normal; color: var(--signal); }
+  .top p { color: var(--fog); max-width: var(--measure); margin-top: 1.1rem; }
+
+  /* 컨트롤 바 */
+  .controls {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 0.7rem 1.5rem;
+    margin-top: 2rem; padding-bottom: 0.25rem;
+  }
+  .ctrl-label {
+    font-family: "IBM Plex Mono", monospace; font-size: 0.68rem;
+    letter-spacing: 0.16em; text-transform: uppercase; color: var(--fog-dim);
+  }
+  .switch { display: inline-flex; border: 1px solid var(--line); background: var(--raise); }
+  .switch button {
+    font-family: "IBM Plex Mono", monospace; font-size: 0.74rem; letter-spacing: 0.08em;
+    padding: 0.4rem 0.95rem; border: none; background: none; color: var(--fog);
+    cursor: pointer; transition: background 0.15s, color 0.15s;
+  }
+  .switch button + button { border-left: 1px solid var(--line); }
+  .switch button:hover { color: var(--chalk); }
+  .switch button[aria-pressed="true"] { background: var(--signal); color: #fff; }
+  :root[data-theme="light"] .switch button[aria-pressed="true"],
+  .switch button[aria-pressed="true"] { color: #fff; }
+  .hint { color: var(--fog-dim); font-size: 0.82rem; }
+
+  /* ── 안 하나 ────────────────────────────────────────── */
+  .option { padding: 4.5rem 0 0; }
+  .opt-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.6rem 1rem; margin-bottom: 0.5rem; }
+  .opt-key {
+    font-family: "Gasoek One", sans-serif; font-size: 1.5rem; color: var(--signal); line-height: 1;
+  }
+  .opt-name { font-family: "Gasoek One", "IBM Plex Sans KR", sans-serif; font-weight: 400; font-size: clamp(1.5rem, 3.4vw, 2rem); line-height: 1.15; }
+  .opt-from { font-family: "IBM Plex Mono", monospace; font-size: 0.72rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--fog-dim); }
+  .opt-lede { color: var(--fog); max-width: var(--measure); margin-bottom: 1.75rem; }
+
+  .stage { position: relative; }
+  .stage-bar { display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-top: 0.75rem; }
+  .stage-cap { font-family: "IBM Plex Mono", monospace; font-size: 0.7rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--fog-dim); }
+  .full-btn {
+    font-family: "IBM Plex Mono", monospace; font-size: 0.72rem; letter-spacing: 0.08em;
+    border: 1px solid var(--line); background: var(--raise); color: var(--fog);
+    padding: 0.38rem 0.9rem; cursor: pointer; white-space: nowrap;
+    transition: border-color 0.15s, color 0.15s;
+  }
+  .full-btn:hover { border-color: var(--signal); color: var(--signal); }
+
+  /* ── 슬라이드 ───────────────────────────────────────── */
+  .slide {
+    aspect-ratio: 16 / 9;
+    width: 100%;
+    background: var(--sl-bg);
+    color: var(--sl-ink);
+    border: 1px solid var(--sl-line);
+    position: relative;
+    overflow: hidden;
+    box-shadow: var(--shadow);
+    container-type: inline-size;
+  }
+  .slide:fullscreen { aspect-ratio: auto; height: 100vh; border: none; box-shadow: none; }
+
+  /* 슬라이드 내부는 전부 컨테이너 비례 단위 — 어느 크기에서도 같은 그림 */
+  .s-pad { position: absolute; inset: 0; padding: 6.5cqw 7cqw; display: flex; flex-direction: column; }
+  .s-eyebrow {
+    font-family: "IBM Plex Mono", monospace; font-size: 1.7cqw;
+    letter-spacing: 0.24em; text-transform: uppercase; color: var(--sl-fog);
+  }
+  .s-word {
+    font-family: "Gasoek One", "IBM Plex Sans KR", sans-serif; font-weight: 400;
+    line-height: 0.98; letter-spacing: -0.012em;
+  }
+  .s-word em { font-style: normal; color: var(--sl-signal); }
+  .s-sub { font-size: 2.4cqw; color: var(--sl-fog); line-height: 1.65; font-weight: 300; }
+  .s-meta {
+    display: flex; flex-wrap: wrap; gap: 0.4cqw 3.2cqw;
+    font-family: "IBM Plex Mono", monospace; font-size: 1.55cqw;
+    letter-spacing: 0.05em; color: var(--sl-fog);
+  }
+
+  /* 심박 */
+  .beat svg { width: 100%; height: 100%; display: block; overflow: visible; }
+  .beat-ghost { fill: none; stroke: var(--sl-line); stroke-width: 1.2; }
+  .beat-line {
+    fill: none; stroke: var(--sl-signal); stroke-linecap: round; stroke-linejoin: round;
+    stroke-dasharray: 1400; stroke-dashoffset: 1400;
+    animation: trace 4.2s cubic-bezier(0.5, 0, 0.4, 1) infinite;
+    filter: drop-shadow(0 0 6px var(--sl-glow));
+  }
+  @keyframes trace {
+    0% { stroke-dashoffset: 1400; }
+    62% { stroke-dashoffset: 0; }
+    88% { stroke-dashoffset: 0; opacity: 1; }
+    100% { stroke-dashoffset: 0; opacity: 0; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .beat-line { animation: none; stroke-dashoffset: 0; }
+  }
+
+  /* A — 워드마크 */
+  .a-strip { margin-top: auto; height: 11cqw; }
+  .a-strip .beat-line { stroke-width: 2.1; }
+
+  /* B — 심박 */
+  .b-mid { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+  .b-strip { height: 20cqw; }
+  .b-strip .beat-line { stroke-width: 2.6; }
+  .b-foot { display: flex; justify-content: space-between; align-items: flex-end; gap: 4cqw; }
+
+  /* C — 문장 */
+  .c-mid { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+  .c-strip { height: 5cqw; margin-top: 4cqw; }
+  .c-strip .beat-line { stroke-width: 1.7; }
+  .c-foot { display: flex; justify-content: space-between; align-items: baseline; }
+
+  /* ── 안 설명 ────────────────────────────────────────── */
+  .opt-notes {
+    margin-top: 2rem;
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+    gap: 1px; background: var(--line-soft); border: 1px solid var(--line-soft);
+  }
+  .note-cell { background: var(--ground); padding: 1.1rem 1.2rem; display: flex; flex-direction: column; gap: 0.4rem; }
+  .note-label { font-family: "IBM Plex Mono", monospace; font-size: 0.66rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--fog-dim); }
+  .note-cell p { color: var(--fog); font-size: 0.9rem; line-height: 1.62; }
+  .note-cell.script p { color: var(--chalk); font-weight: 400; }
+  .note-cell.worry .note-label { color: var(--amber); }
+  .note-cell.bet .note-label { color: var(--jade); }
+  .cue { color: var(--fog-dim); font-size: 0.8rem; font-family: "IBM Plex Mono", monospace; }
+
+  /* ── 비교 / 논의 ────────────────────────────────────── */
+  .band { padding: 5rem 0 0; margin-top: 4rem; border-top: 1px solid var(--line-soft); }
+  .band h2 { font-family: "Gasoek One", "IBM Plex Sans KR", sans-serif; font-weight: 400; font-size: clamp(1.5rem, 3.4vw, 2rem); line-height: 1.2; }
+  .band > p { color: var(--fog); max-width: var(--measure); margin-top: 0.75rem; }
+
+  .table-wrap { overflow-x: auto; border: 1px solid var(--line); margin-top: 1.75rem; }
+  table { border-collapse: collapse; width: 100%; min-width: 40rem; font-size: 0.9rem; }
+  th, td { text-align: left; padding: 0.7rem 0.95rem; border-bottom: 1px solid var(--line-soft); vertical-align: top; line-height: 1.55; }
+  thead th {
+    font-family: "IBM Plex Mono", monospace; font-size: 0.68rem; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--fog-dim); font-weight: 500;
+    background: var(--raise); border-bottom-color: var(--line);
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  td.k { font-weight: 600; color: var(--chalk); white-space: nowrap; }
+  td.mono { font-size: 0.84rem; color: var(--fog); white-space: nowrap; }
+  td.k span { color: var(--signal); }
+
+  .asks { margin-top: 2rem; display: flex; flex-direction: column; gap: 1px; background: var(--line-soft); border: 1px solid var(--line-soft); }
+  .ask { background: var(--ground); padding: 1.2rem 1.35rem; display: grid; grid-template-columns: 2.2rem 1fr; gap: 0 1rem; align-items: start; }
+  .ask-n { font-family: "IBM Plex Mono", monospace; font-size: 0.8rem; color: var(--signal); padding-top: 0.15rem; }
+  .ask-q { font-weight: 500; font-size: 1rem; line-height: 1.5; }
+  .ask-a { color: var(--fog); font-size: 0.9rem; line-height: 1.62; margin-top: 0.3rem; }
+
+  .close {
+    margin-top: 3rem; border-left: 2px solid var(--signal); background: var(--signal-wash);
+    padding: 1.25rem 1.5rem; max-width: var(--measure);
+    display: flex; flex-direction: column; gap: 0.4rem;
+  }
+  .close .note-label { color: var(--signal); }
+  .close p { color: var(--chalk); }
+
+  /* ── 발표 조건 ──────────────────────────────────────── */
+  .terms {
+    margin-top: 2.25rem;
+    border: 1px solid var(--line);
+    border-left: 2px solid var(--signal);
+    background: var(--raise);
+  }
+  .terms-head {
+    display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.4rem 1rem;
+    padding: 0.95rem 1.35rem; border-bottom: 1px solid var(--line-soft);
+  }
+  .terms-head .note-label { color: var(--signal); }
+  .terms-head span.src { font-family: "IBM Plex Mono", monospace; font-size: 0.72rem; color: var(--fog-dim); }
+  .terms-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: 1px; background: var(--line-soft); }
+  .term { background: var(--raise); padding: 1.05rem 1.35rem; display: flex; flex-direction: column; gap: 0.3rem; }
+  .term-k { font-family: "IBM Plex Mono", monospace; font-size: 0.66rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--fog-dim); }
+  .term-v { font-weight: 600; font-size: 1.02rem; line-height: 1.45; }
+  .term-v em { font-style: normal; color: var(--signal); }
+  .term-d { color: var(--fog); font-size: 0.87rem; line-height: 1.6; }
+
+  /* ── 구성 안 ────────────────────────────────────────── */
+  .plan { padding: 3.5rem 0 0; }
+  .plan + .plan { border-top: 1px solid var(--line-soft); margin-top: 3.5rem; }
+  .plan-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.5rem 1rem; }
+  .plan-key { font-family: "Gasoek One", sans-serif; font-size: 1.35rem; color: var(--signal); line-height: 1; }
+  .plan-name { font-family: "Gasoek One", "IBM Plex Sans KR", sans-serif; font-weight: 400; font-size: clamp(1.35rem, 3vw, 1.75rem); line-height: 1.2; }
+  .plan-kind { font-family: "IBM Plex Mono", monospace; font-size: 0.7rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--fog-dim); }
+  .plan-lede { color: var(--fog); max-width: var(--measure); margin-top: 0.8rem; }
+
+  .tl { margin-top: 1.75rem; }
+  .tl-h { font-family: "IBM Plex Mono", monospace; font-size: 0.68rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--fog-dim); margin-bottom: 0.6rem; }
+  .tl-bar { display: flex; height: 1.7rem; border: 1px solid var(--line); background: var(--raise); }
+  .tl-seg {
+    display: flex; align-items: center; justify-content: center;
+    border-right: 1px solid var(--line);
+    font-family: "IBM Plex Mono", monospace; font-size: 0.63rem;
+    color: var(--fog-dim); overflow: hidden; white-space: nowrap;
+  }
+  .tl-seg:last-child { border-right: none; }
+  .tl-seg.demo { background: var(--signal-wash); color: var(--signal); border-right-color: color-mix(in srgb, var(--signal) 30%, var(--line)); }
+  .tl-seg.peak { background: rgb(74 201 163 / 12%); color: var(--jade); }
+  :root[data-theme="light"] .tl-seg.peak { background: rgb(18 135 106 / 10%); }
+  .tl-legend { display: flex; flex-wrap: wrap; gap: 0.3rem 1.2rem; margin-top: 0.55rem; font-family: "IBM Plex Mono", monospace; font-size: 0.7rem; color: var(--fog-dim); }
+  .tl-legend b { font-weight: 500; color: var(--fog); }
+
+  .beats { margin-top: 1.75rem; display: flex; flex-direction: column; }
+  .beat-row { display: grid; grid-template-columns: 3.6rem 1fr; gap: 0 1rem; padding: 0.7rem 0; border-top: 1px solid var(--line-soft); align-items: baseline; }
+  .beat-row:last-child { border-bottom: 1px solid var(--line-soft); }
+  .beat-t { font-family: "IBM Plex Mono", monospace; font-size: 0.72rem; color: var(--fog-dim); font-variant-numeric: tabular-nums; }
+  .beat-title { font-weight: 500; font-size: 0.98rem; line-height: 1.45; }
+  .beat-desc { color: var(--fog); font-size: 0.89rem; line-height: 1.6; margin-top: 0.15rem; }
+  .beat-row.is-demo { background: var(--signal-wash); margin-inline: -0.9rem; padding-inline: 0.9rem; }
+  .beat-row.is-demo .beat-t { color: var(--signal); }
+</style>
+  </head>
+  <body>
+<div class="page">
+
+  <header class="top">
+    <p class="eyebrow">Team Review · 첫 화면 3안 + 구성 3안 · 2026.09.02</p>
+    <h1>첫 화면 세 가지<br>구성 <em>세 가지</em></h1>
+    <p>
+      내일 팀에서 정할 것은 두 가지입니다. <strong>발표를 무엇으로 열 것인가</strong>(위, 첫 화면 3안)와
+      <strong>10분을 어떻게 짤 것인가</strong>(아래, 구성 3안). 첫 화면 3안은 화면 정의서 첫 화면의 언어 —
+      대형 Gasoek One 워드마크, 마젠타 한 색, 뛰는 심박 라인 — 를 그대로 16:9로 옮긴 것입니다.
+    </p>
+
+    <div class="terms">
+      <div class="terms-head">
+        <span class="note-label">발표 조건</span>
+        <span class="src">주최 측 안내 기준</span>
+      </div>
+      <div class="terms-grid">
+        <div class="term">
+          <span class="term-k">제한 시간</span>
+          <span class="term-v"><em>10분</em> 내외</span>
+          <span class="term-d">슬라이드 8–12장이 상한입니다. 시연에 3분 30초를 남기면 말로 설명할 수 있는 시간은 6분 남짓입니다.</span>
+        </div>
+        <div class="term">
+          <span class="term-k">반드시 다룰 것 ①</span>
+          <span class="term-v">해결하고자 한 문제</span>
+          <span class="term-d">여러 채널에 흩어진 고객 행동이 하나의 여정으로 연결되지 않는 문제. 발표 앞쪽에 자리가 있어야 합니다.</span>
+        </div>
+        <div class="term">
+          <span class="term-k">반드시 다룰 것 ②</span>
+          <span class="term-v">Agent로 어떻게 해결했나</span>
+          <span class="term-d">Explore → Connect → Understand → Recommend → Act. 화면 소개가 아니라 <strong>동작 방식</strong>을 설명해야 하는 항목입니다.</span>
+        </div>
+        <div class="term">
+          <span class="term-k">시연</span>
+          <span class="term-v">Live demo <span style="color: var(--fog-dim); font-weight: 400;">또는</span> 영상 녹화</span>
+          <span class="term-d">희망하는 방식으로 고를 수 있습니다. 구성 안마다 어느 쪽이 유리한지 아래에 표시했습니다.</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <span class="ctrl-label">슬라이드 배경</span>
+      <div class="switch" role="group" aria-label="슬라이드 배경 선택">
+        <button type="button" id="bg-dark" aria-pressed="true">어둡게</button>
+        <button type="button" id="bg-light" aria-pressed="false">밝게</button>
+      </div>
+      <span class="hint">각 슬라이드의 <strong>전체화면</strong> 버튼을 누르면 실제 투사 크기로 보입니다. <span class="mono">Esc</span> 로 빠져나옵니다.</span>
+    </div>
+  </header>
+
+  <!-- ══ A ═══════════════════════════════════════════ -->
+  <section class="option">
+    <div class="opt-head">
+      <span class="opt-key">A</span>
+      <h2 class="opt-name">워드마크</h2>
+      <span class="opt-from">히어로 화면 그대로</span>
+    </div>
+    <p class="opt-lede">
+      마음에 들어 하신 그 화면을 첫 슬라이드로 옮겼습니다. 서비스 이름이 화면의 3분의 2를 차지하고,
+      아래에서 심박이 한 번 지나갑니다. 이름을 먼저 각인시키는 안입니다.
+    </p>
+
+    <div class="stage">
+      <div class="slide" id="slide-a">
+        <div class="s-pad">
+          <p class="s-eyebrow">AI Agent Hackathon · 2026.09 · TEAM 네박자</p>
+          <p class="s-word" style="font-size: 11.5cqw; margin-top: 4cqw;">시그널을<br>캐치하는<br><em>캐치캐치</em></p>
+          <p class="s-sub" style="margin-top: 3cqw; max-width: 58cqw;">
+            검색 · 앱 행동 · 상담 · 가입정보에 흩어진 고객 행동을 하나로 잇는 Customer Intelligence Agent
+          </p>
+          <div class="a-strip beat" aria-hidden="true">
+            <svg viewBox="0 0 1200 74" preserveAspectRatio="none">
+              <path class="beat-ghost" d="M0 37 H1200" />
+              <path class="beat-line" d="M0 37 H340 L360 37 L372 12 L388 62 L402 24 L414 37 L436 37 L448 30 L460 44 L472 37 H700 L716 37 L728 8 L744 66 L758 20 L770 37 H1200" />
+            </svg>
+          </div>
+          <div class="s-meta" style="margin-top: 2.5cqw;">
+            <span>고객 시그널 캐처</span>
+            <span>질문 → 캐치 → 결과</span>
+            <span>Customer Signal Catcher</span>
+          </div>
+        </div>
+      </div>
+      <div class="stage-bar">
+        <span class="stage-cap">A · 워드마크</span>
+        <button type="button" class="full-btn" data-full="slide-a">전체화면으로 보기</button>
+      </div>
+    </div>
+
+    <div class="opt-notes">
+      <div class="note-cell script">
+        <span class="note-label">첫 마디</span>
+        <p>"안녕하세요, 팀 네박자입니다. 저희가 만든 건 고객 시그널 캐처, 캐치캐치입니다."</p>
+        <span class="cue">화면 띄우고 3초 뒤 시작</span>
+      </div>
+      <div class="note-cell bet">
+        <span class="note-label">거는 것</span>
+        <p>이름과 한 줄 정의가 동시에 박힙니다. 심사위원이 채점표에 팀명을 적는 시간에 화면이 정확히 그 정보를 주고 있습니다.</p>
+      </div>
+      <div class="note-cell worry">
+        <span class="note-label">걱정되는 것</span>
+        <p>가장 안전한 만큼 가장 평범합니다. 앞 팀들도 비슷하게 이름을 띄우고 시작합니다. 첫 3초에 놀라움은 없습니다.</p>
+      </div>
+      <div class="note-cell">
+        <span class="note-label">다음 장</span>
+        <p>문제 정의 — "고객 데이터는 많은데 맥락이 없습니다"로 자연스럽게 넘어갑니다. 어느 시안이든 붙습니다.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ B ═══════════════════════════════════════════ -->
+  <section class="option">
+    <div class="opt-head">
+      <span class="opt-key">B</span>
+      <h2 class="opt-name">심박</h2>
+      <span class="opt-from">시안 1에서</span>
+    </div>
+    <p class="opt-lede">
+      심박이 주인공으로 올라오고 이름이 아래로 내려갔습니다. 화면 한가운데를 가로지르는 평선에서
+      박동이 한 번 튀고, 발표자는 그 평선을 가리키며 첫 문장을 말합니다.
+      제품의 캐치 화면과 같은 그림이라 시연으로 넘어갈 때 이어집니다.
+    </p>
+
+    <div class="stage">
+      <div class="slide" id="slide-b">
+        <div class="s-pad">
+          <p class="s-eyebrow">AI Agent Hackathon · 2026.09 · TEAM 네박자</p>
+          <div class="b-mid">
+            <div class="b-strip beat" aria-hidden="true">
+              <svg viewBox="0 0 1200 160" preserveAspectRatio="none">
+                <path class="beat-ghost" d="M0 80 H1200" />
+                <path class="beat-line" d="M0 80 H430 L456 80 L472 20 L494 142 L512 44 L528 80 H1200" />
+              </svg>
+            </div>
+          </div>
+          <div class="b-foot">
+            <div>
+              <p class="s-word" style="font-size: 8cqw;">고객 시그널 <em>캐처</em></p>
+              <p class="s-sub" style="margin-top: 2cqw;">고객은 말보다 먼저 신호를 보냅니다</p>
+            </div>
+            <p class="s-meta" style="justify-content: flex-end; text-align: right;">
+              <span>Customer Signal Catcher</span>
+            </p>
+          </div>
+        </div>
+      </div>
+      <div class="stage-bar">
+        <span class="stage-cap">B · 심박</span>
+        <button type="button" class="full-btn" data-full="slide-b">전체화면으로 보기</button>
+      </div>
+    </div>
+
+    <div class="opt-notes">
+      <div class="note-cell script">
+        <span class="note-label">첫 마디</span>
+        <p>"이 평선이, 지금 우리가 고객 데이터를 보고 있는 방식입니다. 아무 말도 하지 않죠. 그런데 사실 신호는 이미 와 있었습니다."</p>
+        <span class="cue">박동이 한 번 지나간 직후 시작</span>
+      </div>
+      <div class="note-cell bet">
+        <span class="note-label">거는 것</span>
+        <p>화면이 움직이는 유일한 안이라 시선을 잡습니다. 이 심박이 시연의 캐치 화면에서 그대로 다시 나와서, 슬라이드와 제품이 한 몸으로 보입니다.</p>
+      </div>
+      <div class="note-cell worry">
+        <span class="note-label">걱정되는 것</span>
+        <p>이름이 아래로 내려가 작아집니다. 팀명·서비스명을 적어야 하는 심사위원이 한 번 더 눈을 굴려야 합니다. 프로젝터가 어두우면 얇은 회색 평선이 안 보일 수 있습니다.</p>
+      </div>
+      <div class="note-cell">
+        <span class="note-label">다음 장</span>
+        <p>"신호는 이미 있었다" — 검색 3회 · 상세 비교 · 이탈 · 재검색이 평선 위에 하나씩 얹힙니다.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ C ═══════════════════════════════════════════ -->
+  <section class="option">
+    <div class="opt-head">
+      <span class="opt-key">C</span>
+      <h2 class="opt-name">말보다 먼저</h2>
+      <span class="opt-from">시안 3에서</span>
+    </div>
+    <p class="opt-lede">
+      워드마크 자리를 메시지가 차지했습니다. 이름은 오른쪽 아래로 작게 물러나고,
+      심박은 밑줄처럼 얇게 한 줄만 지나갑니다. 서비스가 아니라 주장을 먼저 던지는 안입니다.
+    </p>
+
+    <div class="stage">
+      <div class="slide" id="slide-c">
+        <div class="s-pad">
+          <p class="s-eyebrow">AI Agent Hackathon · 2026.09</p>
+          <div class="c-mid">
+            <p class="s-word" style="font-size: 12.5cqw;">고객은<br><em>말보다 먼저</em><br>신호를 보냅니다</p>
+            <div class="c-strip beat" aria-hidden="true">
+              <svg viewBox="0 0 1200 40" preserveAspectRatio="none">
+                <path class="beat-ghost" d="M0 20 H1200" />
+                <path class="beat-line" d="M0 20 H200 L214 20 L222 6 L234 34 L244 13 L252 20 H1200" />
+              </svg>
+            </div>
+          </div>
+          <div class="c-foot">
+            <p class="s-meta"><span>TEAM 네박자</span></p>
+            <p class="s-sub" style="font-size: 2.6cqw; color: var(--sl-ink);">고객 시그널 캐처</p>
+          </div>
+        </div>
+      </div>
+      <div class="stage-bar">
+        <span class="stage-cap">C · 말보다 먼저</span>
+        <button type="button" class="full-btn" data-full="slide-c">전체화면으로 보기</button>
+      </div>
+    </div>
+
+    <div class="opt-notes">
+      <div class="note-cell script">
+        <span class="note-label">첫 마디</span>
+        <p>(8초 침묵) "고객은 말보다 먼저 신호를 보냅니다. 검색하고, 비교하고, 그냥 나갑니다."</p>
+        <span class="cue">화면만 띄우고 8초 기다린 뒤 시작</span>
+      </div>
+      <div class="note-cell bet">
+        <span class="note-label">거는 것</span>
+        <p>발표가 끝난 뒤 심사위원 머리에 남는 문장을 첫 3초에 심습니다. 마지막 슬라이드에서 같은 문장으로 닫으면 발표 전체가 하나로 묶입니다.</p>
+      </div>
+      <div class="note-cell worry">
+        <span class="note-label">걱정되는 것</span>
+        <p>서비스가 뭘 하는지 아직 안 보입니다. 8초 침묵은 리허설 없이는 어색해지고, 발표자가 긴장하면 그냥 3초에 넘어가 효과가 사라집니다.</p>
+      </div>
+      <div class="note-cell">
+        <span class="note-label">다음 장</span>
+        <p>"데이터는 다 있습니다. 따로 있을 뿐입니다" — 다섯 소스 이름만 나열합니다.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ 비교 ═══════════════════════════════════════ -->
+  <section class="band">
+    <h2>세 안을 한 줄로</h2>
+    <p>같은 팔레트, 같은 폰트, 같은 심박입니다. 갈리는 건 첫 3초의 우선순위 하나입니다.</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>안</th>
+            <th>첫 3초에 보이는 것</th>
+            <th>화면의 주인공</th>
+            <th>발표자 부담</th>
+            <th>이럴 때 고른다</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="k"><span>A</span> 워드마크</td>
+            <td>서비스 이름 + 한 줄 정의</td>
+            <td>타이포</td>
+            <td>낮음 — 그냥 읽으면 됩니다</td>
+            <td>심사위원이 팀을 처음 보고, 이름을 각인시켜야 할 때</td>
+          </tr>
+          <tr>
+            <td class="k"><span>B</span> 심박</td>
+            <td>평선 위를 지나가는 박동</td>
+            <td>움직임</td>
+            <td>중간 — 화면을 가리키며 말해야 합니다</td>
+            <td>시연을 일찍 시작해서 제품으로 승부할 때</td>
+          </tr>
+          <tr>
+            <td class="k"><span>C</span> 말보다 먼저</td>
+            <td>주장 한 문장</td>
+            <td>메시지</td>
+            <td>높음 — 침묵을 견뎌야 합니다</td>
+            <td>발표자가 무대에 익숙하고, 문장 하나를 남기고 싶을 때</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ══ 논의 ═══════════════════════════════════════ -->
+  <section class="band">
+    <h2>첫 화면 — 내일 정하면 좋을 것</h2>
+    <p>세 안 중 고르는 것보다, 아래 세 가지를 먼저 합의하면 답이 저절로 좁혀집니다.</p>
+
+    <div class="asks">
+      <div class="ask">
+        <span class="ask-n">01</span>
+        <div>
+          <p class="ask-q">이름을 먼저 보여줄까, 메시지를 먼저 던질까</p>
+          <p class="ask-a">
+            심사위원이 우리 팀을 처음 본다면 A. 앞에 비슷한 분석 도구가 여러 개 지나갔을 것 같으면 C.
+            발표 순서를 알 수 있다면 그걸로 정하는 게 가장 확실합니다.
+          </p>
+        </div>
+      </div>
+      <div class="ask">
+        <span class="ask-n">02</span>
+        <div>
+          <p class="ask-q">배경은 어둡게, 밝게</p>
+          <p class="ask-a">
+            위 토글로 세 안을 모두 바꿔 볼 수 있습니다. 어두운 쪽이 마젠타가 살고 제품 화면과 톤이 같지만,
+            <strong>발표장 조명이 밝고 프로젝터가 약하면 어두운 배경은 회색 덩어리로 보입니다.</strong>
+            장소를 확인할 수 있으면 확인하고, 못 하면 밝은 쪽이 안전합니다.
+          </p>
+        </div>
+      </div>
+      <div class="ask">
+        <span class="ask-n">03</span>
+        <div>
+          <p class="ask-q">심박을 첫 화면부터 쓸까, 아껴둘까</p>
+          <p class="ask-a">
+            A와 C는 심박을 장식으로 한 번 쓰고, B는 심박 자체가 주제입니다.
+            첫 화면에서 이미 본 그림이면 시연의 캐치 화면에서 오는 놀라움이 줄어듭니다.
+            반대로 미리 봤기 때문에 "아, 아까 그거"가 되기도 합니다. 이건 취향이 아니라 연출 선택입니다.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="close">
+      <span class="note-label">굳이 하나를 고른다면</span>
+      <p>
+        <strong>A로 열고, 두 번째 장을 B의 평선으로</strong> 가는 조합이 가장 손해가 적습니다.
+        이름은 확실히 각인시키고, 심박의 연출은 문제 정의 장에서 처음 쓰는 겁니다.
+        C는 발표자가 정해지고 리허설을 두 번 이상 돌릴 수 있을 때 다시 꺼내면 좋겠습니다.
+      </p>
+    </div>
+  </section>
+
+  <!-- ══ 발표 구성 3안 ═══════════════════════════════ -->
+  <section class="band">
+    <h2>10분을 어떻게 짤까</h2>
+    <p>
+      조건은 셋 다 똑같이 충족합니다 — 문제 소개가 있고, Agent가 어떻게 풀었는지 설명하고, 시연이 들어갑니다.
+      갈리는 건 <strong>그 셋을 어떤 순서로 놓느냐</strong>이고, 순서가 곧 임팩트입니다.
+      하루에 발표를 열 개 넘게 듣는 심사위원에게는 <strong>언제 화면이 움직이기 시작하는가</strong>가 집중도를 좌우합니다.
+    </p>
+
+    <!-- 구성 1 -->
+    <article class="plan">
+      <div class="plan-head">
+        <span class="plan-key">1</span>
+        <h3 class="plan-name">순서대로</h3>
+        <span class="plan-kind">문제 → 해결 → 시연 → 검증</span>
+      </div>
+      <p class="plan-lede">
+        심사 항목이 적힌 순서 그대로 발표합니다. 심사위원이 채점표를 위에서 아래로 따라가며 체크할 수 있고,
+        "그 얘기는 언제 나오지?" 하고 기다리는 구간이 없습니다.
+      </p>
+
+      <div class="tl">
+        <p class="tl-h">10:00 배분</p>
+        <div class="tl-bar">
+          <div class="tl-seg" style="flex: 20">문제 2:00</div>
+          <div class="tl-seg" style="flex: 15">Agent 설계 1:30</div>
+          <div class="tl-seg demo" style="flex: 35">시연 3:30</div>
+          <div class="tl-seg peak" style="flex: 15">검증 1:30</div>
+          <div class="tl-seg" style="flex: 15">확장 1:30</div>
+        </div>
+        <div class="tl-legend">
+          <span><b>화면이 움직이는 시점</b> 3:30</span>
+          <span><b>시연</b> 1회</span>
+          <span><b>슬라이드</b> 10장</span>
+        </div>
+      </div>
+
+      <div class="beats">
+        <div class="beat-row">
+          <span class="beat-t">0:00</span>
+          <div>
+            <p class="beat-title">첫 화면 + 문제</p>
+            <p class="beat-desc">로밍을 알아보던 고객 한 사람의 행동 다섯 개가, 다섯 개 시스템에 따로 적혀 있는 그림.</p>
+          </div>
+        </div>
+        <div class="beat-row">
+          <span class="beat-t">2:00</span>
+          <div>
+            <p class="beat-title">Agent는 이렇게 일합니다</p>
+            <p class="beat-desc">Explore → Connect → Understand → Recommend → Act. 조건 ②를 정면으로 채우는 구간입니다.</p>
+          </div>
+        </div>
+        <div class="beat-row is-demo">
+          <span class="beat-t">3:30</span>
+          <div>
+            <p class="beat-title">시연 · 질문 → 캐치 → 결과 → 저니</p>
+            <p class="beat-desc">앞에서 말로 설명한 5단계가 화면에서 그대로 실행됩니다. 328명까지.</p>
+          </div>
+        </div>
+        <div class="beat-row">
+          <span class="beat-t">7:00</span>
+          <div>
+            <p class="beat-title">검증 — 우리 팀이 갈리는 지점</p>
+            <p class="beat-desc">주장 14개 중 12개 통과, 2개는 근거가 없어 우리가 지웠습니다.</p>
+          </div>
+        </div>
+        <div class="beat-row">
+          <span class="beat-t">8:30</span>
+          <div>
+            <p class="beat-title">확장 + 클로징</p>
+            <p class="beat-desc">CX · 고객센터 · PO · CRM으로 넓어지는 그림, 마지막에 한 문장.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="opt-notes">
+        <div class="note-cell bet">
+          <span class="note-label">임팩트</span>
+          <p>낮지만 감점도 없습니다. 조건 세 가지를 모두, 가장 알아보기 쉽게 충족합니다.</p>
+        </div>
+        <div class="note-cell worry">
+          <span class="note-label">리스크</span>
+          <p>앞 3분 30초가 전부 말입니다. 발표 순서가 뒤쪽이면 심사위원의 집중이 이미 떨어져 있습니다.</p>
+        </div>
+        <div class="note-cell">
+          <span class="note-label">시연 방식</span>
+          <p><strong>Live 권장.</strong> 한 번뿐이라 실패해도 만회할 구간이 뒤에 남아 있습니다.</p>
+        </div>
+        <div class="note-cell">
+          <span class="note-label">어울리는 첫 화면</span>
+          <p><strong>A · 워드마크.</strong> 이름을 각인시키고 차분하게 문제로 들어갑니다.</p>
+        </div>
+      </div>
+    </article>
+
+    <!-- 구성 2 -->
+    <article class="plan">
+      <div class="plan-head">
+        <span class="plan-key">2</span>
+        <h3 class="plan-name">먼저 보여준다</h3>
+        <span class="plan-kind">시연 → 문제 → 해결 → 시연</span>
+      </div>
+      <p class="plan-lede">
+        설명하기 전에 화면을 먼저 켭니다. 질문 한 줄만 띄우고 30초 만에 시연에 들어가,
+        심사위원이 <strong>"이게 뭐지"</strong> 하고 몸을 앞으로 기울인 상태에서 문제 정의를 시작합니다.
+      </p>
+
+      <div class="tl">
+        <p class="tl-h">10:00 배분</p>
+        <div class="tl-bar">
+          <div class="tl-seg" style="flex: 5">질문 0:30</div>
+          <div class="tl-seg demo" style="flex: 15">시연 ① 1:30</div>
+          <div class="tl-seg" style="flex: 20">문제 2:00</div>
+          <div class="tl-seg" style="flex: 15">Agent 설계 1:30</div>
+          <div class="tl-seg demo" style="flex: 25">시연 ② 2:30</div>
+          <div class="tl-seg peak" style="flex: 20">정리 2:00</div>
+        </div>
+        <div class="tl-legend">
+          <span><b>화면이 움직이는 시점</b> 0:30</span>
+          <span><b>시연</b> 2회</span>
+          <span><b>슬라이드</b> 9장</span>
+        </div>
+      </div>
+
+      <div class="beats">
+        <div class="beat-row">
+          <span class="beat-t">0:00</span>
+          <div>
+            <p class="beat-title">질문 한 줄만</p>
+            <p class="beat-desc">"최근 로밍을 알아보는 고객들이 가장 많이 궁금해하는 게 뭐야?" 설명 없이 이 문장만 띄웁니다.</p>
+          </div>
+        </div>
+        <div class="beat-row is-demo">
+          <span class="beat-t">0:30</span>
+          <div>
+            <p class="beat-title">시연 ① · 캐치 → 결과</p>
+            <p class="beat-desc">아무 설명 없이 심박이 뛰고 90초 만에 328명이 나옵니다. 여기서 놀라게 만드는 게 이 구성의 전부입니다.</p>
+          </div>
+        </div>
+        <div class="beat-row">
+          <span class="beat-t">2:00</span>
+          <div>
+            <p class="beat-title">"방금 보신 게 뭐냐면"</p>
+            <p class="beat-desc">이제 문제를 설명합니다. 화면을 이미 봤기 때문에 같은 설명이 훨씬 빨리 들어옵니다.</p>
+          </div>
+        </div>
+        <div class="beat-row">
+          <span class="beat-t">4:00</span>
+          <div>
+            <p class="beat-title">Agent는 이렇게 일합니다</p>
+            <p class="beat-desc">5단계를 설명하되, 각 단계가 방금 본 화면의 어느 장면이었는지 짚어줍니다.</p>
+          </div>
+        </div>
+        <div class="beat-row is-demo">
+          <span class="beat-t">5:30</span>
+          <div>
+            <p class="beat-title">시연 ② · 검증 기록 + 액션</p>
+            <p class="beat-desc">탈락한 주장 2개를 실제로 펼치고, 추천검색어를 적용합니다.</p>
+          </div>
+        </div>
+        <div class="beat-row">
+          <span class="beat-t">8:00</span>
+          <div>
+            <p class="beat-title">정리 + 비전</p>
+            <p class="beat-desc">검증 12/14, 확장 그림, 클로징 한 문장.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="opt-notes">
+        <div class="note-cell bet">
+          <span class="note-label">임팩트</span>
+          <p>셋 중 가장 큽니다. 첫 60초에 제품이 움직이는 유일한 구성이고, 앞 팀들과 확실히 다르게 시작합니다.</p>
+        </div>
+        <div class="note-cell worry">
+          <span class="note-label">리스크</span>
+          <p>맥락 없이 화면부터 보여주면 "뭘 보고 있는 거지"가 될 수 있습니다. <strong>질문 한 줄을 반드시 먼저</strong> 띄우고, 시연 ①이 멈출 때를 대비한 백업 영상이 필요합니다.</p>
+        </div>
+        <div class="note-cell">
+          <span class="note-label">시연 방식</span>
+          <p><strong>①은 녹화, ②는 Live</strong>를 권합니다. 가장 중요한 첫 90초를 사고 확률에 맡기지 않는 편이 낫습니다.</p>
+        </div>
+        <div class="note-cell">
+          <span class="note-label">어울리는 첫 화면</span>
+          <p><strong>C · 말보다 먼저</strong> 또는 <strong>B · 심박.</strong> 이름보다 상황을 먼저 던지는 화면이 맞습니다.</p>
+        </div>
+      </div>
+    </article>
+
+    <!-- 구성 3 -->
+    <article class="plan">
+      <div class="plan-head">
+        <span class="plan-key">3</span>
+        <h3 class="plan-name">끝에서 뒤집는다</h3>
+        <span class="plan-kind">문제 → 시연 → 반전 → 실측</span>
+      </div>
+      <p class="plan-lede">
+        인사이트까지 보여주고 일부러 한 번 멈춥니다. <strong>"보통은 여기서 발표가 끝납니다."</strong>
+        그리고 액션을 실행한 뒤 7일 뒤 결과를 다시 확인합니다. 후반으로 갈수록 세지는 구성입니다.
+      </p>
+
+      <div class="tl">
+        <p class="tl-h">10:00 배분</p>
+        <div class="tl-bar">
+          <div class="tl-seg" style="flex: 15">문제 1:30</div>
+          <div class="tl-seg" style="flex: 10">Agent 설계 1:00</div>
+          <div class="tl-seg demo" style="flex: 25">시연 ① 2:30</div>
+          <div class="tl-seg" style="flex: 7">반전 0:40</div>
+          <div class="tl-seg demo" style="flex: 23">시연 ② 2:20</div>
+          <div class="tl-seg peak" style="flex: 20">두 검증표 2:00</div>
+        </div>
+        <div class="tl-legend">
+          <span><b>화면이 움직이는 시점</b> 2:30</span>
+          <span><b>시연</b> 2회</span>
+          <span><b>슬라이드</b> 10장</span>
+        </div>
+      </div>
+
+      <div class="beats">
+        <div class="beat-row">
+          <span class="beat-t">0:00</span>
+          <div>
+            <p class="beat-title">첫 화면 + 문제</p>
+            <p class="beat-desc">1분 30초로 압축합니다. 다섯 채널, 담당자가 손으로 잇는 과정 한 장.</p>
+          </div>
+        </div>
+        <div class="beat-row">
+          <span class="beat-t">1:30</span>
+          <div>
+            <p class="beat-title">Agent 5단계</p>
+            <p class="beat-desc">Explore → Connect → Understand → Recommend → Act. 마지막 Act에 밑줄을 그어두고 넘어갑니다.</p>
+          </div>
+        </div>
+        <div class="beat-row is-demo">
+          <span class="beat-t">2:30</span>
+          <div>
+            <p class="beat-title">시연 ① · 질문 → 캐치 → 인사이트</p>
+            <p class="beat-desc">여기까지는 일부러 "잘 만든 분석 도구"로 보이게 둡니다.</p>
+          </div>
+        </div>
+        <div class="beat-row">
+          <span class="beat-t">5:00</span>
+          <div>
+            <p class="beat-title">"보통은 여기서 끝납니다"</p>
+            <p class="beat-desc">낙차를 만드는 40초. 인사이트를 읽은 담당자는 결국 운영 시스템으로 다시 이동해야 합니다.</p>
+          </div>
+        </div>
+        <div class="beat-row is-demo">
+          <span class="beat-t">5:40</span>
+          <div>
+            <p class="beat-title">시연 ② · 액션 실행 → 7일 뒤 실측</p>
+            <p class="beat-desc">추천검색어 적용 → 전환 12%→17.0%, 탐색 4.2일→2.4일. 빗나간 예측 2개도 같이 보여줍니다.</p>
+          </div>
+        </div>
+        <div class="beat-row">
+          <span class="beat-t">8:00</span>
+          <div>
+            <p class="beat-title">두 개의 검증표</p>
+            <p class="beat-desc">주장 14개 중 12개 통과 / 예측 6개 중 4개 적중. 분석에서도 실행에서도 같은 규칙이라는 한 장.</p>
+          </div>
+        </div>
+        <div class="beat-row">
+          <span class="beat-t">9:00</span>
+          <div>
+            <p class="beat-title">비전 + 클로징</p>
+            <p class="beat-desc">묻기 전에 먼저 말하는 Agent. Detect → Understand → Recommend → Act.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="opt-notes">
+        <div class="note-cell bet">
+          <span class="note-label">임팩트</span>
+          <p>마지막 2분에 몰려 있어서, 발표가 끝난 직후 기억에 남는 게 가장 많습니다. 기대효과·확장성 항목을 말이 아니라 숫자로 답합니다.</p>
+        </div>
+        <div class="note-cell worry">
+          <span class="note-label">리스크</span>
+          <p>7일 실측은 Mock입니다. 흐리게 넘어가면 신뢰가 한 번에 무너지니 <strong>"시뮬레이션입니다"를 화면과 말 양쪽에</strong> 넣어야 합니다. 문제 정의 1분 30초는 빠듯합니다.</p>
+        </div>
+        <div class="note-cell">
+          <span class="note-label">시연 방식</span>
+          <p><strong>②는 녹화 권장.</strong> 액션 화면은 클릭이 많고 대기가 있어 라이브로 2분 20초를 맞추기 어렵습니다.</p>
+        </div>
+        <div class="note-cell">
+          <span class="note-label">어울리는 첫 화면</span>
+          <p><strong>A · 워드마크</strong> 또는 <strong>B · 심박.</strong> 조용히 열고 뒤에서 올리는 구성이라 앞은 담백한 편이 낫습니다.</p>
+        </div>
+      </div>
+    </article>
+
+    <div class="table-wrap" style="margin-top: 3rem;">
+      <table>
+        <thead>
+          <tr>
+            <th>구성</th>
+            <th>화면이 움직이는 시점</th>
+            <th>시연</th>
+            <th>임팩트가 오는 곳</th>
+            <th>가장 큰 리스크</th>
+            <th>어울리는 첫 화면</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="k"><span>1</span> 순서대로</td>
+            <td class="mono">3:30</td>
+            <td class="mono">1회 · Live</td>
+            <td>고르게 분산</td>
+            <td>앞 3분 30초가 전부 말</td>
+            <td>A</td>
+          </tr>
+          <tr>
+            <td class="k"><span>2</span> 먼저 보여준다</td>
+            <td class="mono">0:30</td>
+            <td class="mono">2회 · 녹화+Live</td>
+            <td>첫 90초</td>
+            <td>맥락 없이 화면부터 보여주는 것</td>
+            <td>C 또는 B</td>
+          </tr>
+          <tr>
+            <td class="k"><span>3</span> 끝에서 뒤집는다</td>
+            <td class="mono">2:30</td>
+            <td class="mono">2회 · Live+녹화</td>
+            <td>마지막 2분</td>
+            <td>Mock 수치를 실측처럼 보이게 하는 것</td>
+            <td>A 또는 B</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="close">
+      <span class="note-label">제 제안</span>
+      <p>
+        <strong>구성 2 "먼저 보여준다"가 임팩트는 가장 큽니다.</strong> 우리 시연은 Mock으로 끝까지 도는 상태라
+        첫 90초를 보여줄 재료가 이미 있고, 이걸 안 쓰는 건 아깝습니다. 다만 <strong>시연 ①은 녹화로 박아두세요.</strong>
+        발표 전체가 첫 90초에 걸리는데 그걸 네트워크와 클릭에 맡길 이유가 없습니다.
+      </p>
+      <p>
+        발표자가 아직 안 정해졌거나 리허설을 한 번밖에 못 돌린다면 <strong>구성 1</strong>이 맞습니다.
+        심사 기준에 기대효과·사업성 비중이 크다는 정보가 있으면 <strong>구성 3</strong>으로 바꾸면 됩니다.
+      </p>
+    </div>
+  </section>
+
+</div>
+
+<script>
+  (function () {
+    var root = document.documentElement;
+
+    /* 슬라이드 배경 토글 — 페이지 테마와 독립적으로 움직인다 */
+    var dark = document.getElementById("bg-dark");
+    var light = document.getElementById("bg-light");
+
+    function apply(mode) {
+      root.setAttribute("data-slide", mode);
+      dark.setAttribute("aria-pressed", String(mode === "dark"));
+      light.setAttribute("aria-pressed", String(mode === "light"));
+      try { localStorage.setItem("cover-slide-bg", mode); } catch (e) { /* 저장 못 해도 화면은 정상 */ }
+    }
+
+    var saved = null;
+    try { saved = localStorage.getItem("cover-slide-bg"); } catch (e) { saved = null; }
+    apply(saved === "light" ? "light" : "dark");
+
+    dark.addEventListener("click", function () { apply("dark"); });
+    light.addEventListener("click", function () { apply("light"); });
+
+    /* 전체화면 */
+    var buttons = document.querySelectorAll("[data-full]");
+    for (var i = 0; i < buttons.length; i++) {
+      buttons[i].addEventListener("click", function () {
+        var el = document.getElementById(this.getAttribute("data-full"));
+        if (!el) return;
+        if (el.requestFullscreen) { el.requestFullscreen(); }
+        else if (el.webkitRequestFullscreen) { el.webkitRequestFullscreen(); }
+      });
+    }
+  })();
+</script>
+  </body>
+</html>

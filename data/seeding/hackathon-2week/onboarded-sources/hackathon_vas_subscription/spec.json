@@ -1,0 +1,67 @@
+{
+  "source_id": "hackathon_vas_subscription",
+  "label": "해커톤 부가서비스 가입",
+  "description": "장기 가입 고객의 합성 부가서비스 일별 이력",
+  "timestamp_column": "BQ_LOAD_DTTM",
+  "timezone": "Asia/Seoul",
+  "event_type": {
+    "column": null,
+    "const": "subscription",
+    "value_map": null,
+    "default": null
+  },
+  "action": {
+    "column": "SVC_STTS_CD",
+    "const": null,
+    "value_map": null,
+    "default": null
+  },
+  "topic": {
+    "column": "PROD_NM",
+    "const": null,
+    "value_map": null,
+    "default": null
+  },
+  "outcome": {
+    "column": "SRVL_YN",
+    "const": null,
+    "value_map": null,
+    "default": null
+  },
+  "text": {
+    "column": "PROD_NM",
+    "const": null,
+    "value_map": null,
+    "default": null
+  },
+  "identity": {
+    "namespace": "synthetic_customer",
+    "customer_column": "CUST_NO",
+    "link_method": "exact",
+    "confidence": 1.0
+  },
+  "dimensions": {
+    "product_code": {
+      "column": "PROD_CD",
+      "semantic_type": "category",
+      "description": "부가서비스 상품 코드",
+      "pii_classification": "none",
+      "masking": null
+    }
+  },
+  "measures": {
+    "amount_krw": {
+      "column": "VAT_INCL_ALL_AMT",
+      "semantic_type": "integer",
+      "description": "부가세 포함 금액",
+      "unit": "KRW"
+    },
+    "subscription_days": {
+      "column": "PROD_ENTR_DAYS",
+      "semantic_type": "integer",
+      "description": "상품 가입 일수",
+      "unit": "days"
+    }
+  },
+  "status": "approved"
+}

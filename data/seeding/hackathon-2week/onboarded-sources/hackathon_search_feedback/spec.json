@@ -1,0 +1,54 @@
+{
+  "source_id": "hackathon_search_feedback",
+  "label": "해커톤 AI 검색 피드백",
+  "description": "검색 결과의 합성 긍정·부정 피드백",
+  "timestamp_column": "BQ_LOAD_DTTM",
+  "timezone": "Asia/Seoul",
+  "event_type": {
+    "column": null,
+    "const": "feedback",
+    "value_map": null,
+    "default": null
+  },
+  "action": {
+    "column": null,
+    "const": "rate_search",
+    "value_map": null,
+    "default": null
+  },
+  "topic": {
+    "column": "OPTION",
+    "const": null,
+    "value_map": null,
+    "default": null
+  },
+  "outcome": {
+    "column": "FEEDBACK_TYPE",
+    "const": null,
+    "value_map": null,
+    "default": null
+  },
+  "text": {
+    "column": "REASON",
+    "const": null,
+    "value_map": null,
+    "default": null
+  },
+  "identity": {
+    "namespace": "synthetic_customer",
+    "customer_column": "CZ_LNK_KEY",
+    "link_method": "exact",
+    "confidence": 1.0
+  },
+  "dimensions": {
+    "reason": {
+      "column": "REASON",
+      "semantic_type": "text",
+      "description": "합성 피드백 사유",
+      "pii_classification": "none",
+      "masking": null
+    }
+  },
+  "measures": {},
+  "status": "approved"
+}

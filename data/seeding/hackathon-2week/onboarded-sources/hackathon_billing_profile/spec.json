@@ -1,0 +1,74 @@
+{
+  "source_id": "hackathon_billing_profile",
+  "label": "해커톤 고객 빌링 프로필",
+  "description": "부가서비스와 소액결제 이용 여부를 담은 합성 월 프로필",
+  "timestamp_column": "DP_LOAD_DTTM",
+  "timezone": "Asia/Seoul",
+  "event_type": {
+    "column": null,
+    "const": "billing_profile",
+    "value_map": null,
+    "default": null
+  },
+  "action": {
+    "column": null,
+    "const": "review_profile",
+    "value_map": null,
+    "default": null
+  },
+  "topic": {
+    "column": "PP_NM",
+    "const": null,
+    "value_map": null,
+    "default": null
+  },
+  "outcome": {
+    "column": "ENTR_STTS_CD",
+    "const": null,
+    "value_map": null,
+    "default": null
+  },
+  "text": {
+    "column": "PP_NM",
+    "const": null,
+    "value_map": null,
+    "default": null
+  },
+  "identity": {
+    "namespace": "synthetic_customer",
+    "customer_column": "CZ_LNK_KEY",
+    "link_method": "exact",
+    "confidence": 1.0
+  },
+  "dimensions": {
+    "age_band": {
+      "column": "YY10_AGELV_ID",
+      "semantic_type": "category",
+      "description": "10년 연령대",
+      "pii_classification": "none",
+      "masking": null
+    },
+    "sex": {
+      "column": "SEX_DV_CD",
+      "semantic_type": "category",
+      "description": "합성 성별 구분",
+      "pii_classification": "none",
+      "masking": null
+    }
+  },
+  "measures": {
+    "vas_amount_krw": {
+      "column": "SPPS_AMT",
+      "semantic_type": "integer",
+      "description": "부가서비스 금액",
+      "unit": "KRW"
+    },
+    "micropayment_amount_krw": {
+      "column": "SMLS_STLM_AMT",
+      "semantic_type": "integer",
+      "description": "소액결제 금액",
+      "unit": "KRW"
+    }
+  },
+  "status": "approved"
+}

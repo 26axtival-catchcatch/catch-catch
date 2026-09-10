@@ -1,0 +1,68 @@
+{
+  "source_id": "hackathon_voc",
+  "label": "해커톤 VOC",
+  "description": "앱 실패 이후 고객센터로 이동한 합성 상담 이력",
+  "timestamp_column": "CALL_CRTE_DTTM",
+  "timezone": "Asia/Seoul",
+  "event_type": {
+    "column": null,
+    "const": "voc",
+    "value_map": null,
+    "default": null
+  },
+  "action": {
+    "column": null,
+    "const": "contact_customer_service",
+    "value_map": null,
+    "default": null
+  },
+  "topic": {
+    "column": "CNSL_THMA_NM",
+    "const": null,
+    "value_map": null,
+    "default": null
+  },
+  "outcome": {
+    "column": "CUST_SNMT_NM",
+    "const": null,
+    "value_map": null,
+    "default": null
+  },
+  "text": {
+    "column": "CNSL_ALL_SMRY_CNTN",
+    "const": null,
+    "value_map": null,
+    "default": null
+  },
+  "identity": {
+    "namespace": "synthetic_customer",
+    "customer_column": "CZ_LNK_KEY",
+    "link_method": "exact",
+    "confidence": 1.0
+  },
+  "dimensions": {
+    "subject": {
+      "column": "CNSL_SBJC_TIT_NM",
+      "semantic_type": "category",
+      "description": "상담 주제",
+      "pii_classification": "none",
+      "masking": null
+    },
+    "resolution": {
+      "column": "CSLR_PRSS_CNTN",
+      "semantic_type": "category",
+      "description": "상담 처리 내용",
+      "pii_classification": "none",
+      "masking": null
+    }
+  },
+  "measures": {
+    "consult_seconds": {
+      "column": "CUST_CNSL_TM",
+      "semantic_type": "integer",
+      "description": "상담 시간",
+      "unit": "seconds"
+    }
+  },
+  "status": "approved"
+}

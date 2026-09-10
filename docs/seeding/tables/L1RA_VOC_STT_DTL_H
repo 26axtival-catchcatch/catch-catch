@@ -1,0 +1,241 @@
+기준일(파티션키)	P_YYYYMMDD	기준일(파티션키)	DATE	Y	1							L1RA_VOC_STT_DTL_H_CZ	P_YYYYMMDD
+
+CSZ연결키	CZ_LNK_KEY	CSZ연결키	INTEGER									L1RA_VOC_STT_DTL_H_CZ	CZ_LNK_KEY
+
+기준일자	BASE_DT	기준일자	STRING	Y	2							L1RA_VOC_STT_DTL_H_CZ	BASE_DT
+
+콜ID	CALL_ID	콜ID	STRING	Y	3							L1RA_VOC_STT_DTL_H_CZ	CALL_ID
+
+대리인ID	AGNT_ID	대리인ID	STRING										
+
+콜생성일시	CALL_CRTE_DTTM	콜생성일시	DATETIME										
+
+콜시작일자	CALL_STRT_DT	콜시작일자	STRING										
+
+콜시작시간	CALL_STRT_TM	콜시작시간	STRING										
+
+콜다음시작시간	CALL_NXT_STRT_TM	콜다음시작시간	STRING										
+
+콜종료일자	CALL_END_DT	콜종료일자	STRING										
+
+콜종료시간	CALL_END_TM	콜종료시간	STRING										
+
+고객상담시간	CUST_CNSL_TM	고객상담시간	INTEGER										
+
+고객연락전화번호	CUST_CNTT_TLNO	고객연락전화번호	STRING			Y	전화번호					L1RA_VOC_STT_DTL_H_CZ	CUST_CNTT_TLNO
+
+팀코드	TEAM_CD	팀코드	STRING										
+
+팀명	TEAM_NM	팀명	STRING										
+
+상담실코드	CSCT_CD	상담실코드	STRING										
+
+상담실명	CSCT_NM	상담실명	STRING										
+
+센터코드	CNTR_CD	센터코드	STRING										
+
+센터명	CNTR_NM	센터명	STRING										
+
+콜구분코드	CALL_DIVS_CD	콜구분코드	STRING										
+
+송수신구분코드	TRRC_DIVS_CD	송수신구분코드	STRING										
+
+STT텍스트내용	STT_TXT_CNTN	STT텍스트내용	STRING										
+
+문의내용	INQU_CNTN	문의내용	STRING										
+
+상담사처리내용	CSLR_PRSS_CNTN	상담사처리내용	STRING										
+
+상담사미처리내용	CSLR_UTRT_CNTN	상담사미처리내용	STRING										
+
+상담전체요약내용	CNSL_ALL_SMRY_CNTN	상담전체요약내용	STRING										
+
+고객감정명	CUST_SNMT_NM	고객감정명	STRING										
+
+상담주제제목명	CNSL_SBJC_TIT_NM	상담주제제목명	STRING										
+
+상담사처리미처리내용	CSLR_PRSS_UTRT_CNTN	상담사처리미처리내용	STRING										
+
+상담소분류코드	CNSL_SCLS_CD	상담소분류코드	STRING										
+
+상담테마명	CNSL_THMA_NM	상담테마명	STRING										
+
+테마상담신규여부	THMA_CNSL_BGN_YN	테마상담신규여부	STRING										
+
+상담테마요약내용	CNSL_THMA_SMRY_CNTN	상담테마요약내용	STRING										
+
+통합사용자ID	INTG_USER_ID	통합사용자ID	NUMERIC										
+
+서비스코드	SVC_CD	서비스코드	STRING	N									
+
+가입번호	ENTR_NO	가입번호	STRING			Y	가입번호					L1RA_VOC_STT_DTL_H_CZ	ENTR_NO
+
+고객번호	CUST_NO	고객번호	STRING			Y	고객번호(가입자번호)					L1RA_VOC_STT_DTL_H_CZ	CUST_NO
+
+상담응대건수	CNSL_RSPO_CNT	상담응대건수	INTEGER										
+
+01고객응대누적번호	N01_CUST_RSPO_SQNO	CALL_ID 에 매핑되는 1번 고객응대ID(CUST_RSPO_ID)	STRING										
+
+01고객응대시각	N01_CUST_RSPO_TME	CALL_ID 에 매핑되는 1번 고객응대ID의 고객응대시각	STRING										
+
+01통화자전화번호	N01_CLPR_TLNO	CALL_ID 에 매핑되는 1번 고객응대ID의 통화자전화번호	STRING										
+
+01응대소분류코드	N01_RSPO_SCLS_CD	CALL_ID 에 매핑되는 1번 고객응대ID의 응대소분류코드	STRING										
+
+01응대소분류명	N01_RSPO_SCLS_NM	"CALL_ID 에 매핑되는 1번 고객응대ID의 응대소분류명
+
+013252	문의_연체요금 문의
+
+110101	공통_잘못걸린 전화 (타사/타기관 등)
+
+110103	공통_다른번호(또는 상품) 문의
+
+110203	기타_자동이체 IT 장애관련 문의
+
+110204	기타_상품 유치 TM
+
+110205	기타_업무처리 이력작성용
+
+110206	공통_[Warm Hand Off] 리더개입
+
+110207	공통_증빙서류 발급
+
+110210	공통_리더개입 OB care
+
+…"	STRING										
+
+01고객응대메모내용	N01_CUST_RSPO_MEMO_CNTN	CALL_ID 에 매핑되는 1번 고객응대ID의 고객응대메모내용	STRING				메모					L1RA_VOC_STT_DTL_H_CZ	CUST_RSPO_MEMO_CNTN
+
+02고객응대누적번호	N02_CUST_RSPO_SQNO	CALL_ID 에 매핑되는 2번 고객응대ID(CUST_RSPO_ID)	STRING										
+
+02고객응대시각	N02_CUST_RSPO_TME	CALL_ID 에 매핑되는 2번 고객응대ID의 고객응대시각	STRING										
+
+02통화자전화번호	N02_CLPR_TLNO	CALL_ID 에 매핑되는 2번 고객응대ID의 통화자전화번호	STRING										
+
+02응대소분류코드	N02_RSPO_SCLS_CD	CALL_ID 에 매핑되는 2번 고객응대ID의 응대소분류코드	STRING										
+
+02응대소분류명	N02_RSPO_SCLS_NM	"CALL_ID 에 매핑되는 2번 고객응대ID의 응대소분류명
+
+013252	문의_연체요금 문의
+
+110101	공통_잘못걸린 전화 (타사/타기관 등)
+
+110103	공통_다른번호(또는 상품) 문의
+
+110203	기타_자동이체 IT 장애관련 문의
+
+110204	기타_상품 유치 TM
+
+110205	기타_업무처리 이력작성용
+
+110206	공통_[Warm Hand Off] 리더개입
+
+110207	공통_증빙서류 발급
+
+110210	공통_리더개입 OB care
+
+…"	STRING										
+
+02고객응대메모내용	N02_CUST_RSPO_MEMO_CNTN	CALL_ID 에 매핑되는 2번 고객응대ID의 고객응대메모내용	STRING				메모					L1RA_VOC_STT_DTL_H_CZ	CUST_RSPO_MEMO_CNTN
+
+03고객응대누적번호	N03_CUST_RSPO_SQNO	CALL_ID 에 매핑되는 3번 고객응대ID(CUST_RSPO_ID)	STRING										
+
+03고객응대시각	N03_CUST_RSPO_TME	CALL_ID 에 매핑되는 3번 고객응대ID의 고객응대시각	STRING										
+
+03통화자전화번호	N03_CLPR_TLNO	CALL_ID 에 매핑되는 3번 고객응대ID의 통화자전화번호	STRING										
+
+03응대소분류코드	N03_RSPO_SCLS_CD	CALL_ID 에 매핑되는 3번 고객응대ID의 응대소분류코드	STRING										
+
+03응대소분류명	N03_RSPO_SCLS_NM	"CALL_ID 에 매핑되는 3번 고객응대ID의 응대소분류명
+
+013252	문의_연체요금 문의
+
+110101	공통_잘못걸린 전화 (타사/타기관 등)
+
+110103	공통_다른번호(또는 상품) 문의
+
+110203	기타_자동이체 IT 장애관련 문의
+
+110204	기타_상품 유치 TM
+
+110205	기타_업무처리 이력작성용
+
+110206	공통_[Warm Hand Off] 리더개입
+
+110207	공통_증빙서류 발급
+
+110210	공통_리더개입 OB care
+
+…"	STRING										
+
+03고객응대메모내용	N03_CUST_RSPO_MEMO_CNTN	CALL_ID 에 매핑되는 3번 고객응대ID의 고객응대메모내용	STRING				메모					L1RA_VOC_STT_DTL_H_CZ	CUST_RSPO_MEMO_CNTN
+
+04고객응대누적번호	N04_CUST_RSPO_SQNO	CALL_ID 에 매핑되는 4번 고객응대ID(CUST_RSPO_ID)	STRING										
+
+04고객응대시각	N04_CUST_RSPO_TME	CALL_ID 에 매핑되는 4번 고객응대ID의 고객응대시각	STRING										
+
+04통화자전화번호	N04_CLPR_TLNO	CALL_ID 에 매핑되는 4번 고객응대ID의 통화자전화번호	STRING										
+
+04응대소분류코드	N04_RSPO_SCLS_CD	CALL_ID 에 매핑되는 4번 고객응대ID의 응대소분류코드	STRING										
+
+04응대소분류명	N04_RSPO_SCLS_NM	"CALL_ID 에 매핑되는 4번 고객응대ID의 응대소분류명
+
+013252	문의_연체요금 문의
+
+110101	공통_잘못걸린 전화 (타사/타기관 등)
+
+110103	공통_다른번호(또는 상품) 문의
+
+110203	기타_자동이체 IT 장애관련 문의
+
+110204	기타_상품 유치 TM
+
+110205	기타_업무처리 이력작성용
+
+110206	공통_[Warm Hand Off] 리더개입
+
+110207	공통_증빙서류 발급
+
+110210	공통_리더개입 OB care
+
+…"	STRING										
+
+04고객응대메모내용	N04_CUST_RSPO_MEMO_CNTN	CALL_ID 에 매핑되는 4번 고객응대ID의 고객응대메모내용	STRING				메모					L1RA_VOC_STT_DTL_H_CZ	CUST_RSPO_MEMO_CNTN
+
+05고객응대누적번호	N05_CUST_RSPO_SQNO	CALL_ID 에 매핑되는 5번 고객응대ID(CUST_RSPO_ID)	STRING										
+
+05고객응대시각	N05_CUST_RSPO_TME	CALL_ID 에 매핑되는 5번 고객응대ID의 고객응대시각	STRING										
+
+05통화자전화번호	N05_CLPR_TLNO	CALL_ID 에 매핑되는 5번 고객응대ID의 통화자전화번호	STRING										
+
+05응대소분류코드	N05_RSPO_SCLS_CD	CALL_ID 에 매핑되는 5번 고객응대ID의 응대소분류코드	STRING										
+
+05응대소분류명	N05_RSPO_SCLS_NM	"CALL_ID 에 매핑되는 5번 고객응대ID의 응대소분류명
+
+013252	문의_연체요금 문의
+
+110101	공통_잘못걸린 전화 (타사/타기관 등)
+
+110103	공통_다른번호(또는 상품) 문의
+
+110203	기타_자동이체 IT 장애관련 문의
+
+110204	기타_상품 유치 TM
+
+110205	기타_업무처리 이력작성용
+
+110206	공통_[Warm Hand Off] 리더개입
+
+110207	공통_증빙서류 발급
+
+110210	공통_리더개입 OB care
+
+…"	STRING										
+
+05고객응대메모내용	N05_CUST_RSPO_MEMO_CNTN	CALL_ID 에 매핑되는 5번 고객응대ID의 고객응대메모내용	STRING				메모					L1RA_VOC_STT_DTL_H_CZ	CUST_RSPO_MEMO_CNTN
+
+BQ적재일시	BQ_LOAD_DTTM	BQ적재일시	DATETIME									L1RA_VOC_STT_DTL_H_CZ	BQ_LOAD_DTTM
+
+BQ적재사용자ID	BQ_LOAD_USER_ID	BQ적재사용자ID	STRING									L1RA_VOC_STT_DTL_H_CZ	BQ_LOAD_USER_ID
+
+ 

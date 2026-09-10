@@ -1,0 +1,978 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>캐치캐치 · 분석 대기 화면 4개 안</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gasoek+One&family=IBM+Plex+Sans+KR:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --magenta:#ff2e98; --u-black:#22171c; --u-gray:#82817e; --u-light:#f4f4ee; --u-white:#fff;
+  --ground:var(--u-black);
+  --card:color-mix(in srgb,var(--u-black) 94%,var(--u-white));
+  --card-2:color-mix(in srgb,var(--u-black) 88%,var(--u-white));
+  --line:color-mix(in srgb,var(--u-black) 79%,var(--u-white));
+  --line-soft:color-mix(in srgb,var(--u-black) 87%,var(--u-white));
+  --chalk:var(--u-light);
+  --fog:color-mix(in srgb,var(--u-gray) 52%,var(--u-light));
+  --fog-dim:var(--u-gray);
+  --signal:var(--magenta);
+  --signal-soft:color-mix(in srgb,var(--magenta) 52%,var(--u-white));
+  --signal-wash:rgb(255 46 152 / 15%);
+  --signal-glow:rgb(255 46 152 / 45%);
+  --amber:#ffa62e; --amber-wash:rgb(255 166 46 / 13%);
+  --radius:14px; --radius-sm:8px;
+  --ease:cubic-bezier(.32,.72,0,1);
+  --font-body:"IBM Plex Sans KR",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --font-display:"Gasoek One",var(--font-body);
+  --font-mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+*{box-sizing:border-box}
+body{
+  margin:0; color:var(--chalk); font-family:var(--font-body); line-height:1.6;
+  background:
+    radial-gradient(circle at 50% -10%,rgb(255 46 152 / 14%),transparent 34rem),
+    radial-gradient(circle at 88% 8%,rgb(255 46 152 / 6%),transparent 26rem),
+    var(--ground);
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{width:min(100%,1380px); margin:0 auto; padding:2.5rem 1.5rem 5rem}
+header h1{margin:0 0 .4rem; font-family:var(--font-display); font-size:1.7rem; letter-spacing:-.01em}
+header p{margin:0; color:var(--fog); font-size:.88rem}
+.rubric{display:flex; flex-wrap:wrap; gap:.4rem; margin:1rem 0 0}
+.rubric span{font-size:.72rem; padding:.26rem .6rem; border:1px solid var(--line); border-radius:999px; color:var(--fog-dim)}
+.rubric span b{color:var(--signal); font-weight:600}
+
+nav{display:flex; flex-wrap:wrap; gap:.5rem; margin:2rem 0 1.4rem; border-bottom:1px solid var(--line-soft); padding-bottom:1.2rem}
+nav button{
+  background:var(--card); border:1px solid var(--line); color:var(--fog);
+  padding:.58rem .95rem; border-radius:999px; font-size:.83rem; cursor:pointer; transition:.15s;
+  display:flex; align-items:center; gap:.5rem; font-family:inherit;
+}
+nav button:hover{border-color:var(--fog-dim); color:var(--chalk)}
+nav button[aria-selected="true"]{background:var(--signal); border-color:var(--signal); color:var(--u-white); font-weight:600}
+nav button i{font-style:normal; opacity:.65; font-size:.74rem}
+
+.panel{display:none; grid-template-columns:minmax(0,1fr) 22rem; gap:1.6rem; align-items:start}
+.panel[data-on="1"]{display:grid}
+@media (max-width:1060px){ .panel[data-on="1"]{grid-template-columns:minmax(0,1fr)} }
+
+.frame{
+  position:relative; overflow:hidden;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--u-black) 96%,var(--u-white)),var(--u-black));
+  border:1px solid var(--line); border-radius:var(--radius); min-height:34rem;
+  display:flex; flex-direction:column;
+}
+.frame .q{
+  margin:1.3rem auto .2rem; max-width:min(40rem,90%); padding:.48rem 1.1rem;
+  border:1px solid var(--line); border-radius:999px; background:var(--card);
+  color:var(--fog); font-size:.79rem; text-align:center;
+}
+.stagearea{flex:1; min-height:0; display:flex; flex-direction:column; padding:1.2rem 1.4rem 1.3rem}
+.bar{display:flex; align-items:center; gap:.6rem; padding:.65rem 1.1rem; border-top:1px solid var(--line-soft); background:rgb(0 0 0 / 26%)}
+.bar button{background:var(--signal); color:var(--u-white); border:0; border-radius:999px; padding:.38rem .95rem; font-size:.76rem; font-weight:600; cursor:pointer; font-family:inherit}
+.bar button.ghost{background:transparent; border:1px solid var(--line); color:var(--fog-dim)}
+.bar .t{margin-left:auto; font-family:var(--font-mono); font-size:.71rem; color:var(--fog-dim)}
+
+/* 설명 카드 */
+.note{background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:1.2rem 1.25rem}
+.note h2{margin:0 0 .15rem; font-size:1.02rem}
+.note .sub{margin:0 0 1rem; color:var(--signal-soft); font-size:.77rem}
+.note h3{margin:1.05rem 0 .3rem; font-size:.68rem; letter-spacing:.08em; text-transform:uppercase; color:var(--fog-dim)}
+.note p,.note li{font-size:.81rem; color:var(--fog); margin:.22rem 0}
+.note ul{margin:.2rem 0; padding-left:1.05rem}
+.note b{color:var(--chalk); font-weight:600}
+.note .mono{font-family:var(--font-mono); font-size:.76rem}
+.score{display:flex; gap:.35rem; flex-wrap:wrap; margin-top:.35rem}
+.score span{font-size:.69rem; padding:.18rem .5rem; border-radius:6px; background:var(--signal-wash); color:var(--signal-soft); border:1px solid color-mix(in srgb,var(--signal) 30%,transparent)}
+.score span.warn{background:var(--amber-wash); color:var(--amber); border-color:color-mix(in srgb,var(--amber) 30%,transparent)}
+.cost{display:flex; gap:.5rem; align-items:center; margin-top:.4rem; font-size:.78rem; color:var(--fog)}
+.dots{letter-spacing:2px; color:var(--amber)}
+
+/* 공통 */
+.thought{font-size:.89rem; line-height:1.75; color:color-mix(in srgb,var(--fog) 78%,var(--chalk))}
+.thought.now{color:var(--chalk)}
+.mono{font-family:var(--font-mono)}
+.caret::after{content:"▍"; color:var(--signal); animation:blink 1s steps(2) infinite}
+@keyframes blink{50%{opacity:0}}
+.fadein{animation:fade .35s var(--ease) both}
+@keyframes fade{from{opacity:0; transform:translateY(8px)}}
+.spin{width:.78rem;height:.78rem;border-radius:50%;border:2px solid color-mix(in srgb,var(--signal) 28%,transparent); border-top-color:var(--signal); animation:sp .8s linear infinite; display:inline-block; flex:none}
+@keyframes sp{to{transform:rotate(360deg)}}
+
+/* ── "찾았다!" 버스트 (실제 HeartBurst 재현) ── */
+.burst{position:absolute; inset:0; display:grid; place-items:center; pointer-events:none; z-index:30}
+.burst[hidden]{display:none}
+.burst .flash{position:absolute; inset:0; background:radial-gradient(circle at 50% 50%,var(--signal) 0%,transparent 62%); opacity:0; animation:flash 1150ms var(--ease) forwards}
+@keyframes flash{0%{opacity:0}22%{opacity:.5}46%{opacity:.12}100%{opacity:0}}
+.burst svg{width:150px;height:150px;overflow:visible;z-index:1}
+.burst .heart{fill:var(--signal); transform-origin:50% 50%; filter:drop-shadow(0 0 34px var(--signal-glow)); animation:thump 1150ms var(--ease) forwards}
+@keyframes thump{0%{transform:scale(.18);opacity:0}16%{transform:scale(1.24);opacity:1}26%{transform:scale(.94)}36%{transform:scale(1.06)}52%{transform:scale(1);opacity:1}100%{transform:scale(7);opacity:0}}
+.burst .word{position:absolute; margin:0; font-family:var(--font-display); font-size:clamp(2rem,6vw,3rem); color:var(--u-white); z-index:2; animation:word 1150ms var(--ease) forwards}
+@keyframes word{0%,14%{opacity:0;transform:scale(.86)}24%{opacity:1;transform:scale(1.04)}34%{transform:scale(1)}72%{opacity:1}100%{opacity:0;transform:scale(1.1)}}
+
+/* ── A ── */
+#A .head{display:flex; align-items:center; gap:.6rem; margin-bottom:.9rem}
+#A .head .lbl{font-size:.85rem; font-weight:600}
+#A .head .sec{font-family:var(--font-mono); font-size:.73rem; color:var(--fog-dim)}
+#A .stream{flex:1; min-height:0; overflow:hidden; display:flex; flex-direction:column; justify-content:flex-end; gap:.8rem;
+  -webkit-mask-image:linear-gradient(to bottom,transparent 0,rgb(0 0 0/.25) 14%,#000 40%);
+  mask-image:linear-gradient(to bottom,transparent 0,rgb(0 0 0/.25) 14%,#000 40%)}
+#A .tool{font-family:var(--font-mono); font-size:.73rem; color:var(--fog-dim); display:flex; gap:.45rem}
+#A .tool b{color:var(--fog); font-weight:500}
+#A .fold{margin-top:.9rem; border-top:1px solid var(--line-soft); padding-top:.7rem; font-size:.76rem; color:var(--fog-dim)}
+
+/* ── B ── */
+#B .rail{flex:1; min-height:0; overflow:hidden}
+#B .row{display:grid; grid-template-columns:1.55rem minmax(0,1fr) auto; gap:.7rem; align-items:start; padding:.4rem 0; position:relative}
+#B .row::before{content:""; position:absolute; left:.74rem; top:1.5rem; bottom:-.4rem; width:1px; background:var(--line)}
+#B .row:last-child::before{display:none}
+#B .ic{width:1.55rem;height:1.55rem;border-radius:7px;display:grid;place-items:center;font-size:.68rem;background:var(--card-2); border:1px solid var(--line); z-index:1}
+#B .ic.run{border-color:var(--signal); color:var(--signal); animation:pulse 1.1s ease-in-out infinite}
+@keyframes pulse{50%{box-shadow:0 0 0 5px var(--signal-wash)}}
+#B .ic.ok{color:var(--signal-soft); border-color:color-mix(in srgb,var(--signal) 40%,transparent)}
+#B .nm em{font-style:normal; font-family:var(--font-mono); font-size:.79rem; color:var(--chalk)}
+#B .dt{font-size:.74rem; color:var(--fog-dim); margin-top:.08rem}
+#B .ms{font-family:var(--font-mono); font-size:.69rem; color:var(--fog-dim); padding-top:.25rem}
+#B .think{font-size:.79rem; color:var(--fog); font-style:italic}
+
+
+/* ── B' : 시그널 진행바 + 단계별 그룹 ── */
+#B2 .sigbar{width:100%; margin-bottom:.9rem}
+#B2 .sigbar svg{width:100%; height:2.4rem; display:block; overflow:visible}
+#B2 .sg{fill:none;stroke:var(--line);stroke-width:2}
+#B2 .sf{fill:none;stroke:var(--signal);stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round;
+  filter:drop-shadow(0 0 7px var(--signal-glow)); transition:stroke-dashoffset var(--dur,1500ms) linear}
+#B2 .siglb{display:flex; margin-top:.15rem}
+#B2 .siglb span{flex:1; text-align:center; font-size:.68rem; color:var(--fog-dim); transition:.3s}
+#B2 .siglb span[data-s="done"]{color:var(--fog)}
+#B2 .siglb span[data-s="run"]{color:var(--signal); font-weight:600}
+#B2 .phases{flex:1;min-height:0;display:flex;flex-direction:column;gap:.15rem;overflow:hidden}
+#B2 .ph{border-left:2px solid var(--line); padding-left:.85rem; transition:.3s}
+#B2 .ph[data-s="run"]{border-color:var(--signal)}
+#B2 .ph[data-s="done"]{border-color:color-mix(in srgb,var(--signal) 45%,transparent)}
+#B2 .ph>header{display:flex;align-items:center;gap:.5rem;font-size:.79rem;color:var(--fog-dim);padding:.28rem 0}
+#B2 .ph[data-s="run"]>header{color:var(--chalk);font-weight:600}
+#B2 .ph[data-s="done"]>header{color:var(--fog)}
+#B2 .ph>header .n{width:1.1rem;font-family:var(--font-mono);font-size:.7rem;color:var(--fog-dim)}
+#B2 .ph[data-s="run"]>header .n{color:var(--signal)}
+#B2 .ph .meta{margin-left:auto;font-family:var(--font-mono);font-size:.67rem;color:var(--fog-dim)}
+#B2 .items{display:flex;flex-direction:column;gap:.18rem;padding:0 0 .35rem}
+#B2 .items:empty{padding:0}
+#B2 .it{display:grid;grid-template-columns:1rem minmax(0,1fr) auto;gap:.5rem;align-items:start;font-size:.76rem}
+#B2 .it .i{color:var(--signal);font-size:.68rem;text-align:center;line-height:1.5}
+#B2 .it em{font-style:normal;font-family:var(--font-mono);font-size:.75rem;color:var(--chalk)}
+#B2 .it .d{color:var(--fog-dim);font-size:.71rem}
+#B2 .it .m{font-family:var(--font-mono);font-size:.65rem;color:var(--fog-dim);padding-top:.15rem}
+#B2 .it.th .d{color:var(--fog);font-style:italic}
+
+/* ── B'' : 포착 링 ── */
+#B3 .rail{flex:1; min-height:0; overflow:hidden}
+#B3 .row{display:grid; grid-template-columns:1.55rem minmax(0,1fr) auto; gap:.7rem; align-items:start; padding:.4rem 0; position:relative}
+#B3 .row::before{content:""; position:absolute; left:.74rem; top:1.5rem; bottom:-.4rem; width:1px; background:var(--line)}
+#B3 .row:last-child::before{display:none}
+#B3 .ic{width:1.55rem;height:1.55rem;border-radius:7px;display:grid;place-items:center;font-size:.68rem;background:var(--card-2); border:1px solid var(--line); z-index:1}
+#B3 .ic.run{border-color:var(--signal); color:var(--signal); animation:pulse 1.1s ease-in-out infinite}
+@keyframes pulse{50%{box-shadow:0 0 0 5px var(--signal-wash)}}
+#B3 .ic.ok{color:var(--signal-soft); border-color:color-mix(in srgb,var(--signal) 40%,transparent)}
+#B3 .nm em{font-style:normal; font-family:var(--font-mono); font-size:.79rem; color:var(--chalk)}
+#B3 .dt{font-size:.74rem; color:var(--fog-dim); margin-top:.08rem}
+#B3 .ms{font-family:var(--font-mono); font-size:.69rem; color:var(--fog-dim); padding-top:.25rem}
+#B3 .think{font-size:.79rem; color:var(--fog); font-style:italic}
+#B3 .ic.caught{border-color:var(--signal);color:var(--signal);background:var(--signal-wash);position:relative;overflow:visible}
+#B3 .ic .ripple{position:absolute;inset:-2px;border-radius:8px;border:2px solid var(--signal);
+  animation:ripple 1s var(--ease) 2 both; pointer-events:none}
+@keyframes ripple{0%{opacity:.85;transform:scale(1)}100%{opacity:0;transform:scale(2.8)}}
+#B3 .row.hit{border-radius:8px; animation:hit 1.1s var(--ease) both}
+@keyframes hit{0%{background:var(--signal-wash)}100%{background:transparent}}
+#B3 .caughtnm{color:var(--signal);font-size:.84rem;font-weight:600}
+#B3 .cnt{color:var(--signal)}
+
+
+/* ── B+ : 합본 ── */
+#BX .rail{flex:1; min-height:0; overflow:hidden}
+#BX .row{display:grid; grid-template-columns:1.55rem minmax(0,1fr) auto; gap:.7rem; align-items:start; padding:.4rem 0; position:relative}
+#BX .row::before{content:""; position:absolute; left:.74rem; top:1.5rem; bottom:-.4rem; width:1px; background:var(--line)}
+#BX .row:last-child::before{display:none}
+#BX .ic{width:1.55rem;height:1.55rem;border-radius:7px;display:grid;place-items:center;font-size:.68rem;background:var(--card-2); border:1px solid var(--line); z-index:1}
+#BX .ic.run{border-color:var(--signal); color:var(--signal); animation:pulse 1.1s ease-in-out infinite}
+@keyframes pulse{50%{box-shadow:0 0 0 5px var(--signal-wash)}}
+#BX .ic.ok{color:var(--signal-soft); border-color:color-mix(in srgb,var(--signal) 40%,transparent)}
+#BX .nm em{font-style:normal; font-family:var(--font-mono); font-size:.79rem; color:var(--chalk)}
+#BX .dt{font-size:.74rem; color:var(--fog-dim); margin-top:.08rem}
+#BX .ms{font-family:var(--font-mono); font-size:.69rem; color:var(--fog-dim); padding-top:.25rem}
+#BX .think{font-size:.79rem; color:var(--fog); font-style:italic}
+
+#BX .top{display:flex;align-items:center;gap:.7rem;margin-bottom:1.1rem}
+#BX .top .lead{font-size:.82rem;color:var(--chalk);display:flex;align-items:center;gap:.55rem;font-weight:600}
+#BX .top .step{font-family:var(--font-mono);font-size:.7rem;color:var(--fog-dim);font-weight:400}
+#BX .top .cnt{margin-left:auto;font-family:var(--font-mono);font-size:.7rem;color:var(--fog-dim)}
+#BX .top .cnt b{color:var(--signal);font-weight:500}
+#BX .pulse{display:grid;grid-template-columns:1.55rem minmax(0,1fr);gap:.7rem;align-items:center;padding:.05rem 0}
+#BX .pulse .pw{display:grid;place-items:center;height:2.7rem}
+#BX .pulse svg{width:1.55rem;height:2.7rem;overflow:visible;display:block}
+#BX .pulse path{fill:none;stroke:var(--signal);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;
+  filter:drop-shadow(0 0 7px var(--signal-glow));stroke-dasharray:100;stroke-dashoffset:100;
+  animation:drawv .85s var(--ease) forwards}
+@keyframes drawv{to{stroke-dashoffset:0}}
+#BX .ic.caught{border-color:var(--signal);color:var(--signal);background:var(--signal-wash);position:relative;overflow:visible}
+#BX .ic .ripple{position:absolute;inset:-2px;border-radius:7px;border:2px solid var(--signal);
+  animation:ripple 1s var(--ease) 2 both;pointer-events:none}
+#BX .row.hit{border-radius:8px;animation:hit 1.1s var(--ease) both}
+#BX .caughtnm{color:var(--signal);font-size:.84rem;font-weight:600}
+
+/* ── 시그널 효과 시안 ── */
+.fx{margin:1.2rem 0 1.8rem}
+.fx .fxcard{max-width:44rem}
+.fxcard{border:1px solid var(--line);border-radius:var(--radius);background:var(--card);overflow:hidden;display:flex;flex-direction:column}
+.fxcard h3{margin:0;padding:.85rem 1.1rem .2rem;font-size:.88rem}
+.fxcard .cap{margin:0;padding:0 1.1rem .9rem;font-size:.76rem;color:var(--fog-dim)}
+.fxstage{padding:1.1rem;background:linear-gradient(180deg,color-mix(in srgb,var(--u-black) 96%,var(--u-white)),var(--u-black));
+  border-top:1px solid var(--line-soft);border-bottom:1px solid var(--line-soft);min-height:15rem;display:flex;flex-direction:column;justify-content:center}
+.fxbar{display:flex;gap:.5rem;padding:.6rem 1.1rem;align-items:center}
+.fxbar button{background:var(--signal);color:var(--u-white);border:0;border-radius:999px;padding:.32rem .85rem;font-size:.73rem;font-weight:600;cursor:pointer;font-family:inherit}
+.fxbar button.ghost{background:transparent;border:1px solid var(--line);color:var(--fog-dim)}
+.fxbar .hint{margin-left:auto;font-size:.7rem;color:var(--fog-dim)}
+
+/* S1 : 질문 입력창 */
+.askrow{display:grid;grid-template-columns:minmax(1.5rem,1fr) minmax(0,23rem) minmax(1.5rem,1fr);
+  align-items:center;gap:.5rem}
+.wv{height:3.4rem;overflow:hidden}
+.wv svg{width:200%;height:100%;display:block;animation:flow 7s linear infinite}
+.wvL{-webkit-mask-image:linear-gradient(to right,transparent 0,#000 88%);mask-image:linear-gradient(to right,transparent 0,#000 88%)}
+.wvR{-webkit-mask-image:linear-gradient(to left,transparent 0,#000 88%);mask-image:linear-gradient(to left,transparent 0,#000 88%)}
+.wv path{fill:none;stroke:var(--signal);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;opacity:.3;
+  transform-origin:center;transform:scaleY(.16);transition:transform .5s var(--ease),opacity .5s}
+.askrow[data-typing="1"] .wv path{transform:scaleY(1);opacity:.62}
+.askrow[data-typing="1"] .wv svg{animation-duration:2.2s}
+@keyframes flow{to{transform:translateX(-50%)}}
+.askrow[data-send="1"] .wvL{animation:suckL .8s var(--ease) forwards}
+.askrow[data-send="1"] .wvR{animation:suckR .8s var(--ease) forwards}
+@keyframes suckL{to{opacity:0;transform:translateX(22%)}}
+@keyframes suckR{to{opacity:0;transform:translateX(-22%)}}
+.ask{border:1px solid var(--line);border-radius:var(--radius);background:var(--card-2);
+  padding:.85rem 1rem;display:flex;gap:.7rem;align-items:flex-end;transition:.4s var(--ease)}
+.askrow[data-focus="1"] .ask{border-color:color-mix(in srgb,var(--signal) 45%,var(--line))}
+.askrow[data-send="1"] .ask{transform:scale(.985);border-color:var(--signal);box-shadow:0 0 24px var(--signal-wash)}
+.ask textarea{flex:1;background:none;border:0;resize:none;color:var(--chalk);
+  font-family:inherit;font-size:.9rem;line-height:1.6;outline:none;height:3.2rem}
+.ask textarea::placeholder{color:var(--fog-dim)}
+.ask .go{flex:none;background:var(--signal);color:var(--u-white);border:0;
+  border-radius:999px;width:2.3rem;height:2.3rem;font-size:.9rem;cursor:pointer;font-family:inherit}
+.ask .go:disabled{background:var(--line);color:var(--fog-dim);cursor:default}
+.fxnote{font-size:.74rem;color:var(--fog-dim);margin:1rem 0 0;text-align:center;min-height:1.2rem}
+
+/* ── C : 좁혀지는 탐색 ── */
+#C .split{flex:1; min-height:0; display:grid; grid-template-columns:minmax(0,1fr) 15.5rem; gap:1.3rem}
+#C .col{min-height:0; display:flex; flex-direction:column}
+#C .ttl{font-size:.68rem; letter-spacing:.08em; text-transform:uppercase; color:var(--fog-dim); margin-bottom:.8rem; display:flex; gap:.5rem; align-items:center}
+#C .left{flex:1; overflow:hidden; display:flex; flex-direction:column; justify-content:flex-end; gap:.75rem;
+  -webkit-mask-image:linear-gradient(to bottom,transparent 0,#000 38%); mask-image:linear-gradient(to bottom,transparent 0,#000 38%)}
+#C .funnel{display:flex; flex-direction:column; gap:.1rem}
+#C .lv{padding:.45rem 0}
+#C .lv .top{display:flex; justify-content:space-between; align-items:baseline; gap:.5rem}
+#C .lv .lb{font-size:.75rem; color:var(--fog)}
+#C .lv .nu{font-family:var(--font-mono); font-size:.95rem; color:var(--chalk)}
+#C .lv .bg{height:7px; border-radius:4px; background:var(--card-2); margin-top:.35rem; overflow:hidden}
+#C .lv .fl{height:100%; border-radius:4px; background:color-mix(in srgb,var(--signal) 42%,transparent); width:0; transition:width .9s var(--ease)}
+#C .lv .dr{font-size:.68rem; color:var(--fog-dim); margin-top:.22rem; font-family:var(--font-mono)}
+#C .lv[data-last="1"] .nu{color:var(--signal); font-size:1.25rem; font-weight:600}
+#C .lv[data-last="1"] .fl{background:var(--signal); box-shadow:0 0 14px var(--signal-glow)}
+#C .lv[data-last="1"] .lb{color:var(--chalk)}
+#C .caught{margin-top:.7rem; border:1px solid color-mix(in srgb,var(--signal) 35%,transparent); background:var(--signal-wash);
+  border-radius:var(--radius-sm); padding:.5rem .65rem; font-size:.74rem; color:var(--signal-soft)}
+#C .tool{font-family:var(--font-mono); font-size:.72rem; color:var(--fog-dim)}
+
+/* ── D : 시그널 스코프 ── */
+#D .scope{flex:1; min-height:0; display:flex; flex-direction:column; justify-content:center; gap:1.1rem}
+#D .chips{display:flex; gap:.4rem; justify-content:center; height:1.6rem; overflow:hidden; align-items:center}
+#D .chip{font-family:var(--font-mono); font-size:.68rem; color:var(--fog-dim); border:1px solid var(--line);
+  border-radius:999px; padding:.16rem .6rem; white-space:nowrap; animation:slidein .4s var(--ease) both; background:var(--card)}
+#D .chip.live{border-color:var(--signal); color:var(--signal-soft)}
+@keyframes slidein{from{opacity:0; transform:translateX(16px)}}
+#D .beatbox{position:relative; width:100%}
+#D .beat{width:100%; height:8.5rem; display:block; overflow:visible}
+#D .ghost{fill:none; stroke:var(--line); stroke-width:2}
+#D .seg{fill:none; stroke:var(--signal); stroke-width:3.4; stroke-linecap:round; stroke-linejoin:round;
+  filter:drop-shadow(0 0 8px var(--signal-glow)); transition:stroke-dashoffset var(--dur,1400ms) linear}
+#D .pop{position:absolute; transform:translate(-50%,-100%); font-size:.72rem; white-space:nowrap;
+  color:var(--u-white); background:var(--signal); border-radius:999px; padding:.16rem .6rem;
+  animation:pop 2.4s var(--ease) both; font-weight:600; box-shadow:0 0 18px var(--signal-glow)}
+@keyframes pop{0%{opacity:0; transform:translate(-50%,-70%) scale(.7)}12%{opacity:1; transform:translate(-50%,-100%) scale(1.06)}20%{transform:translate(-50%,-100%) scale(1)}78%{opacity:1}100%{opacity:0; transform:translate(-50%,-130%) scale(.96)}}
+#D .ring{position:absolute; width:14px;height:14px;margin:-7px 0 0 -7px; border-radius:50%; border:2px solid var(--signal); animation:ring 1.1s var(--ease) both}
+@keyframes ring{0%{opacity:1; transform:scale(.3)}100%{opacity:0; transform:scale(4.5)}}
+#D .now{text-align:center; font-size:.87rem; min-height:3.2rem; color:var(--chalk); max-width:38rem; margin:0 auto; padding:0 1rem}
+#D .steps{display:flex; justify-content:space-between; max-width:34rem; margin:.2rem auto 0; width:100%}
+#D .steps li{list-style:none; font-size:.68rem; color:var(--fog-dim); display:flex; flex-direction:column; align-items:center; gap:.3rem}
+#D .steps li[data-s="done"]{color:var(--fog)}
+#D .steps li[data-s="run"]{color:var(--signal)}
+#D .steps .tick{width:6px;height:6px;border-radius:50%;background:var(--line)}
+#D .steps li[data-s="done"] .tick{background:var(--signal-soft)}
+#D .steps li[data-s="run"] .tick{background:var(--signal); box-shadow:0 0 0 4px var(--signal-wash)}
+
+/* 비교표 */
+.compare{margin-top:3rem; border-top:1px solid var(--line-soft); padding-top:2rem}
+.compare h2{font-size:1.05rem; margin:0 0 1rem}
+table{width:100%; border-collapse:collapse; font-size:.81rem}
+th,td{text-align:left; padding:.58rem .7rem; border-bottom:1px solid var(--line-soft); vertical-align:top}
+th{color:var(--fog-dim); font-size:.68rem; letter-spacing:.06em; text-transform:uppercase; font-weight:500}
+td{color:var(--fog)} td b{color:var(--chalk)}
+tr.pick td{background:var(--signal-wash)}
+tr.pick td:first-child{box-shadow:inset 2px 0 0 var(--signal)}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>분석 대기 화면 — 4개 안</h1>
+  <p>같은 백엔드 이벤트(<span class="mono">goal_created → plan_created → step_* → fact_created → report_validating → done</span>)를 4가지로 다르게 그린 목업입니다. 팔레트·심박·"찾았다!" 연출은 현재 서비스 코드에서 그대로 가져왔습니다.</p>
+  <div class="rubric">
+    <span>문제정의/독창성 <b>25</b></span>
+    <span>Agent 설계/자율성 <b>15</b></span>
+    <span>완성도/신뢰성 <b>30</b></span>
+    <span>업무 효과성/확장성 <b>20</b></span>
+    <span>발표/전달력 <b>10</b></span>
+  </div>
+</header>
+
+<nav id="tabs">
+  <button data-v="A" aria-selected="true">A · 사고 스트림 <i>Thinking</i></button>
+  <button data-v="B" aria-selected="false">B · 툴 콜 레일 <i>Agent Trace</i></button>
+  <button data-v="B2" aria-selected="false">B′ · 단계별 레일 <i>시그널 진행바</i></button>
+  <button data-v="B3" aria-selected="false">B″ · 포착 레일 <i>스파크 링</i></button>
+  <button data-v="BX" aria-selected="false">B+ · 합본 <i>B′ + B″</i></button>
+  <button data-v="C" aria-selected="false">C · 좁혀지는 탐색 <i>Narrowing</i></button>
+  <button data-v="D" aria-selected="false">D · 시그널 스코프 <i>심박 + 사고 + 툴</i></button>
+</nav>
+
+<!-- A -->
+<section class="panel" data-on="1" id="pA">
+  <div class="frame" id="A">
+    <p class="q">최근 4주, 20대 고객 중 해지 위험이 커진 세그먼트를 찾아줘</p>
+    <div class="stagearea">
+      <div class="head"><span class="spin"></span><span class="lbl" data-lbl>질문을 해석하는 중</span><span class="sec" data-sec>0s</span></div>
+      <div class="stream" data-stream></div>
+      <div class="fold" data-fold hidden>▸ 생각 과정 <span data-foldsec>0</span>s · 도구 호출 <span data-foldtool>0</span>회 — 펼쳐보기</div>
+    </div>
+    <div class="burst" data-burst hidden><div class="flash"></div><svg viewBox="0 0 100 100"><path class="heart" d="M50 86C24 68 8 52 8 34.5 8 21.5 18 12 30 12c8 0 15 4.4 20 12 5-7.6 12-12 20-12 12 0 22 9.5 22 22.5C92 52 76 68 50 86Z"/></svg><p class="word">찾았다!</p></div>
+    <div class="bar"><button data-play>재생</button><button class="ghost" data-reset>처음부터</button><span class="t" data-clock>00.0s</span></div>
+  </div>
+  <aside class="note">
+    <h2>A · 사고 스트림</h2>
+    <p class="sub">Claude/GPT의 "Thought for 48s" 방식</p>
+    <h3>무엇을 보여주나</h3>
+    <p>LLM이 실제로 한 <b>1인칭 추론 문장</b>이 타이핑되며 흐릅니다. 도구 호출은 사이사이 회색 한 줄로 끼어들고, 끝나면 <b>"생각 과정 24s · 도구 5회"</b>로 접혀 결과 화면 위에 남습니다.</p>
+    <h3>핵심 연출</h3>
+    <ul>
+      <li>"해지 위험 컬럼이 없다 → 대리 지표로 바꾼다" 같은 <b>판단의 근거</b>가 노출됨</li>
+      <li>지나간 문장은 위로 흐려지고 현재 문장만 선명 — 지금 로그 뷰포트 구조 그대로</li>
+      <li>접힌 블록은 결과 화면에서 다시 펼침 → 발표 중 되돌아가기 쉬움</li>
+    </ul>
+    <h3>컨셉</h3>
+    <p>마지막 <b>"찾았다!"</b>만 유지. 진행 중에는 심박이 사라져 시그널 컨셉이 <b>끊깁니다</b>.</p>
+    <h3>심사 기준</h3>
+    <div class="score"><span>완성도/신뢰성 ◎</span><span>전달력 ◎</span><span class="warn">독창성 △</span><span class="warn">자율성 △</span></div>
+    <h3>구현 비용</h3>
+    <div class="cost"><span class="dots">●●○○○</span> 낮음 — 로그 뷰포트에 <span class="mono">thought</span> 이벤트만 추가</div>
+  </aside>
+</section>
+
+<!-- B -->
+<section class="panel" id="pB">
+  <div class="frame" id="B">
+    <p class="q">최근 4주, 20대 고객 중 해지 위험이 커진 세그먼트를 찾아줘</p>
+    <div class="stagearea">
+      <div style="display:flex;gap:.6rem;align-items:center;margin-bottom:.9rem">
+        <span class="spin"></span><span class="mono" style="font-size:.73rem;color:var(--fog)" data-sum>도구 0개 실행 · 소스 0개 조회</span>
+      </div>
+      <div class="rail" data-rail></div>
+    </div>
+    <div class="burst" data-burst hidden><div class="flash"></div><svg viewBox="0 0 100 100"><path class="heart" d="M50 86C24 68 8 52 8 34.5 8 21.5 18 12 30 12c8 0 15 4.4 20 12 5-7.6 12-12 20-12 12 0 22 9.5 22 22.5C92 52 76 68 50 86Z"/></svg><p class="word">찾았다!</p></div>
+    <div class="bar"><button data-play>재생</button><button class="ghost" data-reset>처음부터</button><span class="t" data-clock>00.0s</span></div>
+  </div>
+  <aside class="note">
+    <h2>B · 툴 콜 레일</h2>
+    <p class="sub">Claude Code의 Bash / Searching 리스트 방식</p>
+    <h3>무엇을 보여주나</h3>
+    <p>에이전트가 호출한 <b>primitive를 실제 이름 그대로</b> 세로 레일에 쌓습니다. <span class="mono">aggregate_events</span>, <span class="mono">compare_segments</span> … 각 줄에 인자 요약·소요 ms·반환 행 수가 붙습니다.</p>
+    <h3>핵심 연출</h3>
+    <ul>
+      <li>"진짜 실행 중"이라는 인상이 가장 강함 — 가짜 로딩과 확실히 구분</li>
+      <li>상단에 <b>도구 N개 실행 · 소스 M개 조회</b> 카운터 누적</li>
+      <li>계획 수정·주장 기각도 같은 레일에 한 줄로 들어감</li>
+    </ul>
+    <h3>컨셉</h3>
+    <p>마지막 <b>"찾았다!"</b>만 유지. 개발자 도구처럼 보여 브랜드 톤과 가장 <b>멉니다</b>.</p>
+    <h3>심사 기준</h3>
+    <div class="score"><span>Agent 설계 ◎</span><span>신뢰성 ◎</span><span class="warn">독창성 △</span></div>
+    <h3>구현 비용</h3>
+    <div class="cost"><span class="dots">●○○○○</span> 최저 — <span class="mono">step_started/completed</span> 페이로드가 이미 다 있음. 백엔드 변경 0</div>
+  </aside>
+</section>
+
+<!-- B' -->
+<section class="panel" id="pB2">
+  <div class="frame" id="B2">
+    <p class="q">최근 4주, 20대 고객 중 해지 위험이 커진 세그먼트를 찾아줘</p>
+    <div class="stagearea">
+      <div class="sigbar">
+        <svg viewBox="0 0 1000 60" preserveAspectRatio="none" aria-hidden="true">
+          <path class="sg" d="M0 30 H1000"/><g data-segs></g>
+        </svg>
+        <div class="siglb" data-lb><span data-s="wait">해석</span><span data-s="wait">계획</span><span data-s="wait">분석</span><span data-s="wait">인사이트</span><span data-s="wait">검증</span></div>
+      </div>
+      <div class="phases" data-phases></div>
+    </div>
+    <div class="burst" data-burst hidden><div class="flash"></div><svg viewBox="0 0 100 100"><path class="heart" d="M50 86C24 68 8 52 8 34.5 8 21.5 18 12 30 12c8 0 15 4.4 20 12 5-7.6 12-12 20-12 12 0 22 9.5 22 22.5C92 52 76 68 50 86Z"/></svg><p class="word">찾았다!</p></div>
+    <div class="bar"><button data-play>재생</button><button class="ghost" data-reset>처음부터</button><span class="t" data-clock>00.0s</span></div>
+  </div>
+  <aside class="note">
+    <h2>B′ · 단계별 레일</h2>
+    <p class="sub">B + 시그널 진행바 + 5단계 세로 그룹</p>
+    <h3>바뀐 점</h3>
+    <ul>
+      <li><b>진행바가 심박 파형</b> — 막대 대신 5개 박동이 왼쪽부터 그려짐. 브랜드 마크의 파형과 같은 형태</li>
+      <li><b>해석·계획·분석·인사이트·검증이 항상 5줄로 보임</b> — 툴 콜이 자기 단계 아래에 들여쓰기로 붙음</li>
+      <li>끝난 단계는 접히고 <span class="mono">도구 2 · 4.6s ✓</span> 요약만 남음. 현재 단계만 펼쳐짐</li>
+    </ul>
+    <h3>해결한 문제</h3>
+    <p>B는 줄이 계속 흘러 <b>지금 어디쯤인지</b>를 알 수 없었습니다. 5단계 골격을 고정하니 전체 프로세스와 현재 위치가 동시에 보입니다.</p>
+    <h3>심사 기준</h3>
+    <div class="score"><span>Agent 설계 ◎</span><span>신뢰성 ◎</span><span>전달력 ◎</span></div>
+    <h3>구현 비용</h3>
+    <div class="cost"><span class="dots">●●○○○</span> 낮음 — 이벤트를 <span class="mono">stage</span>로 그룹핑 + 파형 진행바</div>
+  </aside>
+</section>
+
+<!-- B'' -->
+<section class="panel" id="pB3">
+  <div class="frame" id="B3">
+    <p class="q">최근 4주, 20대 고객 중 해지 위험이 커진 세그먼트를 찾아줘</p>
+    <div class="stagearea">
+      <div style="display:flex;gap:.6rem;align-items:center;margin-bottom:.9rem">
+        <span class="spin"></span><span class="mono" style="font-size:.73rem;color:var(--fog)" data-sum>도구 0개 · 소스 0개 · <span class="cnt">포착 0</span></span>
+      </div>
+      <div class="rail" data-rail></div>
+    </div>
+    <div class="burst" data-burst hidden><div class="flash"></div><svg viewBox="0 0 100 100"><path class="heart" d="M50 86C24 68 8 52 8 34.5 8 21.5 18 12 30 12c8 0 15 4.4 20 12 5-7.6 12-12 20-12 12 0 22 9.5 22 22.5C92 52 76 68 50 86Z"/></svg><p class="word">찾았다!</p></div>
+    <div class="bar"><button data-play>재생</button><button class="ghost" data-reset>처음부터</button><span class="t" data-clock>00.0s</span></div>
+  </div>
+  <aside class="note">
+    <h2>B″ · 포착 레일</h2>
+    <p class="sub">B + D의 스파크 링을 레일 위로</p>
+    <h3>바뀐 점</h3>
+    <p>사실이 하나 확인될 때마다 해당 줄에서 <b>마젠타 링이 두 번 퍼지고</b> 행 전체가 한 번 물듭니다. 줄 제목은 <b>포착 · VOC +38%</b>.</p>
+    <h3>왜 여기가 맞나</h3>
+    <ul>
+      <li>D는 링이 예뻤지만 <b>어디서 왜 터졌는지</b>가 안 보였습니다. 레일 위에서는 <b>어느 도구가 무엇을 찾았는지</b>가 같은 줄에 남습니다</li>
+      <li>포착 순간이 로그로 남아 <b>스크롤해서 되짚을 수 있음</b> — 발표 중 되돌아가기 좋음</li>
+      <li>상단 카운터에 <b>포착 N</b>이 쌓여 "몇 개를 찾았는지"가 숫자로 누적</li>
+    </ul>
+    <h3>심사 기준</h3>
+    <div class="score"><span>독창성 ◎</span><span>신뢰성 ◎</span><span>전달력 ◎</span></div>
+    <h3>구현 비용</h3>
+    <div class="cost"><span class="dots">●●○○○</span> 낮음 — <span class="mono">fact_created</span>에 짧은 라벨 1개 + CSS 애니메이션</div>
+  </aside>
+</section>
+
+<!-- B+ -->
+<section class="panel" id="pBX">
+  <div class="frame" id="BX">
+    <p class="q">최근 4주, 20대 고객 중 해지 위험이 커진 세그먼트를 찾아줘</p>
+    <div class="stagearea">
+      <div class="top">
+        <span class="lead"><span class="spin"></span> <span data-cur>질문 해석</span></span>
+        <span class="step" data-step>1 / 5</span>
+        <span class="cnt" data-sum>도구 0 · 소스 0 · <b>포착 0</b></span>
+      </div>
+      <div class="rail" data-rail></div>
+    </div>
+    <div class="burst" data-burst hidden><div class="flash"></div><svg viewBox="0 0 100 100"><path class="heart" d="M50 86C24 68 8 52 8 34.5 8 21.5 18 12 30 12c8 0 15 4.4 20 12 5-7.6 12-12 20-12 12 0 22 9.5 22 22.5C92 52 76 68 50 86Z"/></svg><p class="word">찾았다!</p></div>
+    <div class="bar"><button data-play>재생</button><button class="ghost" data-reset>처음부터</button><span class="t" data-clock>00.0s</span></div>
+  </div>
+  <aside class="note">
+    <h2>B+ · 합본</h2>
+    <p class="sub">세로 파형 + 포착 링, 구분선 없음</p>
+    <h3>중복을 어떻게 없앴나</h3>
+    <p>B′는 <b>파형 아래 라벨 5개</b>와 <b>섹션 헤더 5개</b>가 같은 단어를 두 번 썼습니다. 합본은 각 정보를 한 곳에서만 씁니다.</p>
+    <ul>
+      <li><b>현재 단계</b> — 좌상단에 이름 하나 + <span class="mono">3 / 5</span>. 레일 안에는 글자가 없음</li>
+      <li><b>단계 전환</b> — 레일의 세로 연결선 자리에 <b>시그널 파형이 세로로 한 번 뜁니다.</b> 구분선도 라벨도 없음</li>
+      <li><b>카운터</b> — 우상단에 <span class="mono">도구 5 · 소스 4 · 포착 4</span> 하나만</li>
+    </ul>
+    <h3>세로 파형이 하는 일</h3>
+    <p>평소 레일은 얇은 직선입니다. 단계가 넘어갈 때만 그 자리에서 박동이 그려져 <b>화면이 심전도 그 자체</b>가 됩니다. 가로 진행바를 따로 둘 필요가 없어졌습니다.</p>
+    <h3>심사 기준</h3>
+    <div class="score"><span>Agent 설계 ◎</span><span>신뢰성 ◎◎</span><span>독창성 ◎</span><span>전달력 ◎</span></div>
+    <h3>구현 비용</h3>
+    <div class="cost"><span class="dots">●●○○○</span> 낮음 — B″ + 파형 SVG + 구분선</div>
+  </aside>
+</section>
+
+<!-- C -->
+<section class="panel" id="pC">
+  <div class="frame" id="C">
+    <p class="q">최근 4주, 20대 고객 중 해지 위험이 커진 세그먼트를 찾아줘</p>
+    <div class="stagearea">
+      <div class="split">
+        <div class="col">
+          <div class="ttl"><span class="spin"></span> 생각하는 중</div>
+          <div class="left" data-stream></div>
+        </div>
+        <div class="col">
+          <div class="ttl">탐색 범위</div>
+          <div class="funnel" data-funnel></div>
+          <div class="caught" data-caught hidden></div>
+        </div>
+      </div>
+    </div>
+    <div class="burst" data-burst hidden><div class="flash"></div><svg viewBox="0 0 100 100"><path class="heart" d="M50 86C24 68 8 52 8 34.5 8 21.5 18 12 30 12c8 0 15 4.4 20 12 5-7.6 12-12 20-12 12 0 22 9.5 22 22.5C92 52 76 68 50 86Z"/></svg><p class="word">찾았다!</p></div>
+    <div class="bar"><button data-play>재생</button><button class="ghost" data-reset>처음부터</button><span class="t" data-clock>00.0s</span></div>
+  </div>
+  <aside class="note">
+    <h2>C · 좁혀지는 탐색</h2>
+    <p class="sub">이전 안의 "사실 카드"를 <b>범위 축소</b>로 교체</p>
+    <h3>왜 바꿨나</h3>
+    <p>사실 카드는 결과 화면과 중복입니다. 대신 <b>결과 화면에는 절대 없는 정보</b>인 "몇 명에서 몇 명으로 좁혀졌는가"를 오른쪽에 둡니다.</p>
+    <h3>무엇을 보여주나</h3>
+    <p><span class="mono">84,120 → 12,400 → 1,204 → 745명</span>. 막대가 줄고 숫자가 카운트다운하며, 각 단계마다 <b>몇 명이 왜 빠졌는지</b>가 붙습니다.</p>
+    <h3>핵심 연출</h3>
+    <ul>
+      <li><b>"찾는다"는 서비스 컨셉이 숫자로 물리화</b> — 8만 명에서 745명으로 좁혀지는 게 눈에 보임</li>
+      <li>마지막 745명이 마젠타로 확정되는 순간 곧바로 <b>"찾았다!"</b>로 연결</li>
+      <li>제외 사유가 남아 "임의로 고른 게 아니다"를 증명</li>
+    </ul>
+    <h3>심사 기준</h3>
+    <div class="score"><span>독창성 ◎</span><span>신뢰성 ◎</span><span>업무 효과성 ◎</span></div>
+    <h3>구현 비용</h3>
+    <div class="cost"><span class="dots">●●●○○</span> 중간 — 2단 레이아웃(모바일은 상하) + 카운트다운</div>
+    <h3>필요한 백엔드</h3>
+    <p>스텝마다 <span class="mono">candidate_count</span> + 제외 사유를 이벤트에 실어야 함</p>
+  </aside>
+</section>
+
+<!-- D -->
+<section class="panel" id="pD">
+  <div class="frame" id="D">
+    <p class="q">최근 4주, 20대 고객 중 해지 위험이 커진 세그먼트를 찾아줘</p>
+    <div class="stagearea">
+      <div class="scope">
+        <div class="chips" data-chips></div>
+        <div class="beatbox" data-box>
+          <svg class="beat" viewBox="0 0 1000 180" preserveAspectRatio="none" aria-hidden="true">
+            <path class="ghost" d="M0 90 H1000"/>
+            <g data-segs></g>
+          </svg>
+        </div>
+        <p class="now" data-now>신호를 잡는 중…</p>
+        <ol class="steps" data-steps>
+          <li data-s="wait"><span class="tick"></span>해석</li>
+          <li data-s="wait"><span class="tick"></span>계획</li>
+          <li data-s="wait"><span class="tick"></span>분석</li>
+          <li data-s="wait"><span class="tick"></span>인사이트</li>
+          <li data-s="wait"><span class="tick"></span>검증</li>
+        </ol>
+      </div>
+    </div>
+    <div class="burst" data-burst hidden><div class="flash"></div><svg viewBox="0 0 100 100"><path class="heart" d="M50 86C24 68 8 52 8 34.5 8 21.5 18 12 30 12c8 0 15 4.4 20 12 5-7.6 12-12 20-12 12 0 22 9.5 22 22.5C92 52 76 68 50 86Z"/></svg><p class="word">찾았다!</p></div>
+    <div class="bar"><button data-play>재생</button><button class="ghost" data-reset>처음부터</button><span class="t" data-clock>00.0s</span></div>
+  </div>
+  <aside class="note">
+    <h2>D · 시그널 스코프</h2>
+    <p class="sub">지금 심박 화면을 뼈대로 A·B를 얹은 안</p>
+    <h3>구조</h3>
+    <ul>
+      <li><b>위</b> — 툴 호출이 마젠타 칩으로 오른쪽에서 흘러들어옴 (B)</li>
+      <li><b>가운데</b> — 지금 그대로의 심박 라인. 5개 박동 = 5단계</li>
+      <li><b>아래</b> — 사고 문장이 타이핑됨 (A)</li>
+    </ul>
+    <h3>킬링 포인트</h3>
+    <p>사실이 하나 확인될 때마다 <b>박동 피크에서 스파크가 터지고 "VOC +38%" 같은 포착 라벨이 튀어오릅니다.</b> 미니 포착 4번이 쌓이다가 마지막에 대형 <b>"찾았다!"</b>로 터집니다.</p>
+    <p>즉 <b>"찾았다"가 끝에 한 번</b>이 아니라, <b>화면 전체가 신호를 좇는 과정</b>이 됩니다.</p>
+    <h3>컨셉 일관성</h3>
+    <p>심박·마젠타·포착 연출을 <b>버리지 않고</b> 사고 과정과 툴 호출을 모두 담는 유일한 안입니다.</p>
+    <h3>심사 기준</h3>
+    <div class="score"><span>독창성 ◎◎</span><span>신뢰성 ◎</span><span>전달력 ◎◎</span><span>자율성 ○</span></div>
+    <h3>구현 비용</h3>
+    <div class="cost"><span class="dots">●●●○○</span> 중간 — <span class="mono">HeartbeatSteps</span> 유지 + 칩 레일·스파크 팝 추가</div>
+    <h3>필요한 백엔드</h3>
+    <p>A와 동일(<span class="mono">analysis_note</span> 스트리밍) + fact에 짧은 라벨 1개</p>
+  </aside>
+</section>
+
+<div class="compare">
+  <h2>한눈 비교</h2>
+  <table>
+    <thead><tr><th>안</th><th>가장 크게 얻는 점수</th><th>컨셉(시그널·찾았다)</th><th>약점</th><th>구현</th></tr></thead>
+    <tbody>
+      <tr><td><b>A 사고 스트림</b></td><td>신뢰성 30 · 전달력 10</td><td>끝에만 남음</td><td>어느 서비스에나 있는 화면</td><td>낮음</td></tr>
+      <tr><td><b>B 툴 콜 레일</b></td><td>Agent 설계 15 · 신뢰성 30</td><td>끝에만 남음</td><td>개발자 도구처럼 보임</td><td>최저 (백엔드 0)</td></tr>
+      <tr><td><b>B′ 단계별 레일</b></td><td>Agent 설계 15 · 신뢰성 30</td><td>파형 진행바</td><td>포착 순간의 임팩트 없음</td><td>낮음</td></tr>
+      <tr><td><b>B″ 포착 레일</b></td><td>독창성 25 · 신뢰성 30</td><td>포착 링이 매번 터짐</td><td>현재 위치를 알기 어려움</td><td>낮음</td></tr>
+      <tr class="pick"><td><b>B+ 합본</b></td><td>신뢰성 30 · 독창성 25 · 설계 15</td><td>세로 파형 + 포착 링</td><td>—</td><td>낮음</td></tr>
+      <tr><td><b>C 좁혀지는 탐색</b></td><td>독창성 25 · 업무 효과성 20</td><td>범위 축소 = "찾는 중"</td><td>후보 수 이벤트 신설 필요</td><td>중간</td></tr>
+      <tr><td><b>D 시그널 스코프</b></td><td>독창성 25 · 전달력 10 · 신뢰성 30</td><td><b>처음부터 끝까지 유지</b></td><td>정보 밀도는 B보다 낮음</td><td>중간</td></tr>
+    </tbody>
+  </table>
+  <p style="font-size:.85rem;color:var(--fog);margin-top:1.1rem">
+    <b style="color:var(--chalk)">추천 —</b> <b style="color:var(--signal)">B+ 합본.</b>
+    현재 단계는 좌상단 한 곳에만 두고, 단계 전환은 레일의 세로 파형 한 번으로 표현해 반복되는 글자가 없습니다.
+    평소엔 얇은 직선이다가 단계가 넘어갈 때 박동이 뛰고, 사실이 확인되면 링이 터집니다 — <b>화면 자체가 심전도</b>가 됩니다.
+    </p>
+
+
+
+    <h2 style="font-size:1.05rem;margin:2.6rem 0 .3rem">시그널 효과 — 다른 화면 적용 시안</h2>
+<p style="font-size:.8rem;color:var(--fog-dim);margin:0 0 .2rem">제안 중 <b style="color:var(--chalk)">질문 입력창</b>을 목업으로 만들었습니다.</p>
+<div class="fx">
+  <div class="fxcard" id="S1">
+    <h3>① 질문 입력창 — 신호를 쏘아 보낸다</h3>
+    <p class="cap">파형을 입력창 <b>바깥 좌우</b>에 두고 양끝을 비네팅으로 흐립니다. 입력을 시작하면 진폭이 커지고, 전송하면 양쪽 파형이 입력창 안으로 빨려 들어갑니다.</p>
+    <div class="fxstage">
+      <div class="askrow" data-typing="0" data-focus="0" data-send="0">
+        <div class="wv wvL"><svg viewBox="0 0 400 60" preserveAspectRatio="none"><path d="M0 30 H34 l5 -6 l4 6 H60 l5 -22 l8 42 l6 -27 l5 7 H110 l6 -6 l5 6 H200 H234 l5 -6 l4 6 H260 l5 -22 l8 42 l6 -27 l5 7 H310 l6 -6 l5 6 H400"/></svg></div>
+        <div class="ask">
+          <textarea placeholder="어떤 신호를 찾아드릴까요?"></textarea>
+          <button class="go" disabled aria-label="캐치">↑</button>
+        </div>
+        <div class="wv wvR"><svg viewBox="0 0 400 60" preserveAspectRatio="none"><path d="M0 30 H34 l5 -6 l4 6 H60 l5 -22 l8 42 l6 -27 l5 7 H110 l6 -6 l5 6 H200 H234 l5 -6 l4 6 H260 l5 -22 l8 42 l6 -27 l5 7 H310 l6 -6 l5 6 H400"/></svg></div>
+      </div>
+      <p class="fxnote" data-note>유휴 상태 — 파형이 거의 평평하게 흐릅니다</p>
+    </div>
+    <div class="fxbar"><button data-demo>자동 시연</button><button class="ghost" data-clear>비우기</button><span class="hint">직접 입력해도 됩니다</span></div>
+  </div>
+
+</div>
+
+<h2 style="font-size:1.05rem;margin:2.2rem 0 .8rem">나머지 제안 (미구현)</h2>
+    <ol style="font-size:.83rem;color:var(--fog);padding-left:1.2rem;line-height:1.8">
+      <li><b style="color:var(--chalk)">결과 헤드라인 숫자</b> — 핵심 수치가 나타날 때 숫자 밑에 짧은 박동 한 번. 리포트에서 가장 중요한 값에만</li>
+      <li><b style="color:var(--chalk)">저니 타임라인</b> — 이벤트가 몰린 구간의 레인이 파형처럼 진폭이 커짐. 지금은 점 크기로만 표현</li>
+      <li><b style="color:var(--chalk)">액션 실행</b> — 액션 카드 실행 시 파형이 카드 밖으로 퍼져 나감. "잡은 신호를 다시 내보낸다"</li>
+      <li><b style="color:var(--chalk)">빈/실패 상태</b> — 데이터가 없을 때 파형이 평평한 직선으로만 흐름. 로딩과 같은 언어로 "신호 없음"을 표현</li>
+    </ol>
+
+</div>
+</div>
+
+<script>
+/* ── 공통 타임라인 ─────────────────────────── */
+const T = [
+ {at:200,  k:'stage', stage:'goal',  si:0, label:'질문을 해석하는 중'},
+ {at:350,  k:'think', text:'질문을 대상·기간·판단 기준으로 나눈다. 대상은 20대, 기간은 최근 4주, 기준은 "해지 위험이 커졌다"이다.'},
+ {at:2100, k:'think', text:'"해지 위험"에 해당하는 컬럼은 원본 테이블에 없다. 직접 지표가 없으니 관측 가능한 대리 지표로 바꿔야 한다.'},
+ {at:3800, k:'tool',  name:'catalog_sources', arg:'sources=*', res:'4개 소스 · 컬럼 118개', ms:310, src:4},
+ {at:4000, k:'narrow',lb:'전체 고객', n:84120, note:'4개 소스 · 최근 6주', drop:null},
+ {at:4800, k:'think', text:'해지 신청 로그는 없지만 해지 문의 VOC, 요금제 비교 조회, 앱 로그인 이탈이 있다. 이 세 가지를 대리 지표로 삼는다.'},
+
+ {at:6600, k:'stage', stage:'plan', si:1, label:'분석 계획을 세우는 중'},
+ {at:6800, k:'think', text:'네 단계로 잡는다. 비교 없이 20대 수치만 보면 전체 추세와 구분되지 않으므로 세그먼트 비교를 반드시 포함한다.'},
+
+ {at:8600, k:'stage', stage:'analyze', si:2, label:'데이터를 분석하는 중'},
+ {at:8800, k:'tool',  name:'aggregate_events', arg:'age=20s, window=4w, group=week', res:'4주 × 3지표 = 12행', ms:840, src:4},
+ {at:9900, k:'fact',  short:'VOC +38%', v:'20대 해지 문의 VOC 4주간 +38%', s:'142건 → 196건 · voc_tickets'},
+ {at:10100,k:'narrow',lb:'20대', n:12400, note:'연령 조건', drop:'71,720명 제외 · 연령 조건 밖'},
+ {at:10800,k:'think', text:'4주 표본으로는 계절성과 구분되지 않는다. 계획을 고쳐 비교 구간을 6주로 넓힌다.'},
+ {at:12200,k:'revise',reason:'표본이 부족해 6주 기준선을 추가'},
+ {at:12600,k:'tool',  name:'aggregate_events', arg:'age=20s, window=6w (baseline)', res:'6주 × 3지표 = 18행', ms:760, src:4},
+ {at:13800,k:'fact',  short:'조회 +21%', v:'요금제 비교 조회, 3주차부터 주간 +21%', s:'기준선 대비 유의 · pageview_log'},
+
+ {at:14900,k:'tool',  name:'compare_segments', arg:'20s vs all_ages', res:'2 세그먼트 비교', ms:520, src:4},
+ {at:16000,k:'fact',  short:'20대 4.2배', v:'전체 평균 증가율 +9% — 20대가 4.2배', s:'세그먼트 간 격차 유의'},
+ {at:16300,k:'narrow',lb:'신호 급증 구간', n:1204, note:'VOC·조회 동시 상승', drop:'11,196명 제외 · 신호 변화 없음'},
+ {at:16900,k:'think', text:'20대만의 현상이 맞다. 다음은 이 안에서 누가 특히 위험한지 좁힌다.'},
+
+ {at:18100,k:'tool',  name:'profile_customers', arg:'segment=20s_rising, n=1204', res:'고객 1,204명 프로필', ms:1120, src:4},
+ {at:19400,k:'fact',  short:'D-60 62%', v:'급증 고객의 62%가 약정 만료 D-60 이내', s:'745 / 1,204명 · contract_master'},
+ {at:19700,k:'narrow',lb:'약정 만료 D-60 이내', n:745, note:'즉시 조치 가능', drop:'459명 제외 · 약정 여유 있음', last:true},
+
+ {at:20500,k:'stage', stage:'insight', si:3, label:'인사이트를 정리하는 중'},
+ {at:20700,k:'think', text:'세 지표가 같은 방향을 가리킨다. 약정 만료가 임박한 20대에서 이탈 신호가 동시에 오르고 있다.'},
+
+ {at:22200,k:'stage', stage:'verify', si:4, label:'근거를 검증하는 중'},
+ {at:22400,k:'tool',  name:'validate_claims', arg:'claims=4', res:'3 통과 · 1 기각', ms:640, src:4},
+ {at:22600,k:'think', text:'"가격 불만이 원인이다"라고 쓰고 싶지만, 가격을 언급한 VOC는 표본의 11%뿐이다. 근거가 부족하므로 이 주장은 버린다.'},
+ {at:24200,k:'reject',v:'"가격 불만이 원인" — 근거 부족', s:'가격 언급 VOC 11% · 인과 근거 없음'},
+ {at:25200,k:'fact',  short:'검증 100%', v:'주장 4개 중 3개 통과 · 근거 연결률 100%', s:'기각 1건은 리포트에 그대로 남김', noPop:true},
+ {at:26000,k:'done'}
+];
+const ICON={catalog_sources:'⌘',aggregate_events:'∑',compare_segments:'⇄',profile_customers:'◎',validate_claims:'✓'};
+
+/* ── 엔진 ─────────────────────────────────── */
+function engine(root, render, reset){
+  const timers=[]; let t0=0, raf=0;
+  const clock=root.querySelector('[data-clock]'), burst=root.querySelector('[data-burst]');
+  function stop(){ timers.forEach(clearTimeout); timers.length=0; cancelAnimationFrame(raf); }
+  function tick(){ if(clock) clock.textContent=((performance.now()-t0)/1000).toFixed(1).padStart(4,'0')+'s'; raf=requestAnimationFrame(tick); }
+  function fire(){
+    stop(); reset(); if(burst) burst.hidden=true; t0=performance.now(); tick();
+    T.forEach(e=>timers.push(setTimeout(()=>render(e,(performance.now()-t0)/1000), e.at)));
+    timers.push(setTimeout(()=>{ if(burst){burst.hidden=true; void burst.offsetWidth; burst.hidden=false;} }, T[T.length-1].at));
+    timers.push(setTimeout(()=>{ if(burst) burst.hidden=true; cancelAnimationFrame(raf); }, T[T.length-1].at+1200));
+  }
+  root.querySelector('[data-play]').onclick=fire;
+  root.querySelector('[data-reset]').onclick=()=>{stop(); reset(); if(burst)burst.hidden=true; if(clock)clock.textContent='00.0s';};
+  return {play:fire};
+}
+function typeIn(el,text,ms=13){ el.textContent=''; el.classList.add('caret'); let i=0;
+  const id=setInterval(()=>{ el.textContent=text.slice(0,++i); if(i>=text.length){clearInterval(id); el.classList.remove('caret');} },ms); }
+function trim(box,max){ while(box.children.length>max) box.removeChild(box.firstChild); }
+
+/* ── A ── */
+const A=document.getElementById('A'), As=A.querySelector('[data-stream]'); let At=0;
+const Ae=engine(A,(e,sec)=>{
+  if(e.k==='stage') A.querySelector('[data-lbl]').textContent=e.label;
+  if(e.k==='think'){ const p=document.createElement('p'); p.className='thought now fadein';
+    As.querySelectorAll('.thought').forEach(x=>x.classList.remove('now')); As.appendChild(p); typeIn(p,e.text); trim(As,7); }
+  if(e.k==='tool'){ At++; const d=document.createElement('div'); d.className='tool fadein';
+    d.innerHTML='<span style="color:var(--signal)">'+(ICON[e.name]||'•')+'</span><b>'+e.name+'</b>('+e.arg+') → '+e.res+' <span style="color:var(--line)">·</span> '+e.ms+'ms';
+    As.appendChild(d); trim(As,7); }
+  if(e.k==='revise'){ const d=document.createElement('div'); d.className='tool fadein';
+    d.innerHTML='<span style="color:var(--amber)">↻</span><b style="color:var(--amber)">계획 수정</b> — '+e.reason; As.appendChild(d); trim(As,7); }
+  if(e.k==='reject'){ const d=document.createElement('div'); d.className='tool fadein';
+    d.innerHTML='<span style="color:var(--amber)">✕</span><b style="color:var(--amber)">주장 기각</b> — '+e.v; As.appendChild(d); trim(As,7); }
+  A.querySelector('[data-sec]').textContent=Math.round(sec)+'s';
+  if(e.k==='done'){ A.querySelector('.head').style.display='none'; const f=A.querySelector('[data-fold]'); f.hidden=false;
+    A.querySelector('[data-foldsec]').textContent=Math.round(sec); A.querySelector('[data-foldtool]').textContent=At; }
+},()=>{ As.innerHTML=''; At=0; A.querySelector('.head').style.display='flex'; A.querySelector('[data-fold]').hidden=true; A.querySelector('[data-sec]').textContent='0s'; });
+
+/* ── B ── */
+const B=document.getElementById('B'), Br=B.querySelector('[data-rail]'); let Bt=0,Bs=0,Bl=null;
+function Bsum(){ B.querySelector('[data-sum]').textContent='도구 '+Bt+'개 실행 · 소스 '+Bs+'개 조회'; }
+engine(B,(e)=>{
+  const add=h=>{ const r=document.createElement('div'); r.className='row fadein'; r.innerHTML=h; Br.appendChild(r); trim(Br,9); return r; };
+  if(e.k==='tool'){ if(Bl){const i=Bl.querySelector('.ic'); i.className='ic ok'; i.textContent='✓';}
+    Bt++; Bs=Math.max(Bs,e.src||Bs);
+    Bl=add('<div class="ic run">'+(ICON[e.name]||'•')+'</div><div><div class="nm"><em>'+e.name+'</em></div><div class="dt">'+e.arg+' → '+e.res+'</div></div><div class="ms">'+e.ms+'ms</div>');
+    Bsum(); }
+  if(e.k==='think') add('<div class="ic" style="border:0;background:none;color:var(--fog-dim)">✎</div><div class="think">'+e.text+'</div><div></div>');
+  if(e.k==='revise') add('<div class="ic" style="border-color:var(--amber);color:var(--amber)">↻</div><div><div class="nm" style="color:var(--amber);font-size:.83rem">계획 수정</div><div class="dt">'+e.reason+'</div></div><div></div>');
+  if(e.k==='reject') add('<div class="ic" style="border-color:var(--amber);color:var(--amber)">✕</div><div><div class="nm" style="color:var(--amber);font-size:.83rem">주장 기각 · '+e.v+'</div><div class="dt">'+e.s+'</div></div><div></div>');
+  if(e.k==='done'&&Bl){ const i=Bl.querySelector('.ic'); i.className='ic ok'; i.textContent='✓'; }
+},()=>{ Br.innerHTML=''; Bt=0;Bs=0;Bl=null; Bsum(); });
+
+/* ── B' : 시그널 진행바 + 단계 그룹 ── */
+const B2=document.getElementById('B2'), B2segs=B2.querySelector('[data-segs]'),
+      B2ph=B2.querySelector('[data-phases]'), B2lb=B2.querySelectorAll('[data-lb] span');
+const PH=[{k:'goal',n:'해석'},{k:'plan',n:'계획'},{k:'analyze',n:'분석'},{k:'insight',n:'인사이트'},{k:'verify',n:'검증'}];
+const SEG_DUR=[3000,1800,11000,1600,3600];
+function miniBeat(i){ const x=i*200,Y=30;
+  return 'M'+x+' '+Y+' H'+(x+56)+' l7 -4 l6 4 H'+(x+86)+' l7 -19 l11 36 l9 -23 l7 6 H'+(x+142)+' l8 -4 l7 4 H'+(x+200); }
+function B2build(){
+  B2segs.innerHTML='';
+  for(let i=0;i<5;i++){ const p=document.createElementNS('http://www.w3.org/2000/svg','path');
+    p.setAttribute('class','sf'); p.setAttribute('d',miniBeat(i)); p.setAttribute('pathLength','100');
+    p.setAttribute('stroke-dasharray','100'); p.setAttribute('stroke-dashoffset','100'); B2segs.appendChild(p); }
+  B2ph.innerHTML='';
+  PH.forEach((ph,i)=>{ const sec=document.createElement('section'); sec.className='ph'; sec.dataset.s='wait';
+    sec.innerHTML='<header><span class="n">'+(i+1)+'</span>'+ph.n+'<span class="meta"></span></header><div class="items"></div>';
+    B2ph.appendChild(sec); });
+  B2lb.forEach(x=>x.dataset.s='wait');
+}
+let B2i=-1, B2t0=0, B2tools=0;
+engine(B2,(e,sec)=>{
+  const secs=B2ph.querySelectorAll('.ph');
+  const add=(h,cls)=>{ if(B2i<0) return; const box=secs[B2i].querySelector('.items');
+    const d=document.createElement('div'); d.className='it fadein'+(cls?' '+cls:''); d.innerHTML=h;
+    box.appendChild(d); while(box.children.length>4) box.removeChild(box.firstChild); };
+  if(e.k==='stage'){
+    if(B2i>=0){ const prev=secs[B2i]; prev.dataset.s='done';
+      prev.querySelector('.meta').textContent='도구 '+B2tools+' · '+(sec-B2t0).toFixed(1)+'s ✓';
+      prev.querySelector('.items').innerHTML=''; }
+    B2i=e.si; B2t0=sec; B2tools=0;
+    secs[B2i].dataset.s='run'; secs[B2i].querySelector('.meta').textContent='실행 중';
+    B2lb.forEach((x,i)=>x.dataset.s = i<e.si?'done' : i===e.si?'run':'wait');
+    const segs=B2segs.querySelectorAll('.sf');
+    segs.forEach((p,i)=>{ if(i<e.si) p.setAttribute('stroke-dashoffset','0'); });
+    const cur=segs[e.si];
+    if(cur){ cur.style.setProperty('--dur',SEG_DUR[e.si]+'ms'); requestAnimationFrame(()=>cur.setAttribute('stroke-dashoffset','0')); }
+  }
+  if(e.k==='tool'){ B2tools++; add('<span class="i">'+(ICON[e.name]||'•')+'</span><div><em>'+e.name+'</em><div class="d">'+e.arg+' → '+e.res+'</div></div><span class="m">'+e.ms+'ms</span>'); }
+  if(e.k==='think') add('<span class="i" style="color:var(--fog-dim)">✎</span><div><div class="d">'+e.text+'</div></div><span></span>','th');
+  if(e.k==='fact') add('<span class="i">◈</span><div><em style="color:var(--signal)">'+e.short+'</em><div class="d">'+e.s+'</div></div><span></span>');
+  if(e.k==='revise') add('<span class="i" style="color:var(--amber)">↻</span><div><em style="color:var(--amber)">계획 수정</em><div class="d">'+e.reason+'</div></div><span></span>');
+  if(e.k==='reject') add('<span class="i" style="color:var(--amber)">✕</span><div><em style="color:var(--amber)">주장 기각</em><div class="d">'+e.v+' · '+e.s+'</div></div><span></span>');
+  if(e.k==='done'){
+    secs.forEach(x=>{ if(x.dataset.s!=='done'){ x.dataset.s='done'; x.querySelector('.items').innerHTML=''; } });
+    if(secs[B2i]) secs[B2i].querySelector('.meta').textContent='도구 '+B2tools+' · '+(sec-B2t0).toFixed(1)+'s ✓';
+    B2lb.forEach(x=>x.dataset.s='done');
+    B2segs.querySelectorAll('.sf').forEach(p=>p.setAttribute('stroke-dashoffset','0'));
+  }
+},()=>{ B2build(); B2i=-1; B2t0=0; B2tools=0; });
+B2build();
+
+/* ── B'' : 포착 링 레일 ── */
+const B3=document.getElementById('B3'), B3r=B3.querySelector('[data-rail]');
+let B3t=0,B3s=0,B3c=0,B3l=null;
+function B3sum(){ B3.querySelector('[data-sum]').innerHTML='도구 '+B3t+'개 · 소스 '+B3s+'개 · <span class="cnt">포착 '+B3c+'</span>'; }
+engine(B3,(e)=>{
+  const add=(h,cls)=>{ const r=document.createElement('div'); r.className='row fadein'+(cls?' '+cls:''); r.innerHTML=h;
+    B3r.appendChild(r); while(B3r.children.length>9) B3r.removeChild(B3r.firstChild); return r; };
+  if(e.k==='tool'){ if(B3l){const i=B3l.querySelector('.ic'); if(!i.classList.contains('caught')){i.className='ic ok'; i.textContent='✓';}}
+    B3t++; B3s=Math.max(B3s,e.src||B3s);
+    B3l=add('<div class="ic run">'+(ICON[e.name]||'•')+'</div><div><div class="nm"><em>'+e.name+'</em></div><div class="dt">'+e.arg+' → '+e.res+'</div></div><div class="ms">'+e.ms+'ms</div>');
+    B3sum(); }
+  if(e.k==='think') add('<div class="ic" style="border:0;background:none;color:var(--fog-dim)">✎</div><div class="think">'+e.text+'</div><div></div>');
+  if(e.k==='fact'){ B3c++;
+    if(B3l){const i=B3l.querySelector('.ic'); i.className='ic ok'; i.textContent='✓';}
+    B3l=add('<div class="ic caught">◈<span class="ripple"></span></div><div><div class="caughtnm">포착 · '+e.short+'</div><div class="dt">'+e.v+' — '+e.s+'</div></div><div class="ms">✓</div>','hit');
+    B3sum(); }
+  if(e.k==='revise') add('<div class="ic" style="border-color:var(--amber);color:var(--amber)">↻</div><div><div class="nm" style="color:var(--amber);font-size:.83rem">계획 수정</div><div class="dt">'+e.reason+'</div></div><div></div>');
+  if(e.k==='reject') add('<div class="ic" style="border-color:var(--amber);color:var(--amber)">✕</div><div><div class="nm" style="color:var(--amber);font-size:.83rem">주장 기각 · '+e.v+'</div><div class="dt">'+e.s+'</div></div><div></div>');
+  if(e.k==='done'&&B3l){ const i=B3l.querySelector('.ic'); if(!i.classList.contains('caught')){i.className='ic ok'; i.textContent='✓';} }
+},()=>{ B3r.innerHTML=''; B3t=0;B3s=0;B3c=0;B3l=null; B3sum(); });
+
+/* ── B+ : 합본 ── */
+const BX=document.getElementById('BX'), BXr=BX.querySelector('[data-rail]');
+const STAGE_FULL=['질문 해석','분석 계획','데이터 분석','인사이트 정리','근거 검증'];
+/* 가로 심박을 90도 세운 형태. 평소엔 얇은 직선이다가 단계가 넘어갈 때 한 번 뛴다. */
+const VBEAT='M20 0 V26 l-5 4 l5 4 V40 l-11 4 l22 7 l-15 4 l6 3 V72 l-4 3 l4 3 V100';
+let BXt=0,BXs=0,BXc=0,BXl=null;
+function BXsum(){ BX.querySelector('[data-sum]').innerHTML='도구 '+BXt+' · 소스 '+BXs+' · <b>포착 '+BXc+'</b>'; }
+function BXseal(){ if(BXl){ const i=BXl.querySelector('.ic');
+  if(i && !i.classList.contains('caught')){ i.className='ic ok'; i.textContent='✓'; } } }
+engine(BX,(e)=>{
+  const add=(h,cls)=>{ const r=document.createElement('div'); r.className='row fadein'+(cls?' '+cls:''); r.innerHTML=h;
+    BXr.appendChild(r); while(BXr.children.length>9) BXr.removeChild(BXr.firstChild); return r; };
+  if(e.k==='stage'){
+    BX.querySelector('[data-cur]').textContent=STAGE_FULL[e.si];
+    BX.querySelector('[data-step]').textContent=(e.si+1)+' / 5';
+    if(e.si>0){ BXseal();
+      const d=document.createElement('div'); d.className='pulse';
+      d.innerHTML='<div class="pw"><svg viewBox="0 0 40 100" preserveAspectRatio="none"><path pathLength="100" d="'+VBEAT+'"/></svg></div><div></div>';
+      BXr.appendChild(d); while(BXr.children.length>9) BXr.removeChild(BXr.firstChild);
+      BXl=null; }
+  }
+  if(e.k==='tool'){ BXseal(); BXt++; BXs=Math.max(BXs,e.src||BXs);
+    BXl=add('<div class="ic run">'+(ICON[e.name]||'•')+'</div><div><div class="nm"><em>'+e.name+'</em></div><div class="dt">'+e.arg+' → '+e.res+'</div></div><div class="ms">'+e.ms+'ms</div>');
+    BXsum(); }
+  if(e.k==='think') add('<div class="ic" style="border:0;background:none;color:var(--fog-dim)">✎</div><div class="think">'+e.text+'</div><div></div>');
+  if(e.k==='fact'){ BXc++;
+    if(BXl){ const i=BXl.querySelector('.ic'); if(i){ i.className='ic ok'; i.textContent='✓'; } }
+    BXl=add('<div class="ic caught">◈<span class="ripple"></span></div><div><div class="caughtnm">포착 · '+e.short+'</div><div class="dt">'+e.v+' — '+e.s+'</div></div><div class="ms">✓</div>','hit');
+    BXsum(); }
+  if(e.k==='revise') add('<div class="ic" style="border-color:var(--amber);color:var(--amber)">↻</div><div><div class="nm" style="color:var(--amber);font-size:.83rem">계획 수정</div><div class="dt">'+e.reason+'</div></div><div></div>');
+  if(e.k==='reject') add('<div class="ic" style="border-color:var(--amber);color:var(--amber)">✕</div><div><div class="nm" style="color:var(--amber);font-size:.83rem">주장 기각 · '+e.v+'</div><div class="dt">'+e.s+'</div></div><div></div>');
+  if(e.k==='done'){ BXseal(); BX.querySelector('[data-cur]').textContent='신호를 잡았습니다'; }
+},()=>{ BXr.innerHTML=''; BXt=0; BXs=0; BXc=0; BXl=null; BXsum();
+  BX.querySelector('[data-cur]').textContent='질문 해석'; BX.querySelector('[data-step]').textContent='1 / 5'; });
+
+/* ── S1 : 질문 입력창 시그널 ── */
+(function(){
+  const box=document.getElementById('S1'); if(!box) return;
+  const ask=box.querySelector('.askrow'), ta=box.querySelector('textarea'), go=box.querySelector('.go'),
+        note=box.querySelector('[data-note]');
+  const SAMPLE='최근 4주, 20대 고객 중 해지 위험이 커진 세그먼트를 찾아줘';
+  let idle=null, typer=null;
+  function typing(on){ ask.dataset.typing=on?'1':'0'; }
+  ta.addEventListener('input',()=>{ typing(ta.value.length>0); go.disabled=!ta.value.trim();
+    clearTimeout(idle); idle=setTimeout(()=>typing(false),1400); });
+  ta.addEventListener('focus',()=>ask.dataset.focus='1');
+  ta.addEventListener('blur',()=>ask.dataset.focus='0');
+  function send(){ if(!ta.value.trim()) return;
+    ask.dataset.send='1'; typing(false); go.disabled=true;
+    note.textContent='양쪽 파형이 입력창으로 빨려 들어가며 분석 화면으로 전환';
+    setTimeout(()=>{ ask.dataset.send='0'; },1500); }
+  go.onclick=send;
+  box.querySelector('[data-demo]').onclick=()=>{
+    clearInterval(typer); ta.value=''; ask.dataset.send='0'; ask.dataset.focus='1'; go.disabled=true;
+    note.textContent='입력 중 — 파형의 진폭이 커지고 흐름이 빨라집니다';
+    let i=0; typing(true);
+    typer=setInterval(()=>{ ta.value=SAMPLE.slice(0,++i);
+      if(i>=SAMPLE.length){ clearInterval(typer); go.disabled=false; setTimeout(send,700); } },42);
+  };
+  box.querySelector('[data-clear]').onclick=()=>{ clearInterval(typer); ta.value=''; typing(false);
+    ask.dataset.send='0'; ask.dataset.focus='0'; go.disabled=true; note.textContent='유휴 상태 — 파형이 거의 평평하게 흐릅니다'; };
+})();
+
+
+/* ── C ── */
+const C=document.getElementById('C'), Cs=C.querySelector('[data-stream]'), Cf=C.querySelector('[data-funnel]');
+let Ctop=0;
+function countTo(el,to,ms){ const from=Number(el.dataset.v||0); const t0=performance.now();
+  (function step(now){ const p=Math.min(1,(now-t0)/ms); const e=1-Math.pow(1-p,3);
+    el.textContent=Math.round(from+(to-from)*e).toLocaleString()+'명'; if(p<1) requestAnimationFrame(step); else el.dataset.v=to; })(t0); }
+engine(C,(e)=>{
+  if(e.k==='think'){ const p=document.createElement('p'); p.className='thought now fadein';
+    Cs.querySelectorAll('.thought').forEach(x=>x.classList.remove('now')); Cs.appendChild(p); typeIn(p,e.text); trim(Cs,6); }
+  if(e.k==='tool'){ const d=document.createElement('div'); d.className='tool fadein'; d.textContent='› '+e.name+' · '+e.res+' · '+e.ms+'ms'; Cs.appendChild(d); trim(Cs,6); }
+  if(e.k==='revise'){ const d=document.createElement('div'); d.className='tool fadein'; d.style.color='var(--amber)'; d.textContent='↻ 계획 수정 — '+e.reason; Cs.appendChild(d); trim(Cs,6); }
+  if(e.k==='reject'){ const d=document.createElement('div'); d.className='tool fadein'; d.style.color='var(--amber)'; d.textContent='✕ 주장 기각 — '+e.v; Cs.appendChild(d); trim(Cs,6); }
+  if(e.k==='narrow'){
+    if(!Ctop) Ctop=e.n;
+    const lv=document.createElement('div'); lv.className='lv fadein'; if(e.last) lv.dataset.last='1';
+    lv.innerHTML='<div class="top"><span class="lb">'+e.lb+'</span><span class="nu" data-n>0명</span></div>'
+      +'<div class="bg"><div class="fl"></div></div>'+(e.drop?'<div class="dr">− '+e.drop+'</div>':'<div class="dr">'+e.note+'</div>');
+    Cf.appendChild(lv);
+    const num=lv.querySelector('[data-n]'); num.dataset.v=Ctop; countTo(num,e.n,900);
+    requestAnimationFrame(()=>{ lv.querySelector('.fl').style.width=Math.max(3,(e.n/Ctop)*100)+'%'; });
+  }
+  if(e.k==='done'){ const c=C.querySelector('[data-caught]'); c.hidden=false;
+    c.textContent='84,120명에서 745명까지 좁혔습니다 · 제외 사유 3건 기록'; c.classList.add('fadein'); }
+},()=>{ Cs.innerHTML=''; Cf.innerHTML=''; Ctop=0; const c=C.querySelector('[data-caught]'); c.hidden=true; });
+
+/* ── D ── */
+const D=document.getElementById('D'), Dbox=D.querySelector('[data-box]'), Dsegs=D.querySelector('[data-segs]'),
+      Dchips=D.querySelector('[data-chips]'), Dnow=D.querySelector('[data-now]'), Dsteps=D.querySelectorAll('[data-steps] li');
+const BEAT_W=200, BASE_Y=90, N=5;
+function beatPath(i){ const x=i*BEAT_W;
+  return 'M'+x+' '+BASE_Y+' H'+(x+56)+' l7 -9 l6 9 H'+(x+86)+' l7 -42 l11 80 l9 -52 l7 14 H'+(x+142)+' l8 -10 l7 10 H'+(x+BEAT_W); }
+function Dbuild(){
+  Dsegs.innerHTML='';
+  for(let i=0;i<N;i++){ const p=document.createElementNS('http://www.w3.org/2000/svg','path');
+    p.setAttribute('class','seg'); p.setAttribute('d',beatPath(i)); p.setAttribute('pathLength','100');
+    p.setAttribute('stroke-dasharray','100'); p.setAttribute('stroke-dashoffset','100'); Dsegs.appendChild(p); }
+}
+let Dsi=-1;
+function Dpop(text){
+  const i=Math.max(0,Dsi); const xPct=((i*BEAT_W+97)/(N*BEAT_W))*100;
+  const box=Dbox.getBoundingClientRect();
+  const yTop=box.height*0.30;
+  const ring=document.createElement('span'); ring.className='ring';
+  ring.style.left=xPct+'%'; ring.style.top=(box.height*0.44)+'px'; Dbox.appendChild(ring);
+  const pop=document.createElement('span'); pop.className='pop'; pop.textContent='포착 · '+text;
+  pop.style.left=Math.min(92,Math.max(8,xPct))+'%'; pop.style.top=yTop+'px'; Dbox.appendChild(pop);
+  setTimeout(()=>{ring.remove();},1200); setTimeout(()=>{pop.remove();},2500);
+}
+engine(D,(e)=>{
+  if(e.k==='stage'){
+    Dsi=e.si;
+    Dsteps.forEach((li,i)=>li.dataset.s = i<e.si?'done' : i===e.si?'run':'wait');
+    const segs=Dsegs.querySelectorAll('.seg');
+    segs.forEach((s,i)=>{ if(i<e.si) s.setAttribute('stroke-dashoffset','0'); });
+    const cur=segs[e.si];
+    if(cur){ cur.style.setProperty('--dur', (e.si===2?11000:e.si===4?3600:1800)+'ms');
+      requestAnimationFrame(()=>cur.setAttribute('stroke-dashoffset','0')); }
+    Dnow.textContent=e.label+'…';
+  }
+  if(e.k==='think'){ typeIn(Dnow,e.text); }
+  if(e.k==='tool'){
+    Dchips.querySelectorAll('.chip').forEach(c=>c.classList.remove('live'));
+    const c=document.createElement('span'); c.className='chip live';
+    c.textContent=(ICON[e.name]||'•')+' '+e.name+' · '+e.ms+'ms';
+    Dchips.appendChild(c); while(Dchips.children.length>3) Dchips.removeChild(Dchips.firstChild);
+  }
+  if(e.k==='fact' && !e.noPop) Dpop(e.short);
+  if(e.k==='revise'){ const c=document.createElement('span'); c.className='chip'; c.style.borderColor='var(--amber)'; c.style.color='var(--amber)';
+    c.textContent='↻ 계획 수정'; Dchips.appendChild(c); while(Dchips.children.length>3) Dchips.removeChild(Dchips.firstChild); }
+  if(e.k==='reject'){ Dnow.innerHTML='<span style="color:var(--amber)">주장 1건 기각</span> — '+e.s; }
+  if(e.k==='done'){ Dsteps.forEach(li=>li.dataset.s='done');
+    Dsegs.querySelectorAll('.seg').forEach(s=>s.setAttribute('stroke-dashoffset','0'));
+    Dnow.textContent='약정 만료 D-60 이내 20대 745명 — 이탈 신호 확인'; }
+},()=>{ Dbuild(); Dchips.innerHTML=''; Dnow.textContent='신호를 잡는 중…'; Dsi=-1;
+  Dsteps.forEach(li=>li.dataset.s='wait'); Dbox.querySelectorAll('.pop,.ring').forEach(x=>x.remove()); });
+Dbuild();
+
+/* ── 탭 ── */
+document.getElementById('tabs').addEventListener('click',ev=>{
+  const b=ev.target.closest('button'); if(!b) return;
+  document.querySelectorAll('#tabs button').forEach(x=>x.setAttribute('aria-selected',String(x===b)));
+  document.querySelectorAll('.panel').forEach(p=>p.dataset.on = p.id==='p'+b.dataset.v?'1':'0');
+  const f=document.getElementById(b.dataset.v); if(f) f.querySelector('[data-play]').click();
+});
+Ae.play();
+</script>
+</body>
+</html>

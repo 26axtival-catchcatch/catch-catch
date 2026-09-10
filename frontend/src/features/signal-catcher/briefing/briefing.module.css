@@ -1,0 +1,630 @@
+/*
+ * 브리핑(메인) 화면. docs/main-screen-ideas.html 의 B1 안을 옮기고
+ * 상단 요청 막대만 B2 안에서 가져왔다.
+ * 색과 폰트는 catcher.module.css 가 .app 스코프에 깔아 둔 토큰만 쓴다.
+ */
+.screen {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  width: min(64rem, 100%);
+  margin: 0 auto;
+  padding: 2rem clamp(1.25rem, 4vw, 2.5rem) 2.5rem;
+}
+
+/* ── 요청 막대 (B2) ──────────────────────────────────── */
+.reqBar {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.date {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  color: var(--fog-dim);
+  text-transform: uppercase;
+}
+
+.reqCount {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--signal-soft);
+  border: 1px solid color-mix(in srgb, var(--signal) 32%, transparent);
+  background: var(--signal-wash);
+  border-radius: var(--radius-lg);
+  padding: 0.16rem 0.6rem;
+}
+
+/*
+ * 지켜볼 것을 거는 자리는 브리핑을 다 본 뒤가 아니라 처음부터 보여야 한다.
+ * 현행 안의 가장 큰 문제가 이 진입점이 눈에 띄지 않는 것이었다.
+ */
+.addReq {
+  margin-left: auto;
+  background: var(--signal);
+  color: var(--u-white);
+  border: 0;
+  border-radius: var(--radius-lg);
+  padding: 0.4rem 0.95rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.addReq:hover {
+  background: color-mix(in srgb, var(--signal) 88%, var(--u-white));
+}
+
+.lede {
+  margin: 0 0 1.6rem;
+  font-size: clamp(1.5rem, 3vw, 2.1rem);
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: -0.015em;
+  max-width: 26em;
+}
+
+.lede b {
+  color: var(--signal);
+  font-weight: 600;
+}
+
+/* ── 카드 덱 ─────────────────────────────────────────── */
+.deck {
+  position: relative;
+  min-height: 22rem;
+  touch-action: pan-y;
+}
+
+.deck:focus-visible {
+  outline: 2px solid var(--signal);
+  outline-offset: 6px;
+}
+
+.card {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--card-2);
+  padding: 1.4rem 1.5rem 1.3rem;
+  position: relative;
+  overflow: hidden;
+  cursor: grab;
+  user-select: none;
+  transition:
+    transform 0.3s var(--ease),
+    opacity 0.3s var(--ease);
+  animation: rise 0.45s var(--ease) both;
+}
+
+.card:active {
+  cursor: grabbing;
+}
+
+/* 드래그 중에는 손가락을 따라와야 하므로 전환을 끈다 */
+.card[data-drag="1"] {
+  transition: none;
+}
+
+.card[data-from="next"] {
+  animation: slideInNext 0.36s var(--ease) both;
+}
+
+.card[data-from="prev"] {
+  animation: slideInPrev 0.36s var(--ease) both;
+}
+
+.card button {
+  cursor: pointer;
+}
+
+.card::after {
+  content: "";
+  position: absolute;
+  right: -4rem;
+  top: -4rem;
+  width: 14rem;
+  height: 14rem;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--signal-wash), transparent 68%);
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+}
+
+@keyframes slideInNext {
+  from {
+    opacity: 0;
+    transform: translateX(58px);
+  }
+}
+
+@keyframes slideInPrev {
+  from {
+    opacity: 0;
+    transform: translateX(-58px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card {
+    animation: none;
+  }
+}
+
+.kicker {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--signal-soft);
+  margin: 0 0 0.6rem;
+  position: relative;
+}
+
+.count {
+  color: var(--fog-dim);
+  margin-left: auto;
+}
+
+.fromReq {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-family: var(--font-mono);
+  font-size: 0.64rem;
+  color: var(--signal);
+  background: var(--signal-wash);
+  border: 1px solid color-mix(in srgb, var(--signal) 30%, transparent);
+  border-radius: 4px;
+  padding: 0.1rem 0.45rem;
+}
+
+.headline {
+  margin: 0 0 0.5rem;
+  font-size: 1.3rem;
+  font-weight: 600;
+  line-height: 1.5;
+  letter-spacing: -0.01em;
+  position: relative;
+}
+
+.headline b {
+  color: var(--signal);
+}
+
+.body {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--fog);
+  position: relative;
+  max-width: 44em;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 13rem;
+  gap: 1.6rem;
+  align-items: end;
+  margin-top: 1.2rem;
+  position: relative;
+}
+
+@media (max-width: 40rem) {
+  .row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.9rem;
+  }
+}
+
+.metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem 1.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.metrics li {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.metricLabel {
+  font-size: 0.7rem;
+  color: var(--fog-dim);
+}
+
+.metricValue {
+  font-family: var(--font-mono);
+  font-size: 1.05rem;
+  color: var(--chalk);
+}
+
+.metricDelta {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--fog-dim);
+}
+
+.metricDelta[data-dir="up"] {
+  color: var(--signal-soft);
+}
+
+.spark {
+  width: 100%;
+  height: 2.6rem;
+  fill: none;
+  stroke: var(--signal);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.sparkSoft {
+  stroke: var(--line);
+  stroke-width: 1;
+}
+
+.acts {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1.4rem;
+  align-items: center;
+  position: relative;
+  flex-wrap: wrap;
+}
+
+.btn {
+  background: var(--signal);
+  color: var(--u-white);
+  border: 0;
+  border-radius: var(--radius-lg);
+  padding: 0.55rem 1.15rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  font-family: inherit;
+}
+
+.btn:hover {
+  background: color-mix(in srgb, var(--signal) 88%, var(--u-white));
+}
+
+.more {
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--signal) 40%, transparent);
+  color: var(--signal-soft);
+  border-radius: var(--radius-lg);
+  padding: 0.5rem 1rem;
+  font-size: 0.82rem;
+  font-family: inherit;
+}
+
+.more:hover {
+  background: var(--signal-wash);
+}
+
+.ghost {
+  background: none;
+  border: 1px solid var(--line);
+  color: var(--fog);
+  border-radius: var(--radius-lg);
+  padding: 0.5rem 1rem;
+  font-size: 0.82rem;
+  font-family: inherit;
+}
+
+.ghost:hover {
+  border-color: var(--fog-dim);
+  color: var(--chalk);
+}
+
+.hint {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--fog-dim);
+}
+
+/* ── 마지막 "더 찾기" 장 ─────────────────────────────── */
+.last {
+  border-style: dashed;
+  border-color: color-mix(in srgb, var(--signal) 34%, transparent);
+  background: var(--card);
+}
+
+.last .headline {
+  font-size: 1.15rem;
+}
+
+.openAsk {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 1rem;
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--ground);
+  padding: 0.62rem 1rem;
+  font-family: inherit;
+  text-align: left;
+  position: relative;
+}
+
+.openAskText {
+  flex: 1;
+  font-size: 0.84rem;
+  color: var(--fog-dim);
+}
+
+.backlog {
+  margin: 0.85rem 0 0;
+  font-size: 0.76rem;
+  color: var(--fog-dim);
+  position: relative;
+}
+
+/* ── 넘기기 안내와 칩 ────────────────────────────────── */
+.swipeHint {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin: 0.7rem 0 0;
+  font-size: 0.72rem;
+  color: var(--fog-dim);
+  font-family: var(--font-mono);
+  transition: opacity 0.3s;
+}
+
+.swipeHint[data-off="1"] {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.swipeHint i {
+  font-style: normal;
+  color: var(--signal);
+  animation: nudge 1.9s var(--ease) infinite;
+}
+
+.swipeHint i:last-of-type {
+  animation-delay: 0.95s;
+}
+
+@keyframes nudge {
+  0%,
+  100% {
+    transform: translateX(0);
+    opacity: 0.5;
+  }
+  50% {
+    transform: translateX(4px);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .swipeHint i {
+    animation: none;
+  }
+}
+
+.rest {
+  margin-top: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.chip {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--card);
+  color: var(--fog);
+  font-size: 0.75rem;
+  padding: 0.34rem 0.8rem;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.chip[data-cur="1"] {
+  border-color: var(--signal);
+  color: var(--chalk);
+}
+
+.chipAdd {
+  border-style: dashed;
+  color: var(--signal-soft);
+}
+
+/* ── 요청 시트 / 이어붙는 대화 ───────────────────────── */
+.sheet {
+  margin-top: 0.9rem;
+  border: 1px solid color-mix(in srgb, var(--signal) 38%, transparent);
+  border-radius: var(--radius);
+  background: var(--card-2);
+  padding: 0.95rem 1.05rem 1rem;
+  animation: rise 0.35s var(--ease) both;
+}
+
+.sheetTitle {
+  margin: 0 0 0.55rem;
+  font-size: 0.67rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--fog-dim);
+}
+
+.talk {
+  margin-top: 1rem;
+  border-top: 1px solid var(--line-soft);
+  padding-top: 1.05rem;
+  animation: rise 0.4s var(--ease) both;
+}
+
+.bubble {
+  display: flex;
+  gap: 0.6rem;
+  align-items: flex-start;
+  margin-bottom: 0.75rem;
+}
+
+.bubble p {
+  margin: 0;
+  background: var(--card-2);
+  border: 1px solid var(--line);
+  border-radius: 3px 13px 13px 13px;
+  padding: 0.55rem 0.9rem;
+  font-size: 0.86rem;
+  color: var(--chalk);
+}
+
+.avatar {
+  width: 1.55rem;
+  height: 1.55rem;
+  border-radius: 50%;
+  flex: none;
+  display: grid;
+  place-items: center;
+  background: var(--signal-wash);
+  border: 1px solid color-mix(in srgb, var(--signal) 38%, transparent);
+}
+
+.askRow {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  border: 1px solid color-mix(in srgb, var(--signal) 38%, transparent);
+  border-radius: var(--radius-lg);
+  background: var(--ground);
+  padding: 0.6rem 1rem;
+}
+
+.askIcon {
+  color: var(--signal);
+  flex: none;
+}
+
+.askInput {
+  flex: 1;
+  min-width: 0;
+  background: none;
+  border: 0;
+  color: var(--chalk);
+  font-family: inherit;
+  font-size: 0.84rem;
+}
+
+.askInput::placeholder {
+  color: var(--fog-dim);
+}
+
+/* 입력창은 이미 테두리를 두르고 있어 초점 테두리를 겹치면 두 겹이 된다 */
+.askInput:focus,
+.askInput:focus-visible {
+  outline: none;
+}
+
+.askRow:focus-within {
+  border-color: var(--signal);
+}
+
+.askSubmit {
+  flex: none;
+  background: var(--signal);
+  color: var(--u-white);
+  border: 0;
+  border-radius: var(--radius-lg);
+  padding: 0.36rem 0.9rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.askSubmit:disabled {
+  background: var(--line);
+  color: var(--fog-dim);
+  cursor: not-allowed;
+}
+
+.suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.38rem;
+  margin: 0.65rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.suggestions[data-indent="1"] {
+  padding-left: 2.15rem;
+}
+
+.suggestions button {
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--fog);
+  border-radius: var(--radius-lg);
+  font-size: 0.74rem;
+  padding: 0.3rem 0.75rem;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.suggestions button:hover {
+  border-color: var(--signal);
+  color: var(--chalk);
+}
+
+/* ── 바닥 ────────────────────────────────────────────── */
+.foot {
+  margin-top: auto;
+  padding-top: 1.4rem;
+  border-top: 1px solid var(--line-soft);
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  font-size: 0.78rem;
+  color: var(--fog-dim);
+  flex-wrap: wrap;
+}
+
+.mono {
+  font-family: var(--font-mono);
+  margin-left: 0.35rem;
+}
+
+/* 요청이 접수됐다는 응답. 시트를 닫은 자리에 남는다. */
+.requested {
+  margin: 0.9rem 0 0;
+  padding: 0.6rem 0.95rem;
+  border: 1px solid color-mix(in srgb, var(--signal) 30%, transparent);
+  background: var(--signal-wash);
+  border-radius: var(--radius);
+  font-size: 0.8rem;
+  color: var(--chalk);
+  animation: rise 0.35s var(--ease) both;
+}
+
+.requested b {
+  color: var(--signal-soft);
+  font-weight: 500;
+}

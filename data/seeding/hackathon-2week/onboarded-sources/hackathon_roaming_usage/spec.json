@@ -1,0 +1,122 @@
+{
+  "source_id": "hackathon_roaming_usage",
+  "label": "해커톤 로밍 이용",
+  "description": "출국일 적재 시점까지의 합성 월 누적 로밍 이용과 상품 가입 정보",
+  "timestamp_column": "BQ_LOAD_DTTM",
+  "timezone": "Asia/Seoul",
+  "event_type": {
+    "column": null,
+    "const": "roaming_usage_snapshot",
+    "value_map": null,
+    "default": null
+  },
+  "action": {
+    "column": null,
+    "const": "review_roaming_usage",
+    "value_map": null,
+    "default": null
+  },
+  "topic": {
+    "column": null,
+    "const": "해외 로밍 이용",
+    "value_map": null,
+    "default": null
+  },
+  "outcome": {
+    "column": "SPPS_ENTR_STUS_CD",
+    "const": null,
+    "value_map": null,
+    "default": null
+  },
+  "text": {
+    "column": "SPPS_NM",
+    "const": null,
+    "value_map": null,
+    "default": null
+  },
+  "identity": {
+    "namespace": "synthetic_customer",
+    "customer_column": "CUST_NO",
+    "link_method": "exact",
+    "confidence": 1.0
+  },
+  "dimensions": {
+    "country": {
+      "column": "RMNG_NATN_NM",
+      "semantic_type": "category",
+      "description": "로밍 국가",
+      "pii_classification": "none",
+      "masking": null
+    },
+    "departure_date": {
+      "column": "DPTR_DT",
+      "semantic_type": "category",
+      "description": "출국일 YYYYMMDD",
+      "pii_classification": "none",
+      "masking": null
+    },
+    "return_date": {
+      "column": "HMCML_DT",
+      "semantic_type": "category",
+      "description": "귀국일 YYYYMMDD, 미귀국은 빈 값",
+      "pii_classification": "none",
+      "masking": null
+    },
+    "service_start_date": {
+      "column": "SPPS_STRT_DT",
+      "semantic_type": "category",
+      "description": "상품 시작일 YYYYMMDD",
+      "pii_classification": "none",
+      "masking": null
+    },
+    "service_end_date": {
+      "column": "SPPS_END_DT",
+      "semantic_type": "category",
+      "description": "상품 종료일 YYYYMMDD",
+      "pii_classification": "none",
+      "masking": null
+    },
+    "product_code": {
+      "column": "SPPS_CD",
+      "semantic_type": "category",
+      "description": "로밍 상품 코드",
+      "pii_classification": "none",
+      "masking": null
+    },
+    "billing_month": {
+      "column": "P_YYYYMM",
+      "semantic_type": "category",
+      "description": "누적 집계 기준월 YYYYMM",
+      "pii_classification": "none",
+      "masking": null
+    },
+    "rating_start_date": {
+      "column": "RTNG_STRT_DT",
+      "semantic_type": "category",
+      "description": "실제 과금 시작일, 미시작은 빈 값",
+      "pii_classification": "none",
+      "masking": null
+    }
+  },
+  "measures": {
+    "data_usage": {
+      "column": "DATA_USAG",
+      "semantic_type": "number",
+      "description": "적재 시점까지 합성 데이터 사용량",
+      "unit": "bytes"
+    },
+    "plan_use_days": {
+      "column": "PP_USE_DAYS",
+      "semantic_type": "integer",
+      "description": "적재 시점까지 상품 사용 일수",
+      "unit": "days"
+    },
+    "abroad_stay_days": {
+      "column": "ABRD_STAY_DAYS",
+      "semantic_type": "integer",
+      "description": "적재 시점까지 해외 체류 일수",
+      "unit": "days"
+    }
+  },
+  "status": "approved"
+}

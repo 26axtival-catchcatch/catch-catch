@@ -1,0 +1,207 @@
+소액결제 정보 - L1BA_고객별빌링혜택집계로그 (L1BAT_CUST_BLNG_AND_BNFT_SUM)
+---
+CSZ_연결키	CZ_LNK_KEY		INT64	N								L1BAT_CUST_BLNG_AND_BNFT_SUM_CZ	CZ_LNK_KEY
+
+기준년월	BASE_YYMM	"청구의 대상이 되는 기간 
+
+예) 2016년 02월 고객에게 청구하는 경우 청구기준년월은 16년 2월이고, 고객이 실세 사용한 월은 16년 01월이 됨"	STRING	Y	1								
+
+암호화청구계정번호	BILL_ACNT_NO	서비스가입에 의해 제공되는 상품의 비용을 청구하기 위해 청구방법, 청구처 등 상세 내역을 관리하는 고유 식별번호	STRING	Y	2	Y	청구계정번호	L1COM_BILL_ACNT_NO_KEY_REL_CZ				L1BAT_CUST_BLNG_AND_BNFT_SUM_CZ	BILL_ACNT_NO
+
+암호화납입자정보	ACE_NO	자사 서비스의 납부에 대한 책임의 기준이 되는 내부 시스템에서 생성하는 번호	STRING	Y	3	Y	가입계약번호(계약번호)	L1COM_AENO_KEY_REL_CZ					
+
+암호화가입번호	ENTR_NO	서비스, 요금, 설치주소 등의 정보를 묶어서 식별하기 위해 부여한 고유번호	STRING	Y	4	Y	가입번호	L1AAT_ENTR_BAS_CZ	ENTR_NO			L1BAT_CUST_BLNG_AND_BNFT_SUM_CZ	ENTR_NO
+
+암호화고객번호	CUST_NO	주민번호와 같은 개인을 유일하게 식별할 수 있는 개인정보는 법적으로 시스템에서 사용이 불가능하기 때문에 자사에서 고객을 식별하기 위해서 내부 시스템(U Cube)에서 생성하는 번호(예: 홍길동(주민번호:850123-1xxxxxx) → 10자리의 임의 고객번호 부여 (4012345731))	STRING	N		Y	고객번호	L1AAT_CUST_BAS_CZ	CUST_NO			L1BAT_CUST_BLNG_AND_BNFT_SUM_CZ	CUST_NO
+
+10년연령대ID	YY10_AGELV_ID	10년연령대ID	INT64	N			나이대(10세단위)	L1AAC_YY10_AGELV_CD_VW	YY10_AGELV_ID = YY10_AGELV_ID		AGELV_SCP_DSCR		
+
+고객연령	CUST_AGE	고객연령	INT64	N		Y	나이(출생연도)					L1BAT_CUST_BLNG_AND_BNFT_SUM_CZ	CUST_AGE
+
+암호화ONEID이메일주소	ONEID_EMAIL_ADDR	자사 서비스(U+홈페이지/U+고객센터/비디오포털/U+Box/U+내비 등) 이용을 위한 통합 ID에 대한 이메일주소	STRING	N		Y	이메일주소(OneID)	L1COM_ONID_EMAIL_KEY_REL_CZ					
+
+서비스코드	SVC_CD	고객에 제공되는 U+ 서비스의 1차적 communication 단위 예) U+인터넷, U+시내전화… -> 코드체계 LZP : 서비스	STRING	N				L0UCM_MTL_SYSTEM_ITEMS_B	SEGMENT1		DESCRIPTION		
+
+서비스명	SVC_NM	서비스코드 명칭	STRING	N									
+
+요금제코드	PP_CD	고객이 요금을 지불하는 대가로 고객에게 음성/데이터/메시지 등의 통신 서비스를 제공하는 상품 코드	STRING	N									
+
+요금제명	PP_NM	고객이 요금을 지불하는 대가로 고객에게 음성/데이터/메시지 등의 통신 서비스를 제공하는 상품명	STRING	N		Y	요금제						
+
+암호화상품번호	PRD_NO	상품번호 - 모바일 : 모바일 폰번호 - 인터넷전화 : 인터넷전화번호 - 인터넷, TV, 홈IoT, U+ 라이프스타일서비스 : 가입번호	STRING	N		Y	전화번호						
+
+가입상태코드	ENTR_STTS_CD	가입번호의 상태 코드 - A : 개통(서비스사용이 가능한 상태) / S : 정지 / C : 해지	STRING	N									
+
+가입상태명	ENTR_STTS_NM	가입상태코드 명칭	STRING	N									
+
+결합번호	CNVG_NO	결합번호	INT64	N			결합번호						
+
+홈코드	HM_CD	홈 코드	STRING	N		Y	홈코드						
+
+최초개통일자	FRST_ENTR_DT	서비스를 최초로 개통한 일자	STRING	N									
+
+해지일자	EXPRY_DT	서비스를 해지한 일자	STRING	N									
+
+기본료금액	BAS_AMT	[청구-기본료] 서비스 제공 대가로 고객에게 매월 정액으로 청구하는 금액	NUMERIC	N		Y	사용금액						
+
+부가서비스금액	SPPS_AMT	[청구-부가] 고객에게 제공되는 요금제에 부가적인 서비스 중 정액으로 청구하는 금액	NUMERIC	N		Y	사용금액						
+
+단말할부금액	DEVC_INSTT_AMT	[청구-단말금액] 단말할부금, 단말할부이자, 단말할부 연체료의 합계 금액	NUMERIC	N		Y	결제금액						
+
+단말판매금액	DEVC_SALE_AMT	[청구-단말금액] 단말 중 고객에게 판매된 금액	NUMERIC	N		Y	결제금액						
+
+단말임대금액	DEVC_RENT_AMT	[청구-단말금액] 서비스 제공을 위해 고객에게 임대하는 단말(셋탑박스, AP, 모뎀 등)에 대한 이용 대가에 따른 금액	NUMERIC	N		Y	결제금액						
+
+국내통화료금액	DOME_CALL_AMT	[청구-사용료] 국내 음성통화 사용량에 대하여 납부해야 하는 요금	NUMERIC	N		Y	사용금액						
+
+국내영상통화료금액	DOME_VDO_CALL_AMT	[청구-사용료] 국내 영상통화 사용량에 대하여 납부해야 하는 요금	NUMERIC	N		Y	사용금액						
+
+부가통화사용금액	ADDV_CALL_USE_AMT	[청구-사용료] 통화 시 부가통화서비스 사용금액	NUMERIC	N		Y	사용금액						
+
+국내문자이용금액	DOME_LTTR_TADV_AMT	[청구-사용료] 국내 SMS/MMS 서비스를 이용한 요금	NUMERIC	N		Y	사용금액						
+
+기업문자이용요금금액	ENTP_LTTR_TADV_AMT	[청구-사용료] 기업문자이용요금금액	NUMERIC	N		Y	사용금액						
+
+모바일3G데이터사용료금액	MBL_GEN3_DATA_TADV_AMT	[청구-사용료] 모바일3G데이터이용료금액	NUMERIC	N		Y	사용금액						
+
+모바일LTE데이터사용료금액	MBL_LTE_DATA_TADV_AMT	[청구-사용료] 모바일LTE데이터이용료금액	NUMERIC	N		Y	사용금액						
+
+로밍이용금액	RMNG_TADV_AMT	[청구-사용료] 모바일 로밍 서비스 이용시 발생하는 금액	NUMERIC	N		Y	사용금액						
+
+시내통화료금액	ICTY_CALL_AMT	[청구-사용료] 시내통화료금액	NUMERIC	N		Y	사용금액						
+
+시외통화료금액	OCTY_CALL_AMT	[청구-사용료] 시외통화료금액	NUMERIC	N		Y	사용금액						
+
+국제통화료금액	INTCALL_CALL_AMT	[청구-사용료] 국제전화 접속번호(002 등)를 이용하여 해외로 통화를 한 요금	NUMERIC	N		Y	사용금액						
+
+전국대표통화료금액	NAT_REP_CALL_AMT	[청구-사용료] 전국대표통화료금액	NUMERIC	N		Y	사용금액						
+
+기타통화료금액	ETC_CALL_AMT	[청구-사용료] 통화서비스 이용시 발생하는 기타금액	NUMERIC	N		Y	사용금액						
+
+정보이용료	INFO_TADV_AMT	[청구-정보료] 음성/메시지/데이터 등 기본적인 서비스가 아닌, 모바일 게임, 뮤직, 필링, 벨소리 등의 컨텐츠 다운로드/이용 금액	NUMERIC	N		Y	사용금액						
+
+PPS링충전금액	PPS_RING_ELCTC_AMT	[청구-정보료] PPS링충전금액	NUMERIC	N		Y	결제금액						
+
+소액결제금액	SMLS_STLM_AMT	[청구-정보료] 모바일 가입자가 온라인 쇼핑몰 등에서 소액결제 서비스를 이용하여 결제한 금액. (다날, 모빌리언스 등)	NUMERIC	N		Y	결제금액						
+
+구글플레이구매금액	GOOGLE_PLAY_BUY_AMT	[청구-정보료] 구글스토어에서 사용한 결제금액	NUMERIC	N		Y	구매금액						
+
+통합앱스토어결제금액	INTG_APPSTORE_STLM_AMT	[청구-정보료] 통합스토어(원스토어)에서 사용한 결제금액	NUMERIC	N		Y	결제금액						
+
+IPTVVOD이용금액	IPTV_VOD_TADV_AMT	[청구-정보료] IPTV에서 영화, 지상파 TV, 종편 등의 영상컨텐츠를 사용자가 이용함에 따라 발생한 금액 - VOD(Video On Demand): 통신망 연결을 통하여 사용자가 필요로 하는 컨텐츠를 원하는 시간에 제공해 주는 서비스	NUMERIC	N		Y	사용금액						
+
+가입비금액	ENTF_AMT	[청구-일회성] 서비스 가입 시 고객에게 일회성으로 부과하는 금액	NUMERIC	N		Y	결제금액						
+
+설치비금액	EBCST_AMT	[청구-일회성] 비/회선의 설치/공사 등의 대가로 고객에게 청구하는 1회성 금액	NUMERIC	N		Y	결제금액						
+
+기사출동금액	ENGR_GOUT_AMT	[청구-일회성] 고객의 요청에 의해 기사가 출동할 경우 부과하는 금액	NUMERIC	N		Y	결제금액						
+
+단말배상금액	DEVC_INDM_AMT	[청구-일회성] 고객 과실에 의해 단말이 손상/분실될 경우 고객이 보상하는 금액	NUMERIC	N		Y	결제금액						
+
+단말수리금액	DEVC_RPAR_AMT	[청구-일회성] 고객 과실에 의해 단말이 손상되어 수리가 필요할 경우 고객이 보상하는 금액	NUMERIC	N		Y	결제금액						
+
+AS금액	AS_AMT	[청구-일회성] A/S 발생 시 고객에게 부과하는 금액	NUMERIC	N		Y	결제금액						
+
+약정할인반환금액	AGDC_RETURN_AMT	[청구-반환금] 약정할인해지, 요금제변경, 명의변경 등의 사유로 사용월별 반환율에 의거하여 일정액을 위약금으로 환불하는 금액	NUMERIC	N		Y	환급금액						
+
+단말반환금액	DEVC_RETURN_AMT	"[청구-반환금] 고객이 단말약정할인을 받고 있다가 약정을 해지하는 경우에 고객에게 부과하는 위약금.
+
+단말약정할인이란 고객이 단말기에 대한 이용약정을 했을 때 약정기간에 따라 할인을 제공하는 금액으로 현재는 잘 사용하지 않음"	NUMERIC	N		Y	환급금액						
+
+단말지원정산금액	DEVC_SUPRT_STACC_AMT	"[청구-반환금] 고객이 모바일 단말 구매 시 선택약정할인 또는 공시지원금(단말보조금)을 선택할 수 있음. 공시지원금을 선택한 고객이 아래의 경우에 반환금이 발생하게 되는데 이를 단말지원정산금이라 함
+
+1. 선택약정할인으로 변경
+
+2. 가입 시 선택한 요금제 하향"	NUMERIC	N		Y	환급금액						
+
+기본료할인반환금액	BASF_DSCNT_RETURN_AMT	[청구-반환금] 고객이 특정한 전제사항을 조건으로 기본료 할인혜택을 받고 있다가 전제사항을 위반했을 경우 고객에게 부과하는 위약금	NUMERIC	N		Y	환급금액						
+
+부가서비스할인반환금액	SPPS_DSCNT_RETURN_AMT	[청구-반환금] 고객이 특정한 전제사항을 조건으로 부가서비스 할인혜택을 받고 있다가 전제사항을 위반했을 경우 고객에게 부과하는 위약금	NUMERIC	N		Y	환급금액						
+
+결합할인반환금액	CNVG_DSCNT_RETURN_AMT	[청구-반환금] 고객이 결합할인을 받고 있다가 결합을 해지하는 경우에 발생하는 결합할인에 대한 위약금. 모든 결합이 위약금이 있는것은 아님.	NUMERIC	N		Y	환급금액						
+
+오퍼할인반환금액	OFFR_DSCNT_RETURN_AMT	[청구-반환금] 고객이 특정한 전제사항을 조건으로 오퍼를 받고 있다가 전제사항을 위반했을 경우 고객에게 부과하는 위약금	NUMERIC	N		Y	환급금액						
+
+설치비반환금액	EBCST_RETURN_AMT	[청구-반환금] 고객이 특정한 전제사항을 조건으로 설치비할인을 받았다가 전제사항을 위반했을 경우 고객에게 부과하는 위약금	NUMERIC	N		Y	환급금액						
+
+해지반환금액	EXPRY_RETURN_AMT	[청구-반환금] 고객이 서비스를 해지하는 경우에 부과되는 위약금.	NUMERIC	N		Y	환급금액						
+
+기타반환금액	ETC_RETURN_AMT	[청구-반환금] 위의 반환금 외에 발생하는 반환금	NUMERIC	N		Y	환급금액						
+
+기타금액	ETC_AMT	[청구] 고객에게 청구되는 금액 중 위의 속성외의 항목으로 발생하는 기타금액	NUMERIC	N		Y	결제금액						
+
+약정할인금액	AGDC_AMT	[청구-할인] 요금약정할인. 고객이 요금제에 대한 이용약정을 했을 때 약정기간에 따라 할인을 제공하는 금액. 순액요금제 출시 이후에는 약정할인을 제공하지 않음	NUMERIC	N		Y	결제금액						
+
+선택약정할인금액	CHCE_AGDC_AMT	[청구-할인] 단통법 시행 시부터 적용하고 있는 약정할인. 고객은 공시지원금(단말보조금)과 선택약정할인 중 1개를 선택하여 혜택을 받을 수 있음. 선택약정할인요율은 12% -> 20% -> 25%로 변경되었음.	NUMERIC	N		Y	결제금액						
+
+장기할인금액	LNTEM_DSCNT_AMT	[청구-할인] 서비스를 장기간 이용하는 경우에 제공하는 할인	NUMERIC	N		Y	결제금액						
+
+한방에YO결합할인금액	HANBNG_YO_CNVG_DSCNT_AMT	[청구-할인] 한방에yo 결합할인 금액	NUMERIC	N		Y	결제금액						
+
+기타결합할인금액	ETC_CNVG_DSCNT_AMT	[청구-할인] 기타 결합할인 금액	NUMERIC	N		Y	결제금액						
+
+프로그램할인금액	PGM_DSCNT_AMT	[청구-할인] 고객에게 고정적/정기적으로 할인을 제공하는 경우 프로그램할인이라고 함.(ex 단말클럽할인 등)	NUMERIC	N		Y	결제금액						
+
+고객케어할인금액	CUST_MGMT_DSCNT_AMT	[청구-할인] 고객 케어를 목적으로 사용하는 할인(ex 상담사가 상담 시 제공하는 할인 등)	NUMERIC	N		Y	결제금액						
+
+프로모션할인금액	PRMTN_DSCNT_AMT	[청구-할인] 고객에게 다양한 목적으로 일시적으로 할인을 제공하는 경우 프로모션할인이라고 함	NUMERIC	N		Y	결제금액						
+
+멤버십할인금액	MBRSH_DSCNT_AMT	[청구-할인] 멤버십 포인트를 사용하여 받은 할인 금액	NUMERIC	N		Y	결제금액						
+
+공공복지할인금액	PUBWF_DSCNT_AMT	[청구-할인] 국가/공공기관 또는 사회적약자를 배려하기 위한 할인	NUMERIC	N		Y	결제금액						
+
+단체할인금액	GROP_DSCNT_AMT	[청구-할인] 단체가입 시 제공하는 할인	NUMERIC	N		Y	결제금액						
+
+계약할인금액	CNTC_DSCNT_AMT	[청구-할인] 특정 계약조건을 전제로 제공하는 할인	NUMERIC	N		Y	결제금액						
+
+기타할인금액	ETC_DSCNT_AMT	[청구-할인] 위의 속성 이외의 항목으로 발생하는 할인	NUMERIC	N		Y	결제금액						
+
+요금조정할인금액	CHRG_ADJMT_DSCNT_AMT	[청구-조정] 요금조정을 목적으로 제공하는 할인	NUMERIC	N		Y	결제금액						
+
+계약요금조정금액	CNTC_CHRG_ADJMT_AMT	[청구-조정] 고객에게 기본으로 정해진 금액이 아닌 고객별 맞춤금액을 제공하기 위해 제공하는 요금조정(주로 기업고객을 대상으로 사용)	NUMERIC	N		Y	청구금액						
+
+전월미청구금액	PMTH_UCLM_AMT	[청구-미청구] 전월 또는 그 이전에 발생된 금액을 청구하지 못한 경우 발생하는 금액	NUMERIC	N		Y	청구금액						
+
+연체가산금	LTPYM_ADDC_AMT	[청구-미납] 고객이 연체가 발생한 경우 부과되는 추가금액	NUMERIC	N		Y	청구금액						
+
+BDP미분류청구금액	BDP_NON_CLSS_BILL_AMT	[청구-미분류] 전체 청구금액 중 위의 속성에서 분류되지 않은 금액.	NUMERIC	N		Y	청구금액						
+
+청구부가가치세금액	BILL_VAT_AMT	[청구] 청구금액에 해당하는 부가세	NUMERIC	N		Y	결제금액						
+
+청구총금액	TOT_BILL_AMT	[청구] 고객이 납부해야하는 총 금액	NUMERIC	N		Y	청구금액						
+
+전월미납금액	PMTH_UPAID_AMT	[청구-미납] 직전월 청구금액 중 미납된 금액	NUMERIC	N		Y	미납금액						
+
+전월제외누적미납금액	PMTH_XCLN_ACLTN_UPAID_AMT	[청구-미납] 총미납금액 중 전월미남금액을 제외한 미납금액. 전월미납금액과 전월제외누적미납금액을 합산하면, 총미납금액이 됨.	NUMERIC	N		Y	미납금액						
+
+납부금액	PYM_AMT	[청구-납부] 고객이 납부한 금액. 전월 청구금액에 대한 납부금액임.	NUMERIC	N		Y	결제금액						
+
+당월단말지원금액	THMN_DEVC_SUPRT_AMT	[혜택-지원금] 고객이 단말을 구매하는 경우 U+에서 보조해주는 지원금. 단말보조금이라고도 함.	NUMERIC	N		Y	결제금액						
+
+당월사은품금액	THMN_GIFT_AMT	[혜택-사은품] 고객이 서비스 가입 시 제공하는 사은품(ex. 상품권 등)	NUMERIC	N		Y	결제금액						
+
+멤버십잔여포인트	MBRSH_RMND_PNT	[혜택-멤버십] 고객에게 제공된 멤버십포인트 중 사용가능한 멤버십포인트	NUMERIC	N									
+
+당월멤버십사용포인트	THMN_MBRSH_USE_PNT	[혜택-멤버십] 고객이 당월에 사용한 멤버십포인트	NUMERIC	N									
+
+당월캠페인이용금액	THMN_CMPN_AMT	[혜택-캠페인] 캠페인을 통해 받은 혜택금액	NUMERIC	N		Y	사용금액						
+
+당월EZ포인트사용금액	THMN_EZPNT_USE_AMT	[혜택-포인트] 당월 EZ포인트사용금액	NUMERIC	N		Y	사용금액						
+
+당월YO포인트사용금액	THMN_YO_PNT_USE_AMT	[혜택-포인트] 당월 YO포인트사용금액 	NUMERIC	N									
+
+당월항공마일리지부여금액	THMN_AIR_MLGE_PNT_AMT	[혜택-포인트] 당월 항공마일리지 적립금액 	NUMERIC	N									
+
+공헌이익금액	CNTRB_PRFT_AMT	"[혜택] 매출에서 해당 매출을 발생시키기 위해 직접적으로 발생하는 비용(변동비)을 차감한 금액 
+
+[산식1] 공헌이익(한계이익) = 매출-직접비"	NUMERIC	N									
+
+머니북금액	MBOOK_AMT	[혜택] (미사용) 고객의 소비패턴을 분석하기 위한 '머니북'서비스에 대한 금액. 머니북 서비스는 현재 서비스되고 있지 않음.	NUMERIC	N									
+
+데이터처리적재시간	DP_LOAD_DTTM	데이터처리적재시간	DATETIME	N									
+
+데이터처리사용자아이디	DP_LOAD_USER_ID	데이터처리사용자아이디	STRING	N									
+
+성별구분코드	SEX_DV_CD	성별구분코드	STRING	N		Y	성별					L1BAT_CUST_BLNG_AND_BNFT_SUM_CZ	SEX_DV_CD
+
+ 

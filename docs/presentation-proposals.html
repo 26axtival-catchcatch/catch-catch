@@ -1,0 +1,1229 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      html { color-scheme: light dark; }
+      body { margin: 0; }
+      img { max-width: 100%; }
+      [hidden] { display: none !important; }
+    </style>
+<title>캐치캐치 발표 다섯 시안</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gasoek+One&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+KR:wght@300;400;500;600;700&display=swap">
+
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+
+  /* ── Tokens ─────────────────────────────────────────────
+     화면 정의서와 같은 토큰. dark가 기본, light가 override. */
+  :root {
+    --ground: #0b0710;
+    --raise: #150d1e;
+    --card: #1d1329;
+    --card-2: #241735;
+    --line: #33223f;
+    --line-soft: #261a33;
+    --chalk: #f3edf7;
+    --fog: #a596b2;
+    --fog-dim: #7c6d89;
+    --signal: #ff2e98;
+    --signal-soft: #ff8cc6;
+    --signal-wash: rgb(255 46 152 / 12%);
+    --jade: #4ac9a3;
+    --jade-wash: rgb(74 201 163 / 12%);
+    --amber: #edb055;
+    --amber-wash: rgb(237 176 85 / 12%);
+    --shadow: 0 24px 60px rgb(0 0 0 / 45%);
+
+    /* 슬라이드 미니어처는 실제 발표 화면이므로 테마와 무관하게 항상 어둡다 */
+    --slide-bg: #0b0710;
+    --slide-ink: #f3edf7;
+    --slide-fog: #8d7d9b;
+    --slide-line: #2e1f3a;
+    --slide-signal: #ff2e98;
+    --slide-jade: #4ac9a3;
+    --slide-amber: #edb055;
+
+    --measure: 47rem;
+    --wide: 70rem;
+    --step: 1.0625rem;
+  }
+
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      --ground: #faf6fb;
+      --raise: #ffffff;
+      --card: #ffffff;
+      --card-2: #f4eef7;
+      --line: #e2d5e9;
+      --line-soft: #eee5f2;
+      --chalk: #1c1024;
+      --fog: #6b5c78;
+      --fog-dim: #8b7d97;
+      --signal: #d80077;
+      --signal-soft: #b8005f;
+      --signal-wash: rgb(216 0 119 / 8%);
+      --jade: #12876a;
+      --jade-wash: rgb(18 135 106 / 10%);
+      --amber: #8a5e0f;
+      --amber-wash: rgb(154 106 18 / 12%);
+      --shadow: 0 18px 44px rgb(60 20 70 / 10%);
+    }
+  }
+
+  :root[data-theme="light"] {
+    --ground: #faf6fb;
+    --raise: #ffffff;
+    --card: #ffffff;
+    --card-2: #f4eef7;
+    --line: #e2d5e9;
+    --line-soft: #eee5f2;
+    --chalk: #1c1024;
+    --fog: #6b5c78;
+    --fog-dim: #8b7d97;
+    --signal: #d80077;
+    --signal-soft: #b8005f;
+    --signal-wash: rgb(216 0 119 / 8%);
+    --jade: #12876a;
+    --jade-wash: rgb(18 135 106 / 10%);
+    --amber: #8a5e0f;
+    --amber-wash: rgb(154 106 18 / 12%);
+    --shadow: 0 18px 44px rgb(60 20 70 / 10%);
+  }
+
+  /* ── Base ───────────────────────────────────────────── */
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--chalk);
+    font-family: "IBM Plex Sans KR", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: var(--step);
+    font-weight: 300;
+    line-height: 1.72;
+    -webkit-font-smoothing: antialiased;
+    word-break: keep-all;
+  }
+
+  .page { max-width: var(--wide); margin: 0 auto; padding: 0 1.5rem 6rem; }
+  .col { max-width: var(--measure); }
+
+  h1, h2, h3, h4 { text-wrap: balance; margin: 0; font-weight: 600; }
+  p { margin: 0; }
+
+  .mono, code { font-family: "IBM Plex Mono", ui-monospace, monospace; }
+  code {
+    font-size: 0.86em;
+    background: var(--card-2);
+    border: 1px solid var(--line-soft);
+    border-radius: 4px;
+    padding: 0.08em 0.36em;
+    white-space: nowrap;
+  }
+
+  :focus-visible { outline: 2px solid var(--signal); outline-offset: 3px; border-radius: 3px; }
+
+  /* ── Hero ───────────────────────────────────────────── */
+  .hero { padding: 5rem 0 3rem; border-bottom: 1px solid var(--line-soft); }
+
+  .eyebrow {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--fog-dim);
+    margin: 0 0 1.75rem;
+  }
+
+  .wordmark {
+    font-family: "Gasoek One", "IBM Plex Sans KR", sans-serif;
+    font-weight: 400;
+    font-size: clamp(2.9rem, 9.5vw, 5.25rem);
+    line-height: 0.96;
+    letter-spacing: -0.01em;
+    margin: 0;
+  }
+  .wordmark em { font-style: normal; color: var(--signal); }
+
+  .hero-sub { font-size: 1.12rem; color: var(--fog); max-width: 36rem; margin-top: 1.5rem; line-height: 1.7; }
+
+  .hero-meta {
+    display: flex; flex-wrap: wrap; gap: 0.5rem 1.5rem; margin-top: 2.25rem;
+    font-family: "IBM Plex Mono", monospace; font-size: 0.76rem;
+    color: var(--fog-dim); letter-spacing: 0.04em;
+  }
+
+  .pulse-strip { margin-top: 2.75rem; height: 70px; overflow: hidden; }
+  .pulse-strip svg { width: 100%; height: 100%; display: block; }
+  .pulse-line {
+    fill: none; stroke: var(--signal); stroke-width: 2.25;
+    stroke-linecap: round; stroke-linejoin: round;
+    stroke-dasharray: 1400; stroke-dashoffset: 1400;
+    animation: trace 4.2s cubic-bezier(0.5, 0, 0.4, 1) infinite;
+  }
+  .pulse-ghost { fill: none; stroke: var(--line); stroke-width: 1.25; }
+  @keyframes trace {
+    0% { stroke-dashoffset: 1400; }
+    62% { stroke-dashoffset: 0; }
+    88% { stroke-dashoffset: 0; opacity: 1; }
+    100% { stroke-dashoffset: 0; opacity: 0; }
+  }
+
+  /* ── Bands ──────────────────────────────────────────── */
+  .band { padding: 4rem 0 0; }
+  .band-head { max-width: var(--measure); margin-bottom: 2rem; }
+  .band-head h2 { font-size: clamp(1.45rem, 3.2vw, 1.9rem); letter-spacing: -0.015em; line-height: 1.35; }
+  .band-head p { color: var(--fog); margin-top: 0.65rem; }
+
+  .tag {
+    display: inline-block;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.68rem; letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--signal); border: 1px solid color-mix(in srgb, var(--signal) 35%, transparent);
+    background: var(--signal-wash);
+    padding: 0.1rem 0.5rem; border-radius: 3px; margin-bottom: 0.9rem;
+  }
+
+  .note {
+    border-left: 2px solid var(--signal);
+    background: var(--signal-wash);
+    padding: 1rem 1.25rem; margin-top: 1.5rem;
+    display: flex; flex-direction: column; gap: 0.35rem;
+  }
+  .note-label {
+    font-family: "IBM Plex Mono", monospace; font-size: 0.68rem;
+    letter-spacing: 0.16em; text-transform: uppercase; color: var(--signal);
+  }
+  .note p { color: var(--chalk); }
+
+  /* 자산 목록 */
+  .assets { display: grid; grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr)); gap: 1px; background: var(--line-soft); border: 1px solid var(--line-soft); }
+  .asset { background: var(--ground); padding: 1.1rem 1.2rem; display: flex; flex-direction: column; gap: 0.3rem; }
+  .asset-num { font-family: "IBM Plex Mono", monospace; font-size: 1.5rem; color: var(--signal); line-height: 1.1; font-variant-numeric: tabular-nums; }
+  .asset-name { font-weight: 500; font-size: 0.95rem; }
+  .asset-desc { color: var(--fog-dim); font-size: 0.84rem; line-height: 1.55; }
+
+  /* ── Proposal ───────────────────────────────────────── */
+  .proposal { padding: 4.5rem 0 0; border-top: 1px solid var(--line-soft); margin-top: 4.5rem; }
+  .proposal:first-of-type { border-top: none; margin-top: 0; }
+
+  .p-head { display: grid; grid-template-columns: 4.5rem 1fr; gap: 0 1.5rem; align-items: start; }
+  .p-num {
+    font-family: "Gasoek One", monospace; font-size: 3.4rem; line-height: 0.8;
+    color: var(--line); letter-spacing: -0.02em;
+  }
+  .p-title { font-family: "Gasoek One", "IBM Plex Sans KR", sans-serif; font-weight: 400; font-size: clamp(1.8rem, 4vw, 2.5rem); line-height: 1.1; letter-spacing: -0.01em; }
+  .p-stance { color: var(--fog); margin-top: 0.85rem; max-width: 40rem; font-size: 1.05rem; }
+  .p-body { margin-top: 2.5rem; display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 2.5rem; align-items: start; }
+  @media (max-width: 56rem) {
+    .p-body { grid-template-columns: 1fr; gap: 2rem; }
+    .p-head { grid-template-columns: 1fr; }
+    .p-num { font-size: 2.4rem; margin-bottom: 0.5rem; }
+  }
+
+  /* ── Slide mock ─────────────────────────────────────── */
+  .slide {
+    aspect-ratio: 16 / 9;
+    background: var(--slide-bg);
+    border: 1px solid var(--slide-line);
+    color: var(--slide-ink);
+    position: relative;
+    overflow: hidden;
+    box-shadow: var(--shadow);
+    container-type: inline-size;
+  }
+  .slide-cap {
+    font-family: "IBM Plex Mono", monospace; font-size: 0.7rem;
+    letter-spacing: 0.14em; text-transform: uppercase; color: var(--fog-dim);
+    margin-top: 0.7rem;
+  }
+  /* 슬라이드 안쪽 타이포는 컨테이너 폭에 비례해야 어떤 크기에서도 같은 그림이 된다 */
+  .s-pad { position: absolute; inset: 0; padding: 7cqw; display: flex; flex-direction: column; }
+  .s-mono { font-family: "IBM Plex Mono", monospace; font-size: 2.4cqw; letter-spacing: 0.18em; text-transform: uppercase; color: var(--slide-fog); }
+  .s-display { font-family: "Gasoek One", sans-serif; font-weight: 400; line-height: 1.0; letter-spacing: -0.01em; }
+  .s-sub { font-size: 2.7cqw; color: var(--slide-fog); line-height: 1.6; font-weight: 300; }
+  .s-pink { color: var(--slide-signal); }
+
+  /* 1. 심박 */
+  .s1 { justify-content: center; }
+  .s1 svg { width: 100%; height: 16cqw; display: block; }
+  .s1-flat { fill: none; stroke: var(--slide-line); stroke-width: 1.5; }
+  .s1-beat { fill: none; stroke: var(--slide-signal); stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+  .s1-foot { display: flex; justify-content: space-between; align-items: baseline; margin-top: 6cqw; }
+
+  /* 2. 328명 */
+  .s2-grid { position: absolute; inset: 0; display: grid; grid-template-columns: repeat(28, 1fr); align-content: center; gap: 1.1cqw 1.1cqw; padding: 8cqw; }
+  .s2-dot { width: 100%; aspect-ratio: 1; border-radius: 50%; background: #2a1c37; }
+  .s2-dot.on { background: var(--slide-signal); box-shadow: 0 0 3cqw rgb(255 46 152 / 55%); }
+  .s2-veil { position: absolute; inset: 0; background: linear-gradient(180deg, rgb(11 7 16 / 15%) 0%, rgb(11 7 16 / 88%) 62%); }
+
+  /* 3. 말보다 먼저 */
+  .s3 { justify-content: center; }
+
+  /* 4. 12/14 */
+  .s4-figure { display: flex; align-items: baseline; gap: 1.5cqw; }
+  .s4-num { font-family: "Gasoek One", sans-serif; font-size: 19cqw; line-height: 0.82; }
+  .s4-slash { font-family: "IBM Plex Mono", monospace; font-size: 7cqw; color: var(--slide-line); }
+  .s4-rows { margin-top: 4.5cqw; display: flex; flex-direction: column; gap: 1.4cqw; }
+  .s4-row { display: flex; align-items: center; gap: 2cqw; font-size: 2.6cqw; color: var(--slide-fog); }
+  .s4-chip { font-family: "IBM Plex Mono", monospace; font-size: 2.1cqw; letter-spacing: 0.1em; padding: 0.3cqw 1.2cqw; border-radius: 2px; }
+  .s4-chip.pass { color: var(--slide-jade); border: 1px solid color-mix(in srgb, #4ac9a3 40%, transparent); }
+  .s4-chip.fail { color: var(--slide-amber); border: 1px solid color-mix(in srgb, #edb055 45%, transparent); }
+
+  /* 5. 예측 → 실측 */
+  .s5-chart { flex: 1; display: flex; align-items: flex-end; margin-top: 3cqw; }
+  .s5-chart svg { width: 100%; height: 100%; display: block; }
+  .s5-pred { fill: none; stroke: var(--slide-fog); stroke-width: 1.6; stroke-dasharray: 5 5; }
+  .s5-real { fill: none; stroke: var(--slide-signal); stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
+  .s5-miss { fill: none; stroke: var(--slide-amber); stroke-width: 2; stroke-linecap: round; stroke-dasharray: 3 4; }
+  .s5-legend { display: flex; gap: 4cqw; margin-top: 2.5cqw; font-family: "IBM Plex Mono", monospace; font-size: 2.1cqw; color: var(--slide-fog); }
+  .s5-key { display: inline-block; width: 3.5cqw; height: 0; border-top: 2px solid currentColor; vertical-align: middle; margin-right: 1cqw; }
+
+  /* ── Timeline ───────────────────────────────────────── */
+  .tl { margin-top: 2rem; }
+  .tl-h { font-family: "IBM Plex Mono", monospace; font-size: 0.7rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--fog-dim); margin-bottom: 0.7rem; }
+  .tl-bar { display: flex; height: 1.55rem; border: 1px solid var(--line); background: var(--raise); }
+  .tl-seg { display: flex; align-items: center; justify-content: center; border-right: 1px solid var(--line); font-family: "IBM Plex Mono", monospace; font-size: 0.62rem; color: var(--fog-dim); overflow: hidden; white-space: nowrap; }
+  .tl-seg:last-child { border-right: none; }
+  .tl-seg.demo { background: var(--signal-wash); color: var(--signal); border-right-color: color-mix(in srgb, var(--signal) 30%, var(--line)); }
+  .tl-seg.peak { background: var(--jade-wash); color: var(--jade); }
+  .tl-legend { display: flex; flex-wrap: wrap; gap: 0.35rem 1.1rem; margin-top: 0.6rem; font-family: "IBM Plex Mono", monospace; font-size: 0.7rem; color: var(--fog-dim); }
+  .tl-legend b { font-weight: 500; color: var(--fog); }
+
+  /* ── Slide list ─────────────────────────────────────── */
+  .seq { margin-top: 2rem; display: flex; flex-direction: column; }
+  .seq-row { display: grid; grid-template-columns: 2.6rem 1fr; gap: 0 1rem; padding: 0.7rem 0; border-top: 1px solid var(--line-soft); align-items: baseline; }
+  .seq-row:last-child { border-bottom: 1px solid var(--line-soft); }
+  .seq-n { font-family: "IBM Plex Mono", monospace; font-size: 0.72rem; color: var(--fog-dim); font-variant-numeric: tabular-nums; }
+  .seq-t { font-weight: 500; font-size: 0.98rem; line-height: 1.45; }
+  .seq-d { color: var(--fog); font-size: 0.9rem; line-height: 1.6; margin-top: 0.15rem; }
+  .seq-row.is-demo { background: var(--signal-wash); margin-inline: -0.9rem; padding-inline: 0.9rem; }
+  .seq-row.is-demo .seq-n { color: var(--signal); }
+
+  /* ── Meta side ──────────────────────────────────────── */
+  .meta { display: flex; flex-direction: column; gap: 1.35rem; position: sticky; top: 1.5rem; }
+  @media (max-width: 56rem) { .meta { position: static; } }
+  .meta-block { border: 1px solid var(--line); background: var(--raise); padding: 1.05rem 1.15rem; display: flex; flex-direction: column; gap: 0.4rem; }
+  .meta-label { font-family: "IBM Plex Mono", monospace; font-size: 0.66rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--fog-dim); }
+  .meta-value { font-weight: 600; font-size: 1rem; line-height: 1.45; }
+  .meta-value.demo-live { color: var(--jade); }
+  .meta-value.demo-film { color: var(--amber); }
+  .meta-body { color: var(--fog); font-size: 0.89rem; line-height: 1.62; }
+  .meta-block.risk { border-color: color-mix(in srgb, var(--amber) 35%, var(--line)); }
+  .meta-block.risk .meta-label { color: var(--amber); }
+
+  .bullets { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.5rem; }
+  .bullets li { position: relative; padding-left: 0.95rem; color: var(--fog); font-size: 0.89rem; line-height: 1.6; }
+  .bullets li::before { content: ""; position: absolute; left: 0; top: 0.66em; width: 4px; height: 4px; border-radius: 50%; background: var(--signal); }
+
+  /* ── Compare table ──────────────────────────────────── */
+  .table-wrap { overflow-x: auto; border: 1px solid var(--line); margin-top: 1.75rem; }
+  table { border-collapse: collapse; width: 100%; min-width: 46rem; font-size: 0.88rem; }
+  th, td { text-align: left; padding: 0.7rem 0.9rem; border-bottom: 1px solid var(--line-soft); vertical-align: top; line-height: 1.55; }
+  thead th { font-family: "IBM Plex Mono", monospace; font-size: 0.68rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--fog-dim); font-weight: 500; background: var(--raise); border-bottom-color: var(--line); }
+  tbody tr:last-child td { border-bottom: none; }
+  td.name { font-weight: 600; color: var(--chalk); white-space: nowrap; }
+  td .mono { font-size: 0.82rem; color: var(--fog); }
+  .dot-live { color: var(--jade); }
+  .dot-film { color: var(--amber); }
+
+  /* ── Closing ────────────────────────────────────────── */
+  .close { margin-top: 4rem; border: 1px solid var(--line); background: var(--raise); padding: 2rem 2.25rem; max-width: var(--measure); display: flex; flex-direction: column; gap: 1rem; }
+  .close h3 { font-family: "Gasoek One", sans-serif; font-weight: 400; font-size: 1.5rem; line-height: 1.2; }
+  .close p { color: var(--fog); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .pulse-line { animation: none; stroke-dashoffset: 0; }
+  }
+</style>
+  </head>
+  <body>
+<div class="page">
+
+  <header class="hero">
+    <p class="eyebrow">Deck Proposals · 5안 · 10분 발표 + 시연 · 2026.09.01</p>
+    <h1 class="wordmark">발표를<br>캐치하는<br><em>다섯 가지</em></h1>
+    <p class="hero-sub">
+      화면 정의서의 첫 화면 언어 — Gasoek One 워드마크, 마젠타 한 색, 심박 라인 — 를
+      그대로 발표 무대로 끌고 온 다섯 개의 데크 시안입니다. 각 시안은 타이틀 슬라이드 실물,
+      10분 시간 배분, 슬라이드 순서, 시연 삽입 지점, 그리고 그 시안이 감수하는 리스크까지 함께 담았습니다.
+    </p>
+    <div class="hero-meta">
+      <span>질문 → 캐치 → 결과 → 검증 기록 → 액션</span>
+      <span>Live demo 또는 녹화 영상</span>
+      <span>슬라이드 8–12장</span>
+      <span>TEAM 네박자</span>
+    </div>
+
+    <div class="pulse-strip" aria-hidden="true">
+      <svg viewBox="0 0 1200 74" preserveAspectRatio="none">
+        <path class="pulse-ghost" d="M0 37 H1200" />
+        <path class="pulse-line" d="M0 37 H340 L360 37 L372 12 L388 62 L402 24 L414 37 L436 37 L448 30 L460 44 L472 37 H700 L716 37 L728 8 L744 66 L758 20 L770 37 H1200" />
+      </svg>
+    </div>
+  </header>
+
+  <!-- ── 공통 전제 ───────────────────────────────────── -->
+  <section class="band">
+    <div class="band-head">
+      <span class="tag">전제</span>
+      <h2>다섯 시안이 공유하는 것</h2>
+      <p>
+        구성은 다르지만 재료는 같습니다. 이미 Mock으로 끝까지 구동되는 화면 다섯 개가
+        발표의 실탄이고, 10분은 슬라이드 8–12장이 상한입니다.
+      </p>
+    </div>
+
+    <div class="assets">
+      <div class="asset">
+        <span class="asset-num mono">01</span>
+        <span class="asset-name">질문하기</span>
+        <span class="asset-desc">타이핑되는 페르소나 질문, 데이터셋 5개·기간 토큰, 제안 카드 4장</span>
+      </div>
+      <div class="asset">
+        <span class="asset-num mono">02</span>
+        <span class="asset-name">캐치하는 중</span>
+        <span class="asset-desc">심박 라인이 곧 스테퍼. 목표·계획·분석·인사이트·검증 10.9초</span>
+      </div>
+      <div class="asset">
+        <span class="asset-num mono">03</span>
+        <span class="asset-name">캐치 결과</span>
+        <span class="asset-desc">328명 · 반복검색 3.4회 · 미가입 71% · 재검색 4.2일, 저니 재생</span>
+      </div>
+      <div class="asset">
+        <span class="asset-num mono">04</span>
+        <span class="asset-name">검증 기록</span>
+        <span class="asset-desc">주장 14개 중 12개 통과, 탈락 2개를 사유와 함께 공개</span>
+      </div>
+      <div class="asset">
+        <span class="asset-num mono">05</span>
+        <span class="asset-name">액션</span>
+        <span class="asset-desc">추천검색어 적용 → 7일 뒤 예측 6개 중 4개 적중, 빗나간 2개 공개</span>
+      </div>
+    </div>
+
+    <div class="col">
+      <div class="note">
+        <span class="note-label">10분을 나누는 기준</span>
+        <p>
+          <strong>시연에 3분 30초 이상은 반드시 남깁니다.</strong> 캐치 로딩만 10.9초이고,
+          결과 화면에서 저니 재생과 탭 이동까지 하면 1분 30초가 그냥 지나갑니다.
+          문제 정의를 2분 넘게 쓰는 순간 시연이 잘립니다.
+        </p>
+      </div>
+      <div class="note">
+        <span class="note-label">Live냐 녹화냐</span>
+        <p>
+          질문 → 캐치 → 결과까지는 Mock 구동이라 <strong>Live로 안전</strong>합니다.
+          반면 액션 단계의 4단계 변신과 7일 추이는 클릭 수가 많아
+          <strong>녹화가 유리</strong>합니다. 시안마다 어느 쪽을 권하는지 표시했습니다.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ 시안 1 ═══════════════════════════════════════ -->
+  <section class="proposal">
+    <div class="p-head">
+      <span class="p-num">01</span>
+      <div>
+        <h2 class="p-title">심박</h2>
+        <p class="p-stance">
+          제품의 로딩 화면이 곧 발표의 구조입니다. 평선으로 시작해 박동 하나가 챕터 하나가 되고,
+          다섯 번째 박동에서 화면이 슬라이드에서 실제 제품으로 넘어갑니다.
+        </p>
+      </div>
+    </div>
+
+    <div class="p-body">
+      <div>
+        <div class="slide">
+          <div class="s-pad s1">
+            <svg viewBox="0 0 600 100" preserveAspectRatio="none" aria-hidden="true">
+              <path class="s1-flat" d="M0 50 H600" />
+              <path class="s1-beat" d="M0 50 H150 L166 50 L176 18 L190 84 L202 30 L212 50 H600" />
+            </svg>
+            <div class="s1-foot">
+              <div>
+                <p class="s-display" style="font-size: 7.5cqw;">고객 시그널 캐처</p>
+                <p class="s-sub" style="margin-top: 1.5cqw;">고객은 말보다 먼저 신호를 보냅니다</p>
+              </div>
+              <p class="s-mono">TEAM 네박자</p>
+            </div>
+          </div>
+        </div>
+        <p class="slide-cap">타이틀 슬라이드 — 평선 위 첫 박동</p>
+
+        <div class="tl">
+          <p class="tl-h">10:00 배분</p>
+          <div class="tl-bar">
+            <div class="tl-seg" style="flex: 15">평선 1:30</div>
+            <div class="tl-seg" style="flex: 10">질문 1:00</div>
+            <div class="tl-seg demo" style="flex: 35">시연 3:30</div>
+            <div class="tl-seg" style="flex: 15">인사이트 1:30</div>
+            <div class="tl-seg peak" style="flex: 15">검증 1:30</div>
+            <div class="tl-seg" style="flex: 10">액션 1:00</div>
+          </div>
+          <div class="tl-legend">
+            <span><b>시연 진입</b> 2:30</span>
+            <span><b>클라이맥스</b> 7:30 검증</span>
+            <span><b>슬라이드</b> 9장</span>
+          </div>
+        </div>
+
+        <div class="seq">
+          <div class="seq-row">
+            <span class="seq-n">S1</span>
+            <div>
+              <p class="seq-t">평선 하나</p>
+              <p class="seq-d">화면에 회색 평선만. "이건 고객 데이터가 아무 말도 하지 않는 상태입니다."</p>
+            </div>
+          </div>
+          <div class="seq-row">
+            <span class="seq-n">S2</span>
+            <div>
+              <p class="seq-t">신호는 이미 있었다</p>
+              <p class="seq-d">검색 3회 · 상세 비교 · 가입 직전 이탈 · 며칠 뒤 재검색. 다섯 시스템에 흩어진 채로.</p>
+            </div>
+          </div>
+          <div class="seq-row">
+            <span class="seq-n">S3</span>
+            <div>
+              <p class="seq-t">첫 박동 — 질문 하나</p>
+              <p class="seq-d">"최근 로밍을 알아보는 고객들이 가장 많이 궁금해하는 게 뭐야?" 대시보드가 아니라 질문에서 시작합니다.</p>
+            </div>
+          </div>
+          <div class="seq-row is-demo">
+            <span class="seq-n">S4</span>
+            <div>
+              <p class="seq-t">시연 · 질문 → 캐치</p>
+              <p class="seq-d">슬라이드의 심박이 그대로 제품 화면의 심박으로 이어집니다. 목표·계획·분석·인사이트·검증 5박자 10.9초.</p>
+            </div>
+          </div>
+          <div class="seq-row is-demo">
+            <span class="seq-n">S5</span>
+            <div>
+              <p class="seq-t">시연 · 결과와 저니 재생</p>
+              <p class="seq-d">328명 헤드라인 → 시그널 저니 탭에서 ▶ 재생. 레인을 넘나드는 지그재그가 cross-channel의 증거.</p>
+            </div>
+          </div>
+          <div class="seq-row">
+            <span class="seq-n">S6</span>
+            <div>
+              <p class="seq-t">네 번째 박동 — 인사이트</p>
+              <p class="seq-d">"로밍이 궁금한 게 아니라, 4일짜리 일본 여행에 맞는 상품을 못 고른 겁니다."</p>
+            </div>
+          </div>
+          <div class="seq-row">
+            <span class="seq-n">S7</span>
+            <div>
+              <p class="seq-t">다섯 번째 박동 — 검증</p>
+              <p class="seq-d">주장 14개 중 12개 통과, 2개 탈락. 탈락 사유를 그대로 읽습니다.</p>
+            </div>
+          </div>
+          <div class="seq-row">
+            <span class="seq-n">S8</span>
+            <div>
+              <p class="seq-t">액션</p>
+              <p class="seq-d">추천검색어 3개 적용 → 실제 운영에는 반영되지 않는다는 고지까지 화면에 그대로.</p>
+            </div>
+          </div>
+          <div class="seq-row">
+            <span class="seq-n">S9</span>
+            <div>
+              <p class="seq-t">심박은 멈추지 않는다</p>
+              <p class="seq-d">Detect → Understand → Recommend → Act. 다음은 사람이 묻기 전에 Agent가 먼저 말합니다.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <aside class="meta">
+        <div class="meta-block">
+          <span class="meta-label">시연 방식</span>
+          <span class="meta-value demo-live">Live demo 권장</span>
+          <p class="meta-body">캐치 10.9초는 라이브로 버틸 수 있는 길이입니다. 오히려 실시간이어야 심박이 진짜로 뛴다는 게 전달됩니다.</p>
+        </div>
+        <div class="meta-block">
+          <span class="meta-label">이 시안의 무기</span>
+          <ul class="bullets">
+            <li>슬라이드와 제품이 같은 그래픽 언어라 화면 전환이 티 나지 않습니다</li>
+            <li>발표 구조를 심박 하나로 설명해서 청중이 지금 어디쯤인지 항상 압니다</li>
+            <li>다섯 개 화면을 전부 쓰면서도 순서가 억지스럽지 않습니다</li>
+          </ul>
+        </div>
+        <div class="meta-block risk">
+          <span class="meta-label">리스크</span>
+          <p class="meta-body">
+            슬라이드 심박과 제품 심박의 굵기·속도·색이 다르면 연출이 오히려 어색해집니다.
+            발표 전날 두 화면을 나란히 띄워놓고 맞춰야 합니다. 평선 오프닝이 1분 30초를 넘으면
+            "아직 아무 말도 안 했는데" 하는 느낌이 듭니다.
+          </p>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- ══ 시안 2 ═══════════════════════════════════════ -->
+  <section class="proposal">
+    <div class="p-head">
+      <span class="p-num">02</span>
+      <div>
+        <h2 class="p-title">한 명에서 328명으로</h2>
+        <p class="p-stance">
+          고객 한 사람의 8월 12일부터 따라갑니다. 청중이 그 사람에게 몰입한 순간
+          화면이 줌아웃되며 같은 신호를 보낸 328명이 한꺼번에 켜집니다.
+        </p>
+      </div>
+    </div>
+
+    <div class="p-body">
+      <div>
+        <div class="slide">
+          <div class="s2-grid" aria-hidden="true">
+            <span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span>
+            <span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot on"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span>
+            <span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span>
+            <span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span>
+            <span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span>
+            <span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span><span class="s2-dot"></span>
+          </div>
+          <div class="s2-veil" aria-hidden="true"></div>
+          <div class="s-pad" style="justify-content: flex-end;">
+            <p class="s-mono">8월 12일 09:14 · AI검색</p>
+            <p class="s-display" style="font-size: 6.4cqw; margin-top: 2.5cqw;">이 고객은 <span class="s-pink">'일본 로밍'</span>을<br>세 번 검색했습니다</p>
+            <p class="s-sub" style="margin-top: 2.5cqw;">그리고 가입하지 않았습니다</p>
+          </div>
+        </div>
+        <p class="slide-cap">타이틀 슬라이드 — 328개의 점, 켜진 것은 하나</p>
+
+        <div class="tl">
+          <p class="tl-h">10:00 배분</p>
+          <div class="tl-bar">
+            <div class="tl-seg" style="flex: 20">한 고객 2:00</div>
+            <div class="tl-seg" style="flex: 7">흩어짐 0:40</div>
+            <div class="tl-seg demo" style="flex: 35">시연 3:30</div>
+            <div class="tl-seg peak" style="flex: 13">줌아웃 1:20</div>
+            <div class="tl-seg" style="flex: 15">액션 1:30</div>
+            <div class="tl-seg" style="flex: 10">클로징 1:00</div>
+          </div>
+          <div class="tl-legend">
+            <span><b>시연 진입</b> 2:40</span>
+            <span><b>클라이맥스</b> 6:10 줌아웃</span>
+            <span><b>슬라이드</b> 11장</span>
+          </div>
+        </div>
+
+        <div class="seq">
+          <div class="seq-row">
+            <span class="seq-n">S1</span>
+            <div>
+              <p class="seq-t">8월 12일 09:14</p>
+              <p class="seq-d">한 고객이 '일본 로밍'을 검색합니다. 이름도 번호도 없이, 행동만 남습니다.</p>
+            </div>
+          </div>
+          <div class="seq-row">
+            <span class="seq-n">S2–S4</span>
+            <div>
+              <p class="seq-t">그다음에 한 일 네 가지</p>
+              <p class="seq-d">가격 재검색 → 상세페이지 비교 → 가입 직전 이탈 → 4일 뒤 다시 검색. 슬라이드 한 장에 행동 하나씩.</p>
+            </div>
+          </div>
+          <div class="seq-row">
+            <span class="seq-n">S5</span>
+            <div>
+              <p class="seq-t">우리는 이걸 다섯 조각으로 보고 있었다</p>
+              <p class="seq-d">같은 여정이 검색·피드백·GA·가입·상담 다섯 시스템에 흩어져 있는 그림.</p>
+            </div>
+          </div>
+          <div class="seq-row is-demo">
+            <span class="seq-n">S6</span>
+            <div>
+              <p class="seq-t">시연 · 질문 → 캐치 → 결과</p>
+              <p class="seq-d">기획자 김유진이 되어 질문 한 줄. 캐치 10.9초 뒤 328명 헤드라인.</p>
+            </div>
+          </div>
+          <div class="seq-row is-demo">
+            <span class="seq-n">S7</span>
+            <div>
+              <p class="seq-t">시연 · 저니 재생 ▶</p>
+              <p class="seq-d">앞에서 말로 설명한 그 여정이 화면에서 자동으로 그려집니다. 노드를 하나 눌러 원본 근거까지.</p>
+            </div>
+          </div>
+          <div class="seq-row">
+            <span class="seq-n">S8</span>
+            <div>
+              <p class="seq-t">줌아웃 — 같은 신호를 보낸 328명</p>
+              <p class="seq-d">타이틀의 점 하나가 328개로 번지는 역방향 연출. 평균 반복검색 3.4회, 미가입 71%, 재검색 4.2일.</p>
+            </div>
+          </div>
+          <div class="seq-row">
+            <span class="seq-n">S9</span>
+            <div>
+              <p class="seq-t">이 328명은 검증된 숫자입니다</p>
+              <p class="seq-d">검증 기록 스코어카드를 짧게. 12/14, 탈락 2개는 리포트에서 뺐다는 한 문장.</p>
+            </div>
+          </div>
+          <div class="seq-row">
+            <span class="seq-n">S10</span>
+            <div>
+              <p class="seq-t">328명에게 먼저 건네는 말</p>
+              <p class="seq-d">추천검색어 3개 적용 → 7일 뒤 탐색 기간 4.2일 → 2.4일.</p>
+            </div>
+          </div>
+          <div class="seq-row">
+            <span class="seq-n">S11</span>
+            <div>
+              <p class="seq-t">다시 8월 12일 09:14</p>
+              <p class="seq-d">첫 슬라이드로 돌아가되, 이번엔 점 328개가 모두 켜진 상태.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <aside class="meta">
+        <div class="meta-block">
+          <span class="meta-label">시연 방식</span>
+          <span class="meta-value demo-live">Live demo 권장</span>
+          <p class="meta-body">앞에서 말로 그린 여정이 저니 탭에서 그대로 재생되는 순간이 이 시안의 전부입니다. 녹화면 "미리 짜둔 것" 처럼 보입니다.</p>
+        </div>
+        <div class="meta-block">
+          <span class="meta-label">이 시안의 무기</span>
+          <ul class="bullets">
+            <li>기술을 모르는 심사위원도 첫 30초부터 따라옵니다</li>
+            <li>328이라는 숫자가 통계가 아니라 사람 수로 들립니다</li>
+            <li>첫 슬라이드와 마지막 슬라이드가 같은 그림이라 끝이 분명합니다</li>
+          </ul>
+        </div>
+        <div class="meta-block risk">
+          <span class="meta-label">리스크</span>
+          <p class="meta-body">
+            도입 2분은 다섯 시안 중 가장 깁니다. 발표자가 리듬을 놓치면 시연 전에 3분이 날아갑니다.
+            S1–S5는 대본을 문장 단위로 외워야 하고, 리허설에서 2분 안에 안 끝나면 S2–S4를 두 장으로 합쳐야 합니다.
+          </p>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- ══ 시안 3 ═══════════════════════════════════════ -->
+  <section class="proposal">
+    <div class="p-head">
+      <span class="p-num">03</span>
+      <div>
+        <h2 class="p-title">말보다 먼저</h2>
+        <p class="p-stance">
+          슬라이드에는 문장 하나만 둡니다. 화면 시간의 절반 가까이를 제품에 내주고,
+          "고객은 말보다 먼저 신호를 보낸다"를 세 번 후렴처럼 되돌아옵니다.
+        </p>
+      </div>
+    </div>
+
+    <div class="p-body">
+      <div>
+        <div class="slide">
+          <div class="s-pad s3">
+            <p class="s-display" style="font-size: 9.5cqw;">고객은<br><span class="s-pink">말보다 먼저</span><br>신호를 보냅니다</p>
+          </div>
+          <p class="s-mono" style="position: absolute; right: 7cqw; bottom: 6cqw; font-size: 2.2cqw;">고객 시그널 캐처</p>
+        </div>
+        <p class="slide-cap">타이틀 슬라이드 — 문장 하나, 나머지는 여백</p>
+
+        <div class="tl">
+          <p class="tl-h">10:00 배분</p>
+          <div class="tl-bar">
+            <div class="tl-seg" style="flex: 15">후렴 ① 1:30</div>
+            <div class="tl-seg" style="flex: 10">전환 1:00</div>
+            <div class="tl-seg demo" style="flex: 45">시연 4:30</div>
+            <div class="tl-seg peak" style="flex: 20">후렴 ② 2:00</div>
+            <div class="tl-seg" style="flex: 10">후렴 ③ 1:00</div>
+          </div>
+          <div class="tl-legend">
+            <span><b>시연 진입</b> 2:30</span>
+            <span><b>슬라이드</b> 8장 (최소)</span>
+            <span><b>슬라이드당 문장</b> 1개</span>
+          </div>
+        </div>
+
+        <div class="seq">
+          <div class="seq-row">
+            <span class="seq-n">S1</span>
+            <div>
+              <p class="seq-t">"고객은 말보다 먼저 신호를 보냅니다"</p>
+              <p class="seq-d">후렴 ①. 이 문장만 띄우고 8초 침묵.</p>
+            </div>
+          </div>
+          <div class="seq-row">
+            <span class="seq-n">S2</span>
+            <div>
+              <p class="seq-t">"검색하고, 비교하고, 그냥 나갑니다"</p>
+              <p class="seq-d">행동 네 개를 한 줄로. 이때 아직 제품 이야기는 안 합니다.</p>
+            </div>
+          </div>
+          <div class="seq-row">
+            <span class="seq-n">S3</span>
+            <div>
+              <p class="seq-t">"데이터는 다 있습니다. 따로 있을 뿐입니다"</p>
+              <p class="seq-d">다섯 소스 이름만 나열. 설명 없음.</p>
+            </div>
+          </div>
+          <div class="seq-row">
+            <span class="seq-n">S4</span>
+            <div>
+              <p class="seq-t">"그래서 대시보드를 하나 더 만들지 않았습니다"</p>
+              <p class="seq-d">경쟁 프로토타입과의 선긋기. 다음 슬라이드에서 바로 화면으로 넘어갑니다.</p>
+            </div>
+          </div>
+          <div class="seq-row is-demo">
+            <span class="seq-n">S5</span>
+            <div>
+              <p class="seq-t">시연 · 질문부터 액션까지 끊지 않고</p>
+              <p class="seq-d">4분 30초 통짜. 질문 → 캐치 → 결과 → 저니 → 인사이트 → 추천검색어 적용까지 한 번에.</p>
+            </div>
+          </div>
+          <div class="seq-row">
+            <span class="seq-n">S6</span>
+            <div>
+              <p class="seq-t">"이 답을 우리는 검증했습니다"</p>
+              <p class="seq-d">후렴 ②. 12/14와 탈락 2개를 슬라이드 한 장으로.</p>
+            </div>
+          </div>
+          <div class="seq-row">
+            <span class="seq-n">S7</span>
+            <div>
+              <p class="seq-t">"그리고 7일 뒤에 결과를 다시 봤습니다"</p>
+              <p class="seq-d">예측 6개 중 4개 적중. 빗나간 2개도 같은 크기로.</p>
+            </div>
+          </div>
+          <div class="seq-row">
+            <span class="seq-n">S8</span>
+            <div>
+              <p class="seq-t">"고객이 말하기 전에, 먼저"</p>
+              <p class="seq-d">후렴 ③. 첫 문장의 변주로 닫습니다.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <aside class="meta">
+        <div class="meta-block">
+          <span class="meta-label">시연 방식</span>
+          <span class="meta-value demo-film">녹화 영상 권장</span>
+          <p class="meta-body">4분 30초 통짜 시연을 라이브로 하면 한 번의 클릭 실수가 발표 전체를 흔듭니다. 자막과 배속 편집이 들어간 녹화가 안전합니다.</p>
+        </div>
+        <div class="meta-block">
+          <span class="meta-label">이 시안의 무기</span>
+          <ul class="bullets">
+            <li>슬라이드 제작 부담이 가장 적습니다 — 문장 8개면 끝납니다</li>
+            <li>화면 시간의 45%를 제품이 가져가 완성도가 그대로 드러납니다</li>
+            <li>후렴 구조라 발표가 끝난 뒤 한 문장이 남습니다</li>
+          </ul>
+        </div>
+        <div class="meta-block risk">
+          <span class="meta-label">리스크</span>
+          <p class="meta-body">
+            슬라이드에 근거가 안 실려서, 심사위원이 채점표를 보며 항목을 찾을 때 걸릴 데가 없습니다.
+            발표자 말솜씨에 대한 의존도가 가장 높고, 영상 재생이 실패하면 대체할 슬라이드가 없습니다.
+            <strong>백업 캡처 4장을 반드시 뒤에 숨겨두세요.</strong>
+          </p>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- ══ 시안 4 ═══════════════════════════════════════ -->
+  <section class="proposal">
+    <div class="p-head">
+      <span class="p-num">04</span>
+      <div>
+        <h2 class="p-title">탈락한 주장 2개</h2>
+        <p class="p-stance">
+          해커톤에서 AI가 그럴듯한 답을 내놓는 건 기본값입니다. 우리 팀이 다른 지점은,
+          우리가 낸 답 중 두 개를 스스로 버렸고 그 사유를 화면에 남겼다는 것입니다.
+        </p>
+      </div>
+    </div>
+
+    <div class="p-body">
+      <div>
+        <div class="slide">
+          <div class="s-pad">
+            <p class="s-mono">우리가 만든 리포트</p>
+            <div class="s4-figure" style="margin-top: 3cqw;">
+              <span class="s4-num s-pink">12</span>
+              <span class="s4-slash">/</span>
+              <span class="s4-num" style="color: var(--slide-fog);">14</span>
+            </div>
+            <div class="s4-rows">
+              <div class="s4-row"><span class="s4-chip pass">PASSED 12</span> 원본 데이터로 검증된 주장</div>
+              <div class="s4-row"><span class="s4-chip fail">REJECTED 2</span> 근거가 없어 우리가 지운 주장</div>
+            </div>
+          </div>
+        </div>
+        <p class="slide-cap">타이틀 슬라이드 — 통과와 탈락을 같은 크기로</p>
+
+        <div class="tl">
+          <p class="tl-h">10:00 배분</p>
+          <div class="tl-bar">
+            <div class="tl-seg" style="flex: 7">도발 0:40</div>
+            <div class="tl-seg" style="flex: 13">문제 1:20</div>
+            <div class="tl-seg demo" style="flex: 30">시연 3:00</div>
+            <div class="tl-seg peak" style="flex: 25">검증 기록 2:30</div>
+            <div class="tl-seg" style="flex: 15">액션 1:30</div>
+            <div class="tl-seg" style="flex: 10">클로징 1:00</div>
+          </div>
+          <div class="tl-legend">
+            <span><b>시연 진입</b> 2:00</span>
+            <span><b>클라이맥스</b> 5:00 검증 기록</span>
+            <span><b>슬라이드</b> 10장</span>
+          </div>
+        </div>
+
+        <div class="seq">
+          <div class="seq-row">
+            <span class="seq-n">S1</span>
+            <div>
+              <p class="seq-t">"오늘 보신 AI 답변들, 믿을 수 있으셨습니까?"</p>
+              <p class="seq-d">앞 순서 팀들을 겨냥하지 않으면서 같은 질문을 던지는 문장으로. 도발은 짧게.</p>
+            </div>
+          </div>
+          <div class="seq-row">
+            <span class="seq-n">S2</span>
+            <div>
+              <p class="seq-t">고객 데이터는 많고, 맥락은 없다</p>
+              <p class="seq-d">문제 정의를 압축. 다섯 시스템, 담당자가 손으로 연결하는 과정.</p>
+            </div>
+          </div>
+          <div class="seq-row">
+            <span class="seq-n">S3</span>
+            <div>
+              <p class="seq-t">우리 원칙: 모든 주장은 원본으로 검증한다</p>
+              <p class="seq-d">CLAIM → FACT → SOURCE → EVIDENCE 계보를 한 장으로. 이게 이 발표의 축입니다.</p>
+            </div>
+          </div>
+          <div class="seq-row is-demo">
+            <span class="seq-n">S4</span>
+            <div>
+              <p class="seq-t">시연 · 질문 → 캐치 → 결과</p>
+              <p class="seq-d">3분. 저니는 짧게, 인사이트 탭의 '근거 칩'에 시선을 유도합니다.</p>
+            </div>
+          </div>
+          <div class="seq-row is-demo">
+            <span class="seq-n">S5</span>
+            <div>
+              <p class="seq-t">시연 · 검증 기록 화면</p>
+              <p class="seq-d">스코어카드 → Claim Ledger → 탈락한 CL-13, CL-14를 실제로 클릭해서 펼칩니다.</p>
+            </div>
+          </div>
+          <div class="seq-row">
+            <span class="seq-n">S6</span>
+            <div>
+              <p class="seq-t">탈락 ① 목적지 82% 일본</p>
+              <p class="seq-d">"검색어 텍스트에서 추정한 값이라 원본 필드로 검증할 수 없습니다." 그래서 뺐습니다.</p>
+            </div>
+          </div>
+          <div class="seq-row">
+            <span class="seq-n">S7</span>
+            <div>
+              <p class="seq-t">탈락 ② 전환율 12% 하락</p>
+              <p class="seq-d">"비교 대상 전월 데이터가 분석 기간 밖입니다. 근거 없이 추세를 말하지 않습니다."</p>
+            </div>
+          </div>
+          <div class="seq-row">
+            <span class="seq-n">S8</span>
+            <div>
+              <p class="seq-t">계획도 두 번 고쳤습니다</p>
+              <p class="seq-d">plan rev 2. 스스로 계획을 수정한 기록을 감추지 않는다는 근거.</p>
+            </div>
+          </div>
+          <div class="seq-row">
+            <span class="seq-n">S9</span>
+            <div>
+              <p class="seq-t">검증된 것만 실행합니다</p>
+              <p class="seq-d">통과한 주장에서만 액션이 나옵니다. 추천검색어 3개 적용 화면.</p>
+            </div>
+          </div>
+          <div class="seq-row">
+            <span class="seq-n">S10</span>
+            <div>
+              <p class="seq-t">"전부 통과한 리포트는, 검증하지 않은 리포트와 같습니다"</p>
+              <p class="seq-d">클로징 한 문장.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <aside class="meta">
+        <div class="meta-block">
+          <span class="meta-label">시연 방식</span>
+          <span class="meta-value demo-live">Live demo 강력 권장</span>
+          <p class="meta-body">탈락한 주장을 그 자리에서 클릭해 펼치는 것 자체가 증거입니다. 녹화면 "편집한 화면"이라는 의심을 남깁니다.</p>
+        </div>
+        <div class="meta-block">
+          <span class="meta-label">이 시안의 무기</span>
+          <ul class="bullets">
+            <li>기술 심사위원에게 가장 강합니다 — 환각 검증이 첫 질문이기 때문입니다</li>
+            <li>다른 팀과 주제가 겹칠 확률이 가장 낮습니다</li>
+            <li>Q&amp;A의 "근거가 뭐냐"는 질문을 발표 안에서 미리 소진합니다</li>
+          </ul>
+        </div>
+        <div class="meta-block risk">
+          <span class="meta-label">리스크</span>
+          <p class="meta-body">
+            자기 결과의 결함을 먼저 말하는 구성이라, 프레이밍을 놓치면 <strong>"완성도가 부족하구나"</strong>로 오독됩니다.
+            S5 진입 전에 "이건 버그가 아니라 설계입니다"에 해당하는 한 문장을 반드시 넣으세요.
+            문제 정의에 1분 20초밖에 못 써서, 캐치캐치가 뭘 하는 서비스인지 모르는 심사위원에게는 불친절할 수 있습니다.
+          </p>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- ══ 시안 5 ═══════════════════════════════════════ -->
+  <section class="proposal">
+    <div class="p-head">
+      <span class="p-num">05</span>
+      <div>
+        <h2 class="p-title">예측을 실측으로</h2>
+        <p class="p-stance">
+          인사이트를 내는 Agent는 오늘 여러 팀이 보여줍니다. 우리는 실행한 다음,
+          7일 뒤에 그 예측이 맞았는지 다시 확인하고 빗나간 두 개까지 화면에 남깁니다.
+        </p>
+      </div>
+    </div>
+
+    <div class="p-body">
+      <div>
+        <div class="slide">
+          <div class="s-pad">
+            <p class="s-mono">Agent가 예측한 값 · 7일 뒤 실제 값</p>
+            <div class="s5-chart">
+              <svg viewBox="0 0 600 200" preserveAspectRatio="none" aria-hidden="true">
+                <path class="s5-pred" d="M10 160 L90 148 L170 134 L250 120 L330 106 L410 94 L490 84 L570 78" />
+                <path class="s5-real" d="M10 160 L90 146 L170 128 L250 114 L330 102 L410 94 L490 90 L570 88" />
+                <path class="s5-miss" d="M10 160 L90 164 L170 170 L250 168 L330 176 L410 180 L490 178 L570 184" />
+                <circle cx="570" cy="88" r="5" fill="#ff2e98" />
+                <circle cx="570" cy="184" r="5" fill="#edb055" />
+              </svg>
+            </div>
+            <div class="s5-legend">
+              <span><span class="s5-key"></span>예측</span>
+              <span class="s-pink"><span class="s5-key"></span>적중 4개</span>
+              <span style="color: var(--slide-amber);"><span class="s5-key"></span>빗나간 2개</span>
+            </div>
+            <p class="s-display" style="font-size: 6cqw; margin-top: 3.5cqw;">6개 중 <span class="s-pink">4개</span> 적중</p>
+          </div>
+        </div>
+        <p class="slide-cap">타이틀 슬라이드 — 예측선과 실측선, 그리고 벌어진 두 개</p>
+
+        <div class="tl">
+          <p class="tl-h">10:00 배분</p>
+          <div class="tl-bar">
+            <div class="tl-seg" style="flex: 12">문제 1:10</div>
+            <div class="tl-seg demo" style="flex: 27">시연 ① 2:40</div>
+            <div class="tl-seg" style="flex: 7">전환 0:40</div>
+            <div class="tl-seg demo" style="flex: 17">시연 ② 1:40</div>
+            <div class="tl-seg peak" style="flex: 25">실측 2:30</div>
+            <div class="tl-seg" style="flex: 12">비전 1:10</div>
+          </div>
+          <div class="tl-legend">
+            <span><b>시연 진입</b> 1:10</span>
+            <span><b>클라이맥스</b> 6:10 실측</span>
+            <span><b>슬라이드</b> 9장</span>
+          </div>
+        </div>
+
+        <div class="seq">
+          <div class="seq-row">
+            <span class="seq-n">S1</span>
+            <div>
+              <p class="seq-t">고객은 말보다 먼저 신호를 보낸다</p>
+              <p class="seq-d">문제 정의는 1분 10초로 압축. 다섯 채널, 손으로 잇는 과정 한 장.</p>
+            </div>
+          </div>
+          <div class="seq-row is-demo">
+            <span class="seq-n">S2</span>
+            <div>
+              <p class="seq-t">시연 · 질문 → 캐치 → 인사이트</p>
+              <p class="seq-d">2분 40초. 여기까지는 "잘 만든 분석 도구"입니다. 일부러 그렇게 보이게 둡니다.</p>
+            </div>
+          </div>
+          <div class="seq-row">
+            <span class="seq-n">S3</span>
+            <div>
+              <p class="seq-t">"보통은 여기서 발표가 끝납니다"</p>
+              <p class="seq-d">낙차를 만드는 슬라이드. 인사이트를 읽고 나면 담당자는 다시 운영 시스템으로 이동해야 합니다.</p>
+            </div>
+          </div>
+          <div class="seq-row is-demo">
+            <span class="seq-n">S4</span>
+            <div>
+              <p class="seq-t">시연 · 액션 실행</p>
+              <p class="seq-d">추천검색어 3개 선택 → 지금 화면 / 바꾼 뒤 화면 비교 → 적용 완료. 실제 운영 미반영 고지도 화면 그대로.</p>
+            </div>
+          </div>
+          <div class="seq-row">
+            <span class="seq-n">S5</span>
+            <div>
+              <p class="seq-t">Agent가 미리 적어둔 예측 6개</p>
+              <p class="seq-d">전환율 · 탐색 기간 · 상담 인입 · 타 상품 노출 · 검색 정확도 · 검색어 다양성.</p>
+            </div>
+          </div>
+          <div class="seq-row">
+            <span class="seq-n">S6</span>
+            <div>
+              <p class="seq-t">7일 뒤 실측</p>
+              <p class="seq-d">전환 12% → 17.0%, 탐색 4.2일 → 2.4일, 상담 41명 → 32명. 추이 그래프가 그려집니다.</p>
+            </div>
+          </div>
+          <div class="seq-row">
+            <span class="seq-n">S7</span>
+            <div>
+              <p class="seq-t">빗나간 2개</p>
+              <p class="seq-d">숨기지 않고 같은 크기로. "예측이 틀렸다는 걸 아는 것도 결과입니다."</p>
+            </div>
+          </div>
+          <div class="seq-row">
+            <span class="seq-n">S8</span>
+            <div>
+              <p class="seq-t">분석에서도, 실행에서도 같은 규칙</p>
+              <p class="seq-d">주장 14개 중 12개 통과 / 예측 6개 중 4개 적중. 두 표를 나란히 놓는 한 장.</p>
+            </div>
+          </div>
+          <div class="seq-row">
+            <span class="seq-n">S9</span>
+            <div>
+              <p class="seq-t">다음은 묻기 전에 먼저</p>
+              <p class="seq-d">Detect → Understand → Recommend → Act. Future Vision을 1분 안에.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <aside class="meta">
+        <div class="meta-block">
+          <span class="meta-label">시연 방식</span>
+          <span class="meta-value demo-film">녹화 영상 권장</span>
+          <p class="meta-body">액션 화면의 4단계 변신과 7일 추이는 클릭이 많고 대기가 있어 라이브에서 시간을 맞추기 어렵습니다. S2만 라이브, S4는 녹화로 나누는 것도 방법입니다.</p>
+        </div>
+        <div class="meta-block">
+          <span class="meta-label">이 시안의 무기</span>
+          <ul class="bullets">
+            <li>Insight로 끝나는 다른 프로토타입 대비 서사 낙차가 가장 큽니다</li>
+            <li>기대효과·확장성 항목에서 말이 아니라 숫자로 답합니다</li>
+            <li>시연이 두 번 나와서 발표 중반에 집중이 다시 올라옵니다</li>
+          </ul>
+        </div>
+        <div class="meta-block risk">
+          <span class="meta-label">리스크</span>
+          <p class="meta-body">
+            7일 실측은 Mock 데이터입니다. 이걸 흐리게 넘어가면 신뢰가 한 번에 무너집니다.
+            <strong>S5 또는 S6에 "실제 운영 시스템에는 반영되지 않았고, 이 수치는 시뮬레이션입니다"를 말과 화면 양쪽에 명시하세요.</strong>
+            문제 정의가 1분 10초로 가장 짧아, 캐치캐치 자체를 처음 보는 청중에게는 앞부분이 빠듯합니다.
+          </p>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- ── 비교 ────────────────────────────────────────── -->
+  <section class="band" style="padding-top: 5rem;">
+    <div class="band-head">
+      <span class="tag">비교</span>
+      <h2>다섯 시안을 한 줄로</h2>
+      <p>고를 때 실제로 갈리는 축만 남겼습니다. 준비 부담은 슬라이드 제작과 리허설 시간을 합친 값입니다.</p>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>시안</th>
+            <th>첫 30초의 무기</th>
+            <th>시연 비중</th>
+            <th>시연 방식</th>
+            <th>준비 부담</th>
+            <th>잘 먹히는 상대</th>
+            <th>가장 큰 리스크</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="name">01 심박</td>
+            <td>제품 그래픽이 그대로 슬라이드</td>
+            <td class="mono">3:30 / 35%</td>
+            <td class="dot-live mono">Live</td>
+            <td class="mono">중</td>
+            <td>전체 균형형</td>
+            <td>두 심박의 톤이 어긋나면 연출이 죽음</td>
+          </tr>
+          <tr>
+            <td class="name">02 328명</td>
+            <td>한 사람의 이야기</td>
+            <td class="mono">3:30 / 35%</td>
+            <td class="dot-live mono">Live</td>
+            <td class="mono">상</td>
+            <td>비기술 · CX 심사위원</td>
+            <td>도입 2분이 밀리면 시연이 잘림</td>
+          </tr>
+          <tr>
+            <td class="name">03 말보다 먼저</td>
+            <td>큰 문장 하나와 침묵</td>
+            <td class="mono">4:30 / 45%</td>
+            <td class="dot-film mono">녹화</td>
+            <td class="mono">하</td>
+            <td>발표 잘하는 팀</td>
+            <td>슬라이드에 채점 근거가 안 남음</td>
+          </tr>
+          <tr>
+            <td class="name">04 탈락 2개</td>
+            <td>"이 답 믿을 수 있나요"</td>
+            <td class="mono">3:00 / 30%</td>
+            <td class="dot-live mono">Live</td>
+            <td class="mono">중</td>
+            <td>기술 · 데이터 심사위원</td>
+            <td>완성도 미달로 오독될 수 있음</td>
+          </tr>
+          <tr>
+            <td class="name">05 예측→실측</td>
+            <td>두 갈래로 벌어지는 그래프</td>
+            <td class="mono">4:20 / 43%</td>
+            <td class="dot-film mono">녹화</td>
+            <td class="mono">중상</td>
+            <td>사업성 · 기대효과 심사</td>
+            <td>Mock 수치를 실측처럼 보이게 하면 치명적</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="col">
+      <div class="note">
+        <span class="note-label">굳이 하나를 고른다면</span>
+        <p>
+          <strong>01 심박</strong>이 가장 안전합니다. 첫 화면이 마음에 든다는 출발점과 가장 잘 맞고,
+          다섯 화면을 모두 쓰면서도 리스크가 연출 하나에만 몰려 있습니다.
+          심사 기준에 기술 검증 비중이 크다면 <strong>04</strong>, 사업 효과 비중이 크다면 <strong>05</strong>로 바꾸고,
+          <strong>02</strong>의 도입 한 장(8월 12일 09:14)만 어느 시안에든 얹어도 첫인상은 확실히 올라갑니다.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <div class="close">
+    <h3>다음 단계</h3>
+    <p>
+      하나를 고르면 그 시안을 발표용 전체 데크로 만듭니다. 슬라이드마다 실제 문구,
+      화면 캡처 자리, 발표자 대본, 전환 타이밍까지 채워서 리허설에 바로 쓸 수 있는 상태로 드리겠습니다.
+    </p>
+    <p>
+      섞어도 됩니다 — <span class="mono">02의 도입 + 01의 본론 + 04의 검증 챕터</span> 같은 조합이면
+      말씀해 주세요. 그대로 재구성해 드립니다.
+    </p>
+  </div>
+
+</div>
+  </body>
+</html>

@@ -1,0 +1,81 @@
+{
+  "source_id": "hackathon_app_behavior",
+  "label": "해커톤 앱 행동",
+  "description": "메뉴 탐색, 소액결제 단계, 로밍 요금제 탐색의 합성 행동 로그",
+  "timestamp_column": "BQ_LOAD_DTTM",
+  "timezone": "Asia/Seoul",
+  "event_type": {
+    "column": "EVET_NM",
+    "const": null,
+    "value_map": null,
+    "default": null
+  },
+  "action": {
+    "column": "EVET_ACT_NM",
+    "const": null,
+    "value_map": null,
+    "default": null
+  },
+  "topic": {
+    "column": "EVET_ACT_CATG_NM",
+    "const": null,
+    "value_map": null,
+    "default": null
+  },
+  "outcome": {
+    "column": "EVET_ACT_LABE_NM",
+    "const": null,
+    "value_map": null,
+    "default": null
+  },
+  "text": {
+    "column": "REP_CHNL_MENU_NM",
+    "const": null,
+    "value_map": null,
+    "default": null
+  },
+  "identity": {
+    "namespace": "synthetic_customer",
+    "customer_column": "CUST_NO",
+    "link_method": "exact",
+    "confidence": 1.0
+  },
+  "dimensions": {
+    "abtest_id": {
+      "column": "ABTEST_ID",
+      "semantic_type": "category",
+      "description": "개선안 노출 구분",
+      "pii_classification": "none",
+      "masking": null
+    },
+    "session_id": {
+      "column": "SESN_ID",
+      "semantic_type": "identifier",
+      "description": "합성 앱 세션 식별자",
+      "pii_classification": "none",
+      "masking": null
+    },
+    "menu": {
+      "column": "REP_CHNL_MENU_NM",
+      "semantic_type": "category",
+      "description": "대표 메뉴",
+      "pii_classification": "none",
+      "masking": null
+    }
+  },
+  "measures": {
+    "page_stay_seconds": {
+      "column": "PAGE_STAY_TM",
+      "semantic_type": "integer",
+      "description": "페이지 체류 시간",
+      "unit": "seconds"
+    },
+    "session_stay_seconds": {
+      "column": "SESN_STAY_TM",
+      "semantic_type": "integer",
+      "description": "세션 체류 시간",
+      "unit": "seconds"
+    }
+  },
+  "status": "approved"
+}

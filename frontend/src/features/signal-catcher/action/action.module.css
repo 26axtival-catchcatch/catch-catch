@@ -1,0 +1,787 @@
+/*
+ * 색 규칙 — 이 화면은 세 단계만 쓴다.
+ *   무채색  기본. 대부분의 글자와 면
+ *   마젠타  "바뀌는 것" 하나. TO-BE 에 새로 생기는 항목과 주 실행 버튼
+ *   앰버    위험과 빗나간 예측
+ * 강조가 늘어나면 강조가 아니게 되므로 이 셋을 넘기지 않는다.
+ *
+ * 면 규칙 — 카드를 겹겹이 쌓지 않는다.
+ * 시안 두 장만 면을 갖고, 수치 비교는 표가 맡는다.
+ * 세 단계(미리보기 · 관찰 · 리포트)가 같은 표를 공유해 열만 바뀐다.
+ */
+
+.screen {
+  flex: 1;
+  padding: clamp(1.5rem, 4vh, 3rem) 1.5rem 5rem;
+}
+
+.inner {
+  width: min(50rem, 100%);
+  margin-inline: auto;
+  display: grid;
+  gap: 2.5rem;
+}
+
+.back {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  border: 0;
+  background: none;
+  color: var(--fog);
+  font: inherit;
+  font-size: 0.86rem;
+  padding: 0.3rem 0;
+  cursor: pointer;
+}
+
+.back:hover {
+  color: var(--chalk);
+}
+
+.head {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.eyebrow {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--fog-dim);
+}
+
+.eyebrow[data-tone="warn"] {
+  color: var(--amber);
+}
+
+.head h1 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(1.5rem, 4vw, 2.1rem);
+  line-height: 1.32;
+  letter-spacing: -0.005em;
+}
+
+.target {
+  margin: 0;
+  font-size: 0.86rem;
+  color: var(--fog-dim);
+}
+
+/* ── AS-IS / TO-BE ───────────────────────────────────── */
+.compare {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  gap: 1.25rem;
+  /* 실제 화면은 내용이 적어도 입력창이 하단에 고정된다. 두 패널 높이를 맞춘다. */
+  align-items: stretch;
+}
+
+.mockup {
+  min-width: 0;
+  margin: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 0.5rem;
+}
+
+.mockupCap {
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--fog-dim);
+}
+
+.mockup[data-state="toBe"] .mockupCap {
+  color: var(--fog);
+}
+
+/*
+ * 시안만 면을 갖는다. 픽셀을 재현하지 않는 와이어프레임이지만
+ * 배치는 실제 AI검색 구조를 따른다 — 답변이 위, 입력창이 하단,
+ * 추천검색어는 입력창 바로 위.
+ */
+.mockupBody {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-height: 15rem;
+  padding: 0.85rem;
+  background: var(--ground);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.mockup[data-state="toBe"] .mockupBody {
+  border-color: color-mix(in srgb, var(--signal) 30%, var(--line));
+}
+
+.row {
+  padding: 0.55rem 0.7rem;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: var(--fog);
+}
+
+.row[data-kind="result"] + .row[data-kind="result"] {
+  border-top: 1px solid var(--line-soft);
+}
+
+/* 추천검색어는 입력창 바로 위에 붙는다. 첫 줄만 위쪽 여백을 밀어낸다. */
+.row[data-kind="suggestion"] {
+  border-radius: 100px;
+  border: 1px dashed var(--line);
+  margin-top: 1px;
+}
+
+.row[data-kind="suggestion"]:first-of-type {
+  margin-top: auto;
+  padding-top: 0.55rem;
+}
+
+/* 입력창은 언제나 맨 아래. */
+.row[data-kind="query"] {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.6rem;
+  border: 1px solid var(--line);
+  border-radius: 100px;
+  background: var(--card);
+  color: var(--chalk);
+}
+
+.row[data-kind="query"]::before {
+  content: "";
+  flex: none;
+  width: 11px;
+  height: 11px;
+  border: 1.5px solid var(--fog-dim);
+  border-radius: 50%;
+  box-shadow: 3px 3px 0 -1.5px var(--fog-dim);
+}
+
+/* AS-IS 에는 추천검색어가 없으므로 결과 묶음이 위로 붙도록 여백을 만든다. */
+.mockup[data-state="asIs"] .row[data-kind="query"] {
+  margin-top: auto;
+}
+
+/* 마젠타는 여기 하나. "새로 생기는 것"에만 쓴다. */
+.row[data-added="true"] {
+  border-style: solid;
+  border-color: color-mix(in srgb, var(--signal) 45%, transparent);
+  background: var(--signal-wash);
+  color: var(--chalk);
+}
+
+.rowText {
+  display: block;
+}
+
+.rowSub {
+  display: block;
+  margin-top: 0.1rem;
+  font-size: 0.66rem;
+  color: var(--fog-dim);
+}
+
+.changeNote {
+  margin: -1.6rem 0 0;
+  font-size: 0.9rem;
+  line-height: 1.7;
+  color: var(--fog);
+}
+
+.changeNote span {
+  display: block;
+  margin-top: 0.3rem;
+  font-size: 0.78rem;
+  color: var(--fog-dim);
+}
+
+.replay {
+  margin-left: 0.5rem;
+  border: 0;
+  padding: 0;
+  background: none;
+  color: var(--fog);
+  font: inherit;
+  font-size: 0.78rem;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.replay:hover {
+  color: var(--chalk);
+}
+
+.changeNote mark {
+  background: none;
+  color: var(--signal-soft);
+  font-weight: 500;
+}
+
+/* 매직 연출. 빛줄기가 훑고 지나가며 새 항목이 하나씩 그려진다. */
+.mockup[data-magic="true"][data-state="toBe"] .row[data-added="true"] {
+  animation: draw 520ms var(--ease) both;
+  animation-delay: calc(560ms + var(--order, 0) * 220ms);
+}
+
+.mockup[data-magic="true"][data-state="asIs"] {
+  animation: recede 900ms var(--ease) both;
+}
+
+.sweep {
+  position: absolute;
+  inset: 0 auto 0 -40%;
+  width: 40%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--signal) 50%, transparent),
+    transparent
+  );
+  animation: sweep 900ms cubic-bezier(0.4, 0, 0.2, 1) both;
+  pointer-events: none;
+  z-index: 1;
+}
+
+@keyframes sweep {
+  to {
+    left: 110%;
+  }
+}
+
+@keyframes draw {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+    filter: blur(3px);
+  }
+}
+
+@keyframes recede {
+  to {
+    opacity: 0.4;
+  }
+}
+
+/* ── 공유 표 ─────────────────────────────────────────── */
+.blockTitle {
+  margin: 0 0 0.9rem;
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.sheet {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+
+.sheet thead th {
+  padding: 0 0.75rem 0.6rem;
+  border-bottom: 1px solid var(--line);
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  font-weight: 400;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--fog-dim);
+  text-align: left;
+}
+
+.sheet tbody th {
+  padding: 0.85rem 0.75rem;
+  border-bottom: 1px solid var(--line-soft);
+  font-weight: 500;
+  text-align: left;
+  color: var(--chalk);
+}
+
+.sheet tbody th small {
+  display: block;
+  margin-top: 0.25rem;
+  max-width: 26rem;
+  font-weight: 400;
+  font-size: 0.78rem;
+  line-height: 1.6;
+  color: var(--fog-dim);
+}
+
+.sheet td {
+  padding: 0.85rem 0.75rem;
+  border-bottom: 1px solid var(--line-soft);
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  vertical-align: top;
+  white-space: nowrap;
+}
+
+/* legacy globals 가 마지막 td 의 border 만 지워 th 쪽에 선이 남는다. 양쪽을 지운다. */
+.sheet tbody:last-of-type tr:last-child th,
+.sheet tbody:last-of-type tr:last-child td {
+  border-bottom: 0;
+}
+
+.from {
+  color: var(--fog-dim);
+}
+
+.to {
+  color: var(--chalk);
+  font-weight: 500;
+}
+
+.numCol {
+  text-align: right;
+  color: var(--fog);
+}
+
+/* 위험 구간. 표 안에서 색이 아니라 구획으로 나눈다. */
+.riskBody .riskHead th {
+  padding-top: 1.6rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 0;
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  font-weight: 400;
+  letter-spacing: 0.1em;
+  color: var(--amber);
+}
+
+.riskBody .riskHead th::before {
+  content: "▲ ";
+}
+
+.riskBody tr:not(.riskHead) th {
+  border-left: 2px solid var(--amber);
+  padding-left: 0.75rem;
+}
+
+.riskBody tr:not(.riskHead) .numCol {
+  color: var(--amber);
+}
+
+/* ── 판정 ────────────────────────────────────────────── */
+/* 기호를 붙여 훑을 때 걸리게 한다. 다만 적중은 조용한 회색으로 둔다. */
+.verdict {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.3rem;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+  color: var(--fog-dim);
+  white-space: nowrap;
+}
+
+.verdict i {
+  font-style: normal;
+  font-size: 0.8rem;
+}
+
+/* 적중은 기대대로이므로 조용하다. 시선은 빗나간 쪽으로 가야 한다. */
+.sheet tr[data-verdict="miss"] th {
+  border-left: 2px solid var(--amber);
+  padding-left: 0.75rem;
+}
+
+.sheet tr[data-verdict="miss"] .verdict {
+  color: var(--amber);
+  font-weight: 500;
+}
+
+.sheet tr[data-verdict="miss"] .to {
+  color: var(--amber);
+}
+
+.footnote {
+  margin: 1rem 0 0;
+  max-width: 40rem;
+  font-size: 0.82rem;
+  line-height: 1.75;
+  color: var(--fog-dim);
+}
+
+/* ── 적용 ────────────────────────────────────────────── */
+.applyRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 1rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--line-soft);
+}
+
+.applyNote {
+  margin-right: auto;
+  font-size: 0.84rem;
+  color: var(--fog-dim);
+}
+
+.applyBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: var(--signal);
+  color: var(--u-white);
+  font: inherit;
+  font-size: 0.92rem;
+  font-weight: 500;
+  padding: 0.65rem 1.3rem;
+  cursor: pointer;
+  transition: filter 160ms ease;
+}
+
+.applyBtn:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
+.applyBtn:disabled {
+  cursor: progress;
+  opacity: 0.7;
+}
+
+/* ── 관찰 ────────────────────────────────────────────── */
+.watch {
+  display: grid;
+  gap: 2rem;
+}
+
+/*
+ * 시간 축은 스파크라인의 가로축이 이미 맡는다.
+ * 상단에 진행 바를 또 두면 지표 그래프와 같은 언어로 보여 어지럽다.
+ */
+.timeline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.4rem 0.85rem;
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--fog);
+}
+
+.timeline strong {
+  color: var(--chalk);
+  font-weight: 600;
+}
+
+.timeline span {
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  color: var(--fog-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+/*
+ * 지표는 분석 도구의 관습을 따른다 — 큰 숫자 · 델타 · 스파크라인.
+ * 7일치 시계열을 이미 갖고 있으므로 진행률로 뭉개지 않고 그대로 그린다.
+ */
+.metrics {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  gap: 1px;
+  background: var(--line-soft);
+  border-block: 1px solid var(--line-soft);
+}
+
+.metrics li {
+  padding: 1.15rem 1.25rem 1.25rem;
+  background: var(--ground);
+}
+
+.metricLabel {
+  margin: 0 0 0.5rem;
+  font-size: 0.82rem;
+  color: var(--fog-dim);
+}
+
+.metricNow {
+  display: flex;
+  align-items: baseline;
+  gap: 0.15rem;
+  margin: 0 0 0.85rem;
+  font-size: 1.75rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.metricNow small {
+  font-size: 0.85rem;
+  font-weight: 400;
+  color: var(--fog-dim);
+}
+
+.metricNow em {
+  margin-left: 0.5rem;
+  font-style: normal;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 400;
+  color: var(--signal-soft);
+}
+
+.spark {
+  display: block;
+  width: 100%;
+  height: 56px;
+  overflow: visible;
+}
+
+/* 목표는 점선 한 줄. 값이 그 선을 넘었는지가 한눈에 읽힌다. */
+.sparkGoal {
+  stroke: var(--fog-dim);
+  stroke-width: 1;
+  stroke-dasharray: 3 4;
+  vector-effect: non-scaling-stroke;
+  opacity: 0.7;
+}
+
+.sparkLine {
+  fill: none;
+  stroke: var(--signal);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.sparkDot {
+  fill: var(--signal);
+}
+
+.metricEnds {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin: 0.7rem 0 0;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--fog-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.metricGoal::before {
+  content: "";
+  display: inline-block;
+  width: 12px;
+  margin-right: 0.35rem;
+  vertical-align: 0.25em;
+  border-top: 1px dashed var(--fog-dim);
+}
+
+.ffRow {
+  display: grid;
+  gap: 0.2rem;
+  justify-items: start;
+}
+
+.ffBtn {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--chalk);
+  font: inherit;
+  font-size: 0.9rem;
+  padding: 0.6rem 1.15rem;
+  cursor: pointer;
+}
+
+.ffBtn:hover {
+  border-color: var(--fog-dim);
+}
+
+.ffPlaying {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--fog-dim);
+}
+
+/* ── 리포트 ──────────────────────────────────────────── */
+.report {
+  display: grid;
+  gap: 1.75rem;
+}
+
+.scoreLead {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(1.4rem, 3.8vw, 1.95rem);
+  line-height: 1.35;
+}
+
+.scoreLead em {
+  font-style: normal;
+  color: var(--signal);
+}
+
+.report .footnote {
+  margin-top: -1.1rem;
+}
+
+
+
+
+
+/*
+ * AI 인사이트.
+ * 측정된 수치가 아니라 AI 가 해석해 만든 문장이라 표·그래프와 성격이 다르다.
+ * 이 화면에서 면을 갖는 유일한 블록이고 스파클로 출처를 밝힌다.
+ */
+.insight {
+  display: grid;
+  gap: 0.6rem;
+  justify-items: start;
+  padding: 1.35rem 1.45rem 1.4rem;
+  background: var(--signal-wash);
+  border: 1px solid color-mix(in srgb, var(--signal) 26%, transparent);
+  border-radius: var(--radius);
+}
+
+.insightTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--signal-soft);
+}
+
+.insightMark {
+  display: grid;
+  place-items: center;
+  width: 1.4rem;
+  height: 1.4rem;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--signal) 22%, transparent);
+  color: var(--signal);
+}
+
+.insightBody {
+  margin: 0;
+  max-width: 42rem;
+  font-size: 1rem;
+  line-height: 1.85;
+  color: var(--chalk);
+}
+
+.insightBtn {
+  margin-top: 0.5rem;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: var(--signal);
+  color: var(--u-white);
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 500;
+  padding: 0.6rem 1.1rem;
+  cursor: pointer;
+}
+
+.insightBtn:hover {
+  filter: brightness(1.08);
+}
+
+/* ── 겹침 경고 ───────────────────────────────────────── */
+.scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  padding: 1.5rem;
+  background: rgb(12 7 9 / 76%);
+  backdrop-filter: blur(3px);
+}
+
+.conflict {
+  width: min(30rem, 100%);
+  padding: 1.6rem 1.6rem 1.4rem;
+  background: var(--raise);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--amber);
+  border-radius: 4px var(--radius) var(--radius) 4px;
+  box-shadow: var(--shadow);
+}
+
+.conflict h2 {
+  margin: 0.5rem 0 0.8rem;
+  font-size: 1.05rem;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+.conflictBody {
+  margin: 0;
+  font-size: 0.92rem;
+  line-height: 1.75;
+  color: var(--fog);
+}
+
+.conflictBody strong {
+  color: var(--chalk);
+  font-weight: 500;
+}
+
+.conflictFoot {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 1.35rem;
+}
+
+.ghostBtn {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--fog);
+  font: inherit;
+  font-size: 0.86rem;
+  padding: 0.55rem 1rem;
+  cursor: pointer;
+}
+
+.ghostBtn:hover {
+  color: var(--chalk);
+  border-color: var(--fog-dim);
+}
+
+@media (max-width: 44rem) {
+  .sheet tbody th small {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sweep,
+  .mockup[data-magic="true"][data-state="toBe"] .row[data-added="true"],
+  .mockup[data-magic="true"][data-state="asIs"] {
+    animation: none;
+  }
+}

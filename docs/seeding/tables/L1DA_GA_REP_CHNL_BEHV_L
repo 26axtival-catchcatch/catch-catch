@@ -1,0 +1,348 @@
+앱 행동로그 - L1DA_GA대표채널행동로그 (L1DA_GA_REP_CHNL_BEHV_L)
+
+---
+
+
+CSZ_연결키	CZ_LNK_KEY	CSZ 연결키	INT64	Y								L1DA_GA_REP_CHNL_BEHV_L_CZ	CZ_LNK_KEY
+
+기준일(파티션키)	P_YYYYMMDD	기준일(파티션키)	DATE	N	1							L1DA_GA_REP_CHNL_BEHV_L_CZ	P_YYYYMMDD
+
+GA연결키	GA_LNK_KEY	GA연결키	INT64	N	2							L1DA_GA_REP_CHNL_BEHV_L_CZ	GA_LNK_KEY
+
+기준일자	BASE_DT	기준일자	STRING	Y									
+
+클라이언트ID	CLT_ID	"1사 쿠키기반 추적ID, os, browser, domain(uplus.co.kr 1개), facebook은 다른 client id로 해당됨, 2년 유지
+
+- 원천데이터의 USER_PSEUDO_ID를 뜻 함"	STRING	Y									
+
+디멘젼클라이언트ID	DMNS_CLT_ID	"디멘젼클라이언트ID
+
+- 1사 쿠키기반 추적ID, os, browser, domain(uplus.co.kr 1개), facebook은 다른 client id로 해당됨, 2년 유지
+
+- 원천데이터의 CLIENT_ID를 뜻 함"	STRING	Y									
+
+세션ID	SESN_ID	"세션 ID 
+
+1. 사용자가 직접 종료시 세션 종료
+
+2. 30분동안 행동이 없는 경우 세션 종료 
+
+- 생성로직 : CONCAT(USER_PSEUDO_ID, '||', GA_SESSION_ID_EVENT)"	STRING	Y									
+
+참여세션여부	PTPN_SESN_YN	"참여세션여부
+
+- 참여세션일 경우 'Y'"	STRING	Y									
+
+참여세션시간	PTPN_SESN_TM	"참여세션시간
+
+- 사용자 참여 세션 시간은 사용자가 포커스가 있는 웹페이지 또는 포그라운드의 앱 화면에서 보내는 초단위 시간"	NUMERIC	Y									
+
+참여세션이벤트여부	PTPN_SESN_EVET_YN	"참여세션이벤트여부
+
+- 참여세션이벤트일 경우 'Y'"	STRING	Y									
+
+방문자ID	VSTR_ID	원천데이터의 GA_SESSION_ID_EVENT를 뜻 함	STRING	Y									
+
+고객번호	CUST_NO	고객번호	STRING	N		Y	고객번호(가입자번호)					L1DA_GA_REP_CHNL_BEHV_L_CZ	CUST_NO
+
+가입번호	ENTR_NO	가입번호	STRING	N		Y	가입번호(가입신청번호)					L1DA_GA_REP_CHNL_BEHV_L_CZ	ENTR_NO
+
+DCRM이벤트가입번호	DCRM_EVET_ENTR_NO	고객센터앱에서 발생한 DCRM 이벤트 가입번호	STRING	N			가입번호					L1DA_GA_REP_CHNL_BEHV_L_CZ	DCRM_EVET_ENTR_NO
+
+구매가입번호	BUY_ENTR_NO	구매액션구분명이 '요금제변경', '요금제신청', '서비스신청', '부가서비스신청'일 경우 해당 가입번호	STRING	N			가입번호					L1DA_GA_REP_CHNL_BEHV_L_CZ	BUY_ENTR_NO
+
+상품번호	PROD_NO	가입번호 기준 상품번호	STRING	N		Y	휴대전화번호					L1DA_GA_REP_CHNL_BEHV_L_CZ	PROD_NO
+
+서비스코드	SVC_CD	가입번호 기준 서비스코드	STRING	N									
+
+서비스명	SVC_NM	가입번호 기준 서비스명	STRING	N									
+
+요금제코드	PP_CD	가입번호 기준 요금제코드	STRING	N									
+
+요금제명	PP_NM	가입번호 기준 요금제명	STRING	N									
+
+10년연령대ID	YY10_AGLV_ID	"10대/20대/30대 등 10년 주기 연령대ID
+
+- 1 : 10대, 2 : 20대, 3 : 30대"	INT64	N									
+
+5년연령대ID	YY5_AGLV_ID	"1세~5세/6세~10세/11세~15세 등 5년 주기 연령대ID
+
+1 : 1~5세
+
+2 : 6~10세
+
+3 : 11~15세"	INTEGER	N			나이대(5세단위)					L1DA_GA_REP_CHNL_BEHV_L_CZ	YY5_AGLV_ID
+
+성별구분코드	SEX_DIVS_CD	성별구분코드	STRING	N			성별					L1DA_GA_REP_CHNL_BEHV_L_CZ	SEX_DIVS_CD
+
+성별구분명	SEX_DIVS_NM	성별구분명	STRING	N			성별					L1DA_GA_REP_CHNL_BEHV_L_CZ	SEX_DIVS_NM
+
+결합여부	CNVG_YN	"결합여부
+
+- 해당 고객이 유무선/무무선결합중 하나라도 유지중일 경우 'Y'"	STRING	N									
+
+임직원여부	OCEM_YN	"임직원여부
+
+- 임직원일 경우 'Y'"	STRING	N									
+
+자사타사구분명	ORCO_OCMP_DIVS_NM	"자사타사구분명
+
+- 자사일 경우 '자사'
+
+- 타사일 경우 '타사'
+ 
+※ 자사타사구분로직
+
+1. 자사 모바일 고객일 경우 '자사'
+
+2. 라이프스타일 고객이고 매핑 가입번호 존재시 '자사'
+
+3. 라이프스타일 고객이고 매핑 가입번호 미존재시 '타사'"	STRING	N									
+
+로그일시	LOG_DTTM	로그 발생 일시 YYYYMMDDHHMMSS	STRING	Y									
+
+클라이언트기준방문횟수	CLT_BASE_VSIT_TMSC	"대표채널 오픈이후 클라이언트ID별 전 기간 방문회차
+
+- 첫 방문일 경우 1
+
+- 원천데이터의 GA_SESSION_NUMBER_EVENT를 뜻 함"	INT64	Y									
+
+세션체류시간	SESN_STAY_TM	"세션체류시간
+
+- 세션 내 초단위 체류 시간을 나타냄"	INT64	Y									
+
+로그인상태코드	LGIN_STUS_CD	현재 로그인 상태일 경우 'Y'/ 비로그인 상태일 경우 'N'	STRING	N									
+
+단말유형명	TRM_KD_NM	"단말유형명 
+
+EX) smart tv, tablet, desktop, mobile"	STRING	Y									
+
+단말모델코드	TRM_MDL_CD	"단말코드
+
+- 제조사가 Apple, Google, Microsoft 등 인 경우 NULL"	STRING	N									
+
+단말모델명	TRM_MDL_NM	단말명	STRING	N									
+
+단말제조사명	TRM_MANF_NM	단말제조사명	STRING	N									
+
+운영체제명	OS_NM	OS종류명	STRING	N									
+
+운영체제버전명	OS_VER_NM	OS버전명	STRING	N									
+
+웹APP구분명	WEB_APP_DIVS_NM	"웹 앱 구분명
+
+- 모바일웹 : MOWEB, 모바일앱 : MOAPP, 웹 : PC"	STRING	N									
+
+사이트구분명	SITE_DIVS_NM	"사이트구분명
+
+- 대표채널, 고객센터앱"	STRING	N									
+
+사이트상세구분명	SITE_DETL_DIVS_NM	"사이트상세구분명
+
+- 개인, 기업, 유독, 유플일상 등."	STRING	N									
+
+현재웹페이지호스트주소	NOW_WEB_PAGE_HOST_ADDR	현재 웹페이지 URL 의 호스트 주소 EX) m.lguplus.com	STRING	N									
+
+현재웹페이지URL주소	NOW_WEB_PAGE_URL_ADDR	"현재 웹페이지 URL 주소 
+
+EX) https://app.lguplus.com/login/uplus-register/personal"	STRING	N									
+
+웹페이지문서제목명	WEB_PAGE_DOC_TIT_NM	현재 웹페이지 문서 제목 명 	STRING	N									
+
+이전웹페이지URL주소	BFR_WEB_PAGE_URL_ADDR	"이전 웹페이지 URL 주소 EX) https://www.uplus.co.kr/plan/addon/addon-media
+
+- 이전 웹페이지의 FULL URL을 나타냄"	STRING	N									
+
+스트림ID	STEM_ID	"스트림ID
+
+- 원천데이터의 STREAM_ID를 뜻 함"	STRING	N									
+
+이벤트명	EVET_NM	이벤트명	STRING	N									
+
+이벤트액션명	EVET_ACT_NM	이벤트액션명	STRING	N									
+
+이벤트액션카테고리명	EVET_ACT_CATG_NM	이벤트액션의 카테고리	STRING	N									
+
+이벤트액션라벨명	EVET_ACT_LABE_NM	이벤트라벨명	STRING	N									
+
+페이지체류시간	PAGE_STAY_TM	"이벤트명이 'page_view' 일 경우 해당 페이지의 초단위 체류 시간을 나타냄
+ 
+단, 세션내의 마지막 페이지일 경우 체류 시간을 계산할 수 없어 NULL"	INT64	N									
+
+링크페이지내부외부구분명	LINK_PAGE_INS_OUTS_DIVS_NM	"링크 클릭시 연결되는 페이지가 내부인지 외부인지 구분을 위한 명칭
+
+EX) 내부, 외부"	STRING	N									
+
+링크URL주소	LINK_URL_ADDR	링크 클릭 시 이동되는 URL 주소	STRING	N									
+
+대표채널메뉴명	REP_CHNL_MENU_NM	대표채널 메뉴명	STRING	N									
+
+대표채널메뉴1레벨명	REP_CHNL_MENU_LVL1_NM	대표채널 메뉴 1레벨 명	STRING	N									
+
+대표채널메뉴2레벨명	REP_CHNL_MENU_LVL2_NM	대표채널 메뉴 2레벨 명	STRING	N									
+
+대표채널메뉴3레벨명	REP_CHNL_MENU_LVL3_NM	대표채널 메뉴 3레벨 명	STRING	N									
+
+대표채널메뉴4레벨명	REP_CHNL_MENU_LVL4_NM	대표채널 메뉴 4레벨 명	STRING	N									
+
+대표채널메뉴5레벨명	REP_CHNL_MENU_LVL5_NM	대표채널 메뉴 5레벨 명	STRING	N									
+
+대표채널메뉴6레벨명	REP_CHNL_MENU_LVL6_NM	대표채널 메뉴 6레벨 명	STRING	N									
+
+대표채널메뉴7레벨명	REP_CHNL_MENU_LVL7_NM	대표채널 메뉴 7레벨 명	STRING	N									
+
+대표채널메뉴8레벨명	REP_CHNL_MENU_LVL8_NM	대표채널 메뉴 8레벨 명	STRING	N									
+
+대표채널메뉴9레벨명	REP_CHNL_MENU_LVL9_NM	대표채널 메뉴 9레벨 명	STRING	N									
+
+대표채널메뉴10레벨명	REP_CHNL_MENU_LVL10_NM	대표채널 메뉴 10레벨 명	STRING	N									
+
+유입도메인URL주소	INFW_DOMN_URL_ADDR	웹사이트로 유입된 도메인의 URL 주소	STRING	N									
+
+유입도메인호스트주소	INFW_DOMN_HOST_ADDR	"웹사이트로 유입된 도메인의 호스트 주소(utm_source 파라미터 값을 뜻함)
+
+EX) mccappl.uplus.co.kr, m.search.naver.com, naver
+ 
+- utm_source 파라미터 값 : 어느 출처에서 유입하는지를 입력(사이트, 광고주)"	STRING	N									
+
+유입도메인엔진명	INFW_DOMN_ENGN_NM	웹사이트로 유입 도메인의 검색 엔진 명 EX) naver, 카카오, 다음	STRING	N									
+
+유입도메인카테고리명	INFW_DOMN_CATG_NM	"웹사이트로 유입 도메인의 카테고리 명 (utm_medium 파라미터 값을 뜻함)
+
+EX) direct, organic, display, referral
+ 
+- utm_medium 파라미터 값 : 어느 매체를 통해서 유입하는지를 입력(광고 방식)"	STRING	N									
+
+유입검색어내용	INFW_SHWD_CNTN	"웹사이트로 유입시 검색한 검색어 내용(utm_term 파라미터 값을 뜻함)
+
+EX) 아이들나라, 디즈니
+ 
+- utm_term 파라미터 값 : 검색광고 시 사용되는 검색어를 입력"	STRING	N									
+
+유입캠페인명	INFW_CMPN_NM	"캠페인을 통해 웹사이트로 유입하는 경우 해당 캠페인명(utm_campaign 파라미터 값을 뜻함)
+
+EX) 202204-hemohim-promotion
+ 
+- utm_campaign 파라미터 값 : 어느 캠페인을 통해서 유입하는지를 입력"	STRING	N									
+
+유입캠페인광고내용	INFW_CMPN_AD_CNTN	"캠페인을 통해 웹사이트로 유입하는 경우 해당 캠페인광고의 내용(utm_content 파라미터 값을 뜻함)
+
+EX) 브랜드검색_maintext_4395_11evevet-disney_
+ 
+- utm_content 파라미터 값 : 동일한 광고 캠페인에서 소재가 여러 개일 경우, 이를 구분하기 위해 입력"	STRING	N									
+
+로그인방법명	LGIN_MTHD_NM	"로그인방법 명
+
+- 간편로그인, MyLGID, 네이버, 카카오"	STRING	N									
+
+검색유형명	SRCH_KD_NM	검색유형명	STRING	N									
+
+구매액션구분명	BUY_ACT_DIVS_NM	"구매액션구분명
+
+- 온라인 가입, 요금제 변경, 요금제 신청, 번호이동, 기기변경, 신규가입, 서비스 신청, 액세서리 구매 등."	STRING	N									
+
+결제옵션내용	STLM_OPON_CNTN	결제시 지정된 상품 옵션 값 EX) 128GB|딥 퍼플 등.	STRING	N									
+
+결제스텝내용	STLM_STEP_CNTN	결제에 대한 스텝을 뜻 함	STRING	N									
+
+결제유형명	STLM_KD_NM	결제유형명	STRING	N									
+
+구매ID	BUY_ID	"구매ID
+
+- 구매완료, 구매환불일 경우 거래에 대한 ID
+
+- 원천데이터의 ECOMMERCE_TRANSACTION_ID 를 뜻 함"	STRING	N									
+
+구매금액	BUY_AMT	원단위 구매금액	INT64	N									
+
+상품개수	PROD_PCNT	구매액션이 장바구니에 제품 추가, 장바구니에서 제품 삭제, 구매완료, 구매환불 인 경우 상품 개수	INT64	N									
+
+이벤트제목명	EVET_TIT_NM	이벤트 제목명 EX) U+Shop에서 갓생 필수템 찜하고 갤럭시 S22 받자!	STRING	N									
+
+이벤트분류명	EVET_CLSS_NM	이벤트 분류명 EX) 모바일 / 홈 / IoT / 로밍	STRING	N									
+
+목표행동수행여부	GOAL_BEHV_FFIL_YN	"목표행동여부
+
+- GA보고서 상 목표로 설정되어있는 행동일 경우 'Y'"	STRING	N									
+
+GA접속국가명	GA_CNC_NATN_NM	GA 데이터 상 접속국가지명	STRING	N									
+
+GA접속지역명	GA_CNC_AREA_NM	GA 데이터 상 접속지역지명	STRING	N									
+
+GA시군구명	GA_CCW_NM	GA 데이터 상 시군구명	STRING	N									
+
+전시구좌 마케팅 인벤토리유형명	ABTEST_ID	닷컴BO 어드민 (그로스해킹플랫폼) - 마케팅 인벤토리 유형명 (ABMS_TEST_ID)	STRING	N									
+
+스크린ID	SCRN_ID	"스크린ID
+
+- 원천데이터의 SCREEN_ID 를 뜻 함"	STRING	N									
+
+AB테스트섹션ID	ABTEST_SECT_ID	"AB테스트섹션ID
+
+- 원천데이터의 ABMS_SECTION 를 뜻 함"	STRING	N									
+
+AB테스트요소ID	ABTEST_FCTR_ID	"AB테스트요소ID
+
+- 원천데이터의 ABMS_ELEM 를 뜻 함"	STRING	N									
+
+AB테스트변수ID	ABTEST_VAR_ID	"AB테스트변수ID
+
+- 원천데이터의 ABMS_VAR_ID 를 뜻 함"	STRING	N									
+
+전시구좌전시코너명	EXSC_EXCO_NM	닷컴BO 어드민 (그로스해킹플랫폼) - 코너명 (CAM_PCSF)	STRING	N									
+
+전시구좌전시순서	EXSC_EXHI_ORD	닷컴BO 어드민 (그로스해킹플랫폼) - 구좌전시순서 (CAM_PIS_ALL_CODE)	STRING	N									
+
+전시구좌그룹ID	EXSC_GRP_ID	닷컴BO 어드민 (그로스해킹플랫폼) - 구좌그룹 ID (CAM_PIS_CODE)	STRING	N									
+
+전시구좌모듈명	EXSC_MDUL_NM	닷컴BO 어드민 (그로스해킹플랫폼) - 모듈명 (CAM_PIS_CODE_VER2)	STRING	N									
+
+전시구좌모듈ID	EXSC_MDUL_ID	닷컴BO 어드민 (그로스해킹플랫폼) - 모듈 유형ID (CAM_PIS_CODE_VER3)	STRING	N									
+
+전시구좌컨텐츠명	EXSC_CNTS_NM	닷컴BO 어드민 (그로스해킹플랫폼) - 컨텐츠명 (CAM_PIS_CODE_VER4)	STRING	N									
+
+전시구좌컨텐츠전시순서	EXSC_CNTS_EXHI_ORD	닷컴BO 어드민 (그로스해킹플랫폼) - 컨텐츠전시순서 (CAM_PIS_CODE_VER5)	STRING	N									
+
+전시구좌버튼명	EXSC_BTN_NM	닷컴BO 어드민 (그로스해킹플랫폼) - 버튼명 (CAM_PIS_CODE_VER6)	STRING	N									
+
+전시구좌명	EXSC_NM	닷컴BO 어드민 (그로스해킹플랫폼) - 구좌명 (CAM_PIS_NAME)	STRING	N									
+
+전시구좌캠페인ID	EXSC_CMPN_ID	닷컴BO 어드민 (그로스해킹플랫폼) - 플로우차트ID(캠페인ID) (CAM_PRSECT_CODE)	STRING	N									
+
+전시구좌캠페인명	EXSC_CMPN_NM	닷컴BO 어드민 (그로스해킹플랫폼) - 플로우차트명(캠페인명) (CAM_PRSECT_NAME)	STRING	N									
+
+전시구좌세그먼트유형명	EXSC_SGMT_KD_NM	닷컴BO 어드민 (그로스해킹플랫폼) - 세그먼트 유형 (CAM_PRS_ALL_CODE)	STRING	N									
+
+전시구좌세그먼트ID	EXSC_SGMT_ID	닷컴BO 어드민 (그로스해킹플랫폼) - 세그먼트ID (CAM_PRS_CODE)	STRING	N									
+
+전시구좌세그먼트명	EXSC_SGMT_NM	닷컴BO 어드민 (그로스해킹플랫폼) - 세그먼트명 (CAM_PRS_NAME)	STRING	N									
+
+전시구좌전시코너그룹ID	EXSC_EXCO_GRP_ID	닷컴BO 어드민 (그로스해킹플랫폼) - 코너그룹 ID (CAM_PSF)	STRING	N									
+
+프로모션이벤트ID	PMTN_EVET_ID	프로모션 이벤트 ID - 원천데이터의 MKT_EVENT_ID를 뜻함	STRING	N									
+
+프로모션이벤트기간	PMTN_EVET_TERM	프로모션 이벤트 진행 기간 - 원천데이터의 MKT_EVENT_PERIOD를 뜻함	STRING	N									
+
+제휴사ID	JNCO_ID	프로모션 제휴사 ID - 원천데이터의 AFFLIATE_ID를 뜻함	STRING	N									
+
+제휴사명	JNCO_NM	프로모션 제휴사 명 - 원천데이터의 AFFLIATE_NAME을 뜻함	STRING	N									
+
+제휴사업종명	JNCO_IDKD_NM	프로모션 제휴사 업종 ex) 소매점 등  - 원천데이터의 AFFLIATE_SECTOR를 뜻함	STRING	N									
+
+쿠폰ID	CPN_ID	프로모션 쿠폰 ID - 원천데이터의 COUPON_ID를 뜻함	STRING	N									
+
+쿠폰명	CPN_NM	프로모션 쿠폰 명 - 원천데이터의 COUPON_NAME을 뜻함	STRING	N									
+
+현재요금제명	NOW_PP_NM	고객에게 다운케어(다운셀 방어) 팝업 노출될 때, 고객의 현재 요금제명 - 원천데이터의 ABTEST_TEST_ID를 뜻함	STRING	N									
+
+선택요금제명	CHOC_PP_NM	고객에게 다운케어(다운셀 방어) 팝업 노출될 때, 고객이 선택한 요금제명 - 원천데이터의 ABTEST_VARIATION_ID를 뜻함	STRING	N									
+
+추천요금제명	RCMD_PP_NM	고객에게 다운케어(다운셀 방어) 팝업 노출될 때, 추천해주는 요금제명 - 원천데이터의 ABTEST_TEST_NAME을 뜻함	STRING	N									
+
+전월요금제데이터사용량	PMM_PP_DATA_USAG	고객에게 다운케어(다운셀 방어) 팝업 노출될 때, 고객의 전월 요금제의 데이터 사용량  - 원천데이터의 MKT_VARIATION_ID를 뜻함	STRING	N									
+
+BQ적재일시	BQ_LOAD_DTTM	BQ적재일시	DATETIME	N								L1DA_GA_REP_CHNL_BEHV_L_CZ	BQ_LOAD_DTTM
+
+BQ적재사용자ID	BQ_LOAD_USER_ID	BQ적재사용자ID	STRING	N								L1DA_GA_REP_CHNL_BEHV_L_CZ	BQ_LOAD_USER_ID
+
+ 

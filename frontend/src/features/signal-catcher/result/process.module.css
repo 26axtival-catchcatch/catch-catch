@@ -1,0 +1,347 @@
+.wrap {
+  margin-top: 2.5rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--card);
+  overflow: hidden;
+}
+
+/* ── Toggle ──────────────────────────────────────────── */
+.toggle {
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.4rem 0.9rem;
+  padding: 1rem 1.2rem;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background 160ms ease;
+}
+
+.toggle:hover {
+  background: var(--card-2);
+}
+
+.toggleLabel {
+  font-size: 0.98rem;
+  font-weight: 600;
+  color: var(--chalk);
+}
+
+.toggleMeta {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.03em;
+  color: var(--fog-dim);
+}
+
+.chevron {
+  margin-left: auto;
+  color: var(--fog-dim);
+  font-size: 0.8rem;
+  transition: transform 200ms var(--ease);
+}
+
+.chevron[data-open="true"] {
+  transform: rotate(180deg);
+}
+
+/* ── Body ────────────────────────────────────────────── */
+.body {
+  padding: 0.4rem 1.2rem 1.5rem;
+  border-top: 1px solid var(--line-soft);
+  animation: reveal 240ms var(--ease) both;
+}
+
+@keyframes reveal {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.runId {
+  margin: 1rem 0 1.2rem;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+  color: var(--fog-dim);
+}
+
+.runId code {
+  color: var(--fog);
+}
+
+/* ── Stages ──────────────────────────────────────────── */
+.stages {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 1.3rem;
+}
+
+.stageHead {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin-bottom: 0.45rem;
+}
+
+.stageNo {
+  flex: none;
+  width: 1.35rem;
+  height: 1.35rem;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--signal-wash);
+  border: 1px solid color-mix(in srgb, var(--signal) 45%, transparent);
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  color: var(--signal);
+}
+
+.stageHead h4 {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.stageEvent {
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  color: var(--fog-dim);
+}
+
+/* 로딩 화면의 레일과 같은 모양. 흘러가지 않고 멈춰 있을 뿐이다. */
+.rail {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 0.55rem;
+}
+
+.row {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1.55rem minmax(0, 1fr) auto;
+  gap: 0.7rem;
+  align-items: start;
+  padding: 0.35rem 0;
+}
+
+.row::before {
+  content: "";
+  position: absolute;
+  left: 0.75rem;
+  top: 1.5rem;
+  bottom: -0.35rem;
+  width: 1px;
+  background: var(--line);
+}
+
+.row:last-child::before {
+  display: none;
+}
+
+.mark {
+  position: relative;
+  width: 1.55rem;
+  height: 1.55rem;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  background: var(--card-2);
+  font-size: 0.7rem;
+  color: var(--fog);
+}
+
+.row[data-kind="fact"] .mark {
+  border-color: var(--signal);
+  background: var(--signal-wash);
+  color: var(--signal);
+}
+
+.row[data-kind="reject"] .mark {
+  border-color: color-mix(in srgb, var(--amber) 45%, transparent);
+  color: var(--amber);
+}
+
+.row[data-kind="think"] .mark {
+  border-color: transparent;
+  background: none;
+  color: var(--fog-dim);
+}
+
+.rowBody {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.primitive {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--chalk);
+}
+
+.caught {
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: var(--signal);
+}
+
+.dropped {
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: var(--amber);
+}
+
+.text {
+  font-size: 0.8rem;
+  line-height: 1.55;
+  color: var(--fog-dim);
+}
+
+.row[data-kind="think"] .text {
+  font-size: 0.82rem;
+  font-style: italic;
+  color: var(--fog);
+}
+
+.result {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--fog-dim);
+  padding-top: 0.3rem;
+}
+
+/* ── Plan steps ──────────────────────────────────────── */
+.subTitle {
+  margin: 1.9rem 0 0.6rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.steps li {
+  display: grid;
+  grid-template-columns: 2.4rem 1fr;
+  gap: 0.9rem;
+  padding: 0.7rem 0;
+  border-top: 1px solid var(--line-soft);
+}
+
+.stepId {
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+  color: var(--signal);
+}
+
+.stepObjective {
+  margin: 0 0 0.2rem;
+  font-size: 0.86rem;
+}
+
+.stepMeta {
+  margin: 0;
+  display: flex;
+  gap: 0.8rem;
+  font-size: 0.74rem;
+  color: var(--fog-dim);
+}
+
+.stepMeta code {
+  font-family: var(--font-mono);
+  color: var(--fog);
+}
+
+.stepRevised {
+  margin: 0.3rem 0 0;
+  font-size: 0.74rem;
+  color: var(--amber);
+}
+
+/* ── Links ───────────────────────────────────────────── */
+.links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  margin-top: 1.6rem;
+  padding-top: 1.2rem;
+  border-top: 1px solid var(--line-soft);
+}
+
+.ledgerLink {
+  border: 1px solid color-mix(in srgb, var(--signal) 40%, transparent);
+  background: var(--signal-wash);
+  color: var(--signal-soft);
+  border-radius: var(--radius-sm);
+  padding: 0.6rem 1rem;
+  font: inherit;
+  font-size: 0.86rem;
+  cursor: pointer;
+  transition: background 160ms ease;
+}
+
+.ledgerLink:hover {
+  background: color-mix(in srgb, var(--signal) 22%, transparent);
+  color: var(--chalk);
+}
+
+/* 원본 트레이스는 외부 도구에서 연다. 여기서 나간다는 것을 화살표로 알린다. */
+.external {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  padding: 0.6rem 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  color: var(--fog);
+  font-size: 0.86rem;
+  text-decoration: none;
+  transition:
+    border-color 160ms ease,
+    color 160ms ease;
+}
+
+.external:hover {
+  border-color: var(--fog-dim);
+  color: var(--chalk);
+}
+
+.external small {
+  font-size: 0.72rem;
+  color: var(--fog-dim);
+}
+
+.arrow {
+  color: var(--fog-dim);
+  font-size: 0.78rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .body {
+    animation: none;
+  }
+
+  .chevron {
+    transition: none;
+  }
+}

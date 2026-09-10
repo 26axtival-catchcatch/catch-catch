@@ -1,0 +1,128 @@
+{
+  "baseline_cohorts": {
+    "payment_average_attempts": 2.7,
+    "payment_consent_exit_share": 0.82,
+    "payment_incomplete_customers": 210,
+    "payment_voc_customers": 74,
+    "roaming_agent_signup_customers": 70,
+    "roaming_browse_exit_agent_signup_customers": 56,
+    "roaming_customers": 140,
+    "roaming_direct_consultation_customers": 14,
+    "vas_customers_absent_from_search_and_voc": 160,
+    "vas_favorite_customers": 84,
+    "vas_unreachable_absent_from_search_and_voc": 16,
+    "vas_unreachable_customers": 97,
+    "vas_voc_customers": 61,
+    "vas_wandering_customers": 340
+  },
+  "checks": {
+    "baseline_cohorts": "passed",
+    "control_stability": "passed",
+    "date_window": "passed",
+    "exploration_cases": "passed",
+    "exposure": "passed",
+    "foreign_keys": "passed",
+    "goal_ranges": "passed",
+    "identifiers": "passed",
+    "schema": "passed",
+    "temporal_order": "passed",
+    "three_day_trend": "passed"
+  },
+  "checksums": {
+    "L0UR_FEEDBACK.csv": "925feb55434f8e7bcdbab0705cf1f0bcdd94eb98df7a996597e8d202117b3fef",
+    "L0UR_SEARCH_HISTORY.csv": "8827ca0f7b550fad62824701cb7e93d5ba6848e1cc8223adde9e433a18f5e747",
+    "L1BAT_CUST_BLNG_AND_BNFT_SUM.csv": "391b549c82436acdd3dac3614996bd1cefc2b47988ad1443a59f6497319a37a9",
+    "L1DA_GA_REP_CHNL_BEHV_L.csv": "6463386381ec6f1cafffb843a1b1d6178421d32691ad78239d786a9f78d05ce3",
+    "L1DA_RMNG_USE_MMLY_INTG_H.csv": "e688a7906f5b9004281c5128c5616e89282f9f13161658623ed5c9b02b6f2eff",
+    "L1RA_VOC_STT_DTL_H.csv": "ff0f86c7198b568e441fc913f134237a52ed6fb6bd6bfcfa16c7c54986b1c5ce",
+    "L2ZI_MBL_VAS_ENTR_INFO_DALY_H.csv": "f3d076c80c4bc32d78fdef391d25d995c9f9691075787ebb90156fde0c719ac4",
+    "daily_kpis.csv": "a63b055df7b591aa105ba45b0047bcedceee0d51c36e4706a7a7fd5b1d8c251d"
+  },
+  "exploration_cases": {
+    "limited_sources": [
+      "hackathon_search_history",
+      "hackathon_voc"
+    ],
+    "roaming_expanded_sources": [
+      "hackathon_app_behavior",
+      "hackathon_roaming_usage"
+    ],
+    "roaming_snapshot_semantics": "month_to_date_as_of_departure_day_load",
+    "vas_expanded_sources": [
+      "hackathon_app_behavior",
+      "hackathon_vas_subscription"
+    ]
+  },
+  "exposure_rates": [
+    0.2,
+    0.35,
+    0.5,
+    0.65,
+    0.8,
+    0.9,
+    1.0
+  ],
+  "first_day_kpis": {
+    "date": "2026-09-04",
+    "exposure_rate": 0.0,
+    "payment_average_attempts": 1.0,
+    "payment_completion_rate": 0.197,
+    "payment_consent_exit_rate": 0.7547,
+    "payment_customer_count": 66,
+    "payment_negative_feedback_rate": 0.0,
+    "payment_repeat_search_rate": 0.0,
+    "payment_voc_rate": 0.0,
+    "phase": "baseline",
+    "roaming_browse_exit_agent_signup_count": 8,
+    "roaming_browse_exit_agent_signup_rate": 0.4,
+    "roaming_customer_count": 20,
+    "roaming_usage_rate": 0.8,
+    "vas_direct_reach_rate": 0.0,
+    "vas_favorite_rate": 0.2449,
+    "vas_negative_feedback_rate": 0.2653,
+    "vas_repeat_search_rate": 0.3673,
+    "vas_session_count": 49,
+    "vas_unreachable_rate": 0.2653,
+    "vas_voc_rate": 0.1837
+  },
+  "intervention_at": "2026-09-11T09:00:00",
+  "last_day_kpis": {
+    "date": "2026-09-17",
+    "exposure_rate": 1.0,
+    "payment_average_attempts": 1.2,
+    "payment_completion_rate": 0.75,
+    "payment_consent_exit_rate": 0.3,
+    "payment_customer_count": 40,
+    "payment_negative_feedback_rate": 0.075,
+    "payment_repeat_search_rate": 0.075,
+    "payment_voc_rate": 0.1,
+    "phase": "post",
+    "roaming_browse_exit_agent_signup_count": 1,
+    "roaming_browse_exit_agent_signup_rate": 0.05,
+    "roaming_customer_count": 20,
+    "roaming_usage_rate": 0.8,
+    "vas_direct_reach_rate": 0.74,
+    "vas_favorite_rate": 0.08,
+    "vas_negative_feedback_rate": 0.1,
+    "vas_repeat_search_rate": 0.16,
+    "vas_session_count": 50,
+    "vas_unreachable_rate": 0.1,
+    "vas_voc_rate": 0.06
+  },
+  "period": {
+    "end": "2026-09-17",
+    "start": "2026-09-04",
+    "timezone": "Asia/Seoul"
+  },
+  "row_counts": {
+    "L0UR_FEEDBACK": 339,
+    "L0UR_SEARCH_HISTORY": 1540,
+    "L1BAT_CUST_BLNG_AND_BNFT_SUM": 1550,
+    "L1DA_GA_REP_CHNL_BEHV_L": 9250,
+    "L1DA_RMNG_USE_MMLY_INTG_H": 280,
+    "L1RA_VOC_STT_DTL_H": 348,
+    "L2ZI_MBL_VAS_ENTR_INFO_DALY_H": 2070
+  },
+  "schema_version": 2,
+  "seed": 20260831
+}

@@ -1,0 +1,21 @@
+AI검색 사용자 피드백 - L0UR_FEEDBACK
+---
+CSZ 연결키	CZ_LNK_KEY	CSZ 연결키	INTEGER	Y								L0UR_FEEDBACK_CZ	CZ_LNK_KEY
+
+기준일(파티션키)	P_YYYYMMDD	기준일(파티션키)	DATE	Y								L0UR_FEEDBACK_CZ	P_YYYYMMDD
+
+테이블 PK	ID	테이블 PK	INTEGER	N									
+
+검색 실행 ID	RUN_ID	검색 실행 ID	STRING	N									
+
+피드백 타입	FEEDBACK_TYPE	피드백 타입	STRING	N									
+
+피드백 사유	REASON	피드백 사유	STRING	N		Y	메모					L0UR_FEEDBACK_CZ	REASON
+
+피드백의 세부 선택 옵션	OPTION	피드백의 세부 선택 옵션	STRING	N									
+
+BQ적재일시	BQ_LOAD_DTTM	BQ적재일시	DATETIME	Y								L0UR_FEEDBACK_CZ	BQ_LOAD_DTTM
+
+BQ적재사용자ID	BQ_LOAD_USER_ID	BQ적재사용자ID	STRING	Y								L0UR_FEEDBACK_CZ	BQ_LOAD_USER_ID
+
+ 

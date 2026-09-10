@@ -1,0 +1,183 @@
+VAS 가입정보 - L2ZI_모바일_VAS_가입_정보_일별_이력 (L2ZI_MBL_VAS_ENTR_INFO_DALY_H)
+
+---
+
+기준일(파티션키)	P_YYYYMMDD	기준일자	DATE	Y									
+
+기준년월	BASE_YYMM	기준년월	STRING	Y									
+
+월마지막일자여부	MM_LAST_DT_YN	해당 월 만기일 여부 표기, 월마감 전에는 해당월의 가장 마지막 기준일에 Y 표기	STRING	Y									
+
+가입번호	ENTR_NO	가입번호	STRING	Y									
+
+가입상품누적번호	ENTR_SVC_SEQNO	가입상품의 고유 식별값 (동일 가입번호로 다수의 부가서비스 가입 시 각각 인식)	STRING	Y									
+
+고객번호	CUST_NO	고객번호	STRING	Y									
+
+상품번호	PRD_NO	휴대폰번호(CTN)	STRING	Y									
+
+연령세그먼트명	AGE_SGMT_NM	고객 연령대 : 20세 미만(-19), 20대(20), 30대(30), 40대(40), 50대(50), 60세이상(60+), 그 외(999)	STRING	Y									
+
+청구계정번호	BILL_ACNT_NO	청구계정번호	STRING	Y									
+
+상품코드	PROD_CD	상품코드 (23년 10월 23일 차세대 UCube 오픈 이후 SVC_CD -> PROD_CD로 컬럼명 변경)	STRING	Y									
+
+상품명	PROD_NM	상품명	STRING	Y									
+
+카테고리1레벨명	CATG_LVL1_NM	상품 카테고리1레벨명	STRING	Y									
+
+카테고리2레벨명	CATG_LVL2_NM	상품 카테고리2레벨명	STRING	Y									
+
+카테고리3레벨명	CATG_LVL3_NM	상품 카테고리3레벨명	STRING	Y									
+
+카테고리4레벨명	CATG_LVL4_NM	상품 카테고리4레벨명 (관리용)	STRING	Y									
+
+구매가격여부	BUY_PRC_YN	상품 유/무료 구분	STRING	Y									
+
+청구유형코드	BILL_KD_CD	일할, 선불 등 요금 납부 방식	STRING	Y									
+
+부가세제외금액	VAT_XCLN_AMT	부가세 제외 상품 금액	INTEGER	Y									
+
+부가세포함전체금액	VAT_INCL_ALL_AMT	부가세 포함 상품 금액	INTEGER	Y									
+
+패키지여부	PAC_YN	패키지 여부	STRING	Y									
+
+패키지구분코드	PAC_DIVS_CD	"패키지 상품인 경우, 구성 상품 결합 방식에 따라 소프트번들, 하드번들로 구분함
+
+- 소프트번들 : 부분해지 가능한 결합형 번들
+
+- 하드번들 : 부분해지 불가한 일체형 번들 "	STRING	Y									
+
+과금구분코드	RTNG_DIVS_CD	"패키지 상품인 경우, 과금이 부여되는 주체가 패키지 상품인지, 구성상품인지 구분함
+
+- 패키지_과금 : 구성상품의 과금은 0원 처리되고 패키지 상품에 과금됨
+
+- 구성상품_과금 : 구성상품에 과금이 적용되고, 패키지 상품은 0원 처리(더미)"	STRING	Y									
+
+상품구성내용	PROD_CSTC_CNTN	패키지 상품인 경우, 구성 상품, 기능 및 요소를 나열함	STRING	Y									
+
+KPI여부	KPI_YN	KPI 관리 상품 여부	STRING	Y									
+
+실적포함여부	ARST_INCL_YN	실적포함여부	STRING	Y									
+
+상품유형코드	SVC_KD_CD	가입된 상품에 대한 분류 (R :부가상품, CDO :통화료 할인옵션상품, FCG :FCG상품 등)	STRING	Y									
+
+상품상태코드	SVC_STTS_CD	가입된 상품의 상태코드 (A :개통, C : 해지)	STRING	Y									
+
+상품상태명	SVC_STTS_NM	가입된 상품의 상태코드명 (A :개통, C : 해지)	STRING	Y									
+
+서비스시작일자	SVC_STRT_DT	상품 가입 시작일자	DATE	Y									
+
+서비스종료일자	SVC_END_DT	상품 가입 종료일자(유지 중인 경우 9999-12-31)	DATE	Y									
+
+신규여부	BGN_YN	기준일자에 상품을 신규 가입한 경우 Y, 그외 N	STRING	Y									
+
+잔존여부	SRVL_YN	기준일자에 (신규 가입 포함) 상품에 가입된 상태인 경우 Y, 그외 N	STRING	Y									
+
+해지여부	EXPY_YN	기준일자에 상품을 해지한 경우 Y, 그외 N	STRING	Y									
+
+상품가입일수	PROD_ENTR_DAYS	상품 가입 유지일수	INTEGER	Y									
+
+상품가입개월수	PROD_ENTR_MMCT	상품 가입 유지개월수 (개월차)	INTEGER	Y									
+
+패키지구성품상품여부	PAC_CMPT_PROD_YN	소프트번들 패키지 상품 가입으로 인한 구성상품 가입 여부를 표기	STRING	Y									
+
+패키지상품코드	PAC_PROD_CD	소프트번들 패키지 상품코드	STRING	Y									
+
+패키지상품명	PAC_PROD_NM	소프트번들 패키지 상품명	STRING	Y									
+
+패키지상품시작일자	PAC_PROD_STRT_DT	소프트번들 패키지 상품 시작일자	DATE	Y									
+
+패키지상품종료일자	PAC_PROD_END_DT	소프트번들 패키지 상품 종료일자	DATE	Y									
+
+상품최초시작일자	SVC_FRST_STRT_DT	가입번호별 상품 등록시 최초 시작일자. 예를 들어 청구계정변경과 같이 상품변동 없이 상품이 해지되고, 다시 가입되는 경우 최초시작일자는 유지가 됨.	STRING	Y									
+
+상품시작사유코드	SVC_STRT_RSN_CD	상품 가입에 대한 사유코드. (ACT :개통, CBL :청구계정변경, RCL :해지취소, MCN :명의변경-비승계, GSA :부가상품추가, B47 :명의변경-승계)	STRING	Y									
+
+상품시작사유명	SVC_STRT_RSN_NM	상품시작사유코드에 대한 명칭	STRING	Y									
+
+상품종료사유코드	SVC_END_RSN_CD	상품 종료(해지)에 대한 사유코드. (CAN :해지, MCN :명의변경-비승계, GSD :부가상품삭제, B47 :명의변경-승계)	STRING	Y									
+
+상품종료사유명	SVC_END_RSN_NM	상품종료사유코드에 대한 명칭	STRING	Y									
+
+예약종료여부	RSV_END_YN	모바일 부가서비스 가입시 예약종료여부 (1 : 예약종료대상, 0 : 비대상)	INTEGER	Y									
+
+예약종료일자	RSV_END_DT	모바일 부가서비스 가입시 예약종료여부	STRING	Y									
+
+기본료금액	BASF_AMT	상품 기본요율 정보(장비임대상품은 제외)	NUMERIC	Y									
+
+기본료일할계산여부	BASF_DACAL_YN	기본료에 대한 일할계산 여부. 월중 요금제 변경 발생시 변경시점 이전까지 하루하루 날 수로 요금계산처리.	INTEGER	Y									
+
+요금제종속여부	PP_DPND_YN	요금제에 종속적으로 자동 가입이 되는 상품여부. 데이터 스페셜B 요금제 상품을 가입시 비디오포털 부가 상품이 무료혜택으로 자동가입됨. 해당 부가상품에 종속여부 값이 1로 세팅됨.	INTEGER	Y									
+
+상품가입처리대리점코드	SVC_ENTR_PRSS_DLR_CD	상품 가입 처리 대리점코드	STRING	Y									
+
+상품가입처리자ID	SVC_ENTR_OPRTR_ID	상품 가입 처리자ID(IM사용자ID)	STRING	Y									
+
+상품해지처리대리점코드	SVC_EXPRY_PRSS_DLR_CD	상품 해지 처리 대리점코드.	STRING	Y									
+
+상품해지처리자ID	SVC_EXPRY_OPRTR_ID	상품 해지 처리자ID(IM사용자ID)	STRING	Y									
+
+유치채널코드	ATRCT_CHNL_CD	"처리대리점의 유치채널분류(ex. 대리점/TPS전문대리점/종합대리점)
+
+해당 컬럼은 23년 10월 23일 차세대 UCube 오픈 이후 일부 데이터가 Null로 제공됩니다. (사유 : L0UCT_TB_SB_ETBY_SVC_ADDV 테이블 LAST_INDC_CHNL_CD 컬럼 일부매핑)"	STRING	Y									
+
+유치채널명	ATRCT_CHNL_NM	유치채널코드에 대한 명칭 해당 컬럼은 23년 10월 23일 차세대 UCube 오픈 이후 일부 데이터가 Null로 제공됩니다. (사유 : L0UCT_TB_SB_ETBY_SVC_ADDV 테이블 LAST_INDC_CHNL_CD 컬럼 일부매핑)	STRING	Y									
+
+실판매POS코드	RSALE_POS_CD	실판매POS코드	STRING	Y									
+
+판매사원번호	SALE_EMP_NO	판매사원의 사번	STRING	Y									
+
+최종여부	LAST_YN	가입별 상품의 상태변경건 중 최종 여부	INTEGER	Y									
+
+유치채널구분명	ATRC_CHNL_DIVS_NM	VAS유치채널 : 1.소매, 2.도매, 3.기업, 4.고객센터, 5.디지털, 9.기타	STRING	Y									
+
+유치디지털채널구분명	ATRC_DGTL_CHNL_DIVS_NM	VAS유치 디지털 채널 상세 : U+ONE, 모바일매니저, 익시오, 뮤직특화앱, 기타_디지털	STRING	Y									
+
+1레벨조직명	LVL1_ORG_NM	1레벨조직명(유치)	STRING	Y									
+
+2레벨조직명	LVL2_ORG_NM	2레벨조직명(유치)	STRING	Y									
+
+3레벨조직명	LVL3_ORG_NM	3레벨조직명(유치)	STRING	Y									
+
+4레벨조직명	LVL4_ORG_NM	4레벨조직명(유치)	STRING	Y									
+
+해지채널구분명	EXPY_CHNL_DIVS_NM	VAS해지채널(디지털한정)	STRING	Y									
+
+단말모델코드	DEVC_MDL_CD	가입별 단말에 정의된 기기모델. 단말누적번호가 매핑되는 장비임대상품, 모바일상품에 해당 값이 매핑됨.	STRING	Y									
+
+단말모델명	DEVC_MDL_NM	단말모델코드에 대한 명칭	STRING	Y									
+
+펫명	PET_NM	수기단말관리기준 단말 PET명	STRING	Y									
+
+펫명2	PET_NM2	수기단말관리기준 단말 PET명2	STRING	Y									
+
+단말기유형명	DVIC_KD_NM	단말 유형 구분 : 1mobile, 2pad, 3watch, 4kids	STRING	Y									
+
+단말기스펙유형명	DVIC_SPEC_KD_NM	단말 스펙 유형 구분 : 1)아이폰계열, 2)갤S계열, 3)갤노트계열, 4)갤Z계열, 5)G/V계열, 6)그외 	STRING	Y									
+
+단말기운영체제명	DVIC_OS_NM	단말 OS 구분 : AOS, iOS	STRING	Y									
+
+당월단말판매여부	THMM_TRM_SALE_YN	당월 HS총판매(신규, 기변)  여부 :  Y_MNP신규, Y_010신규, Y_기변, null	STRING	Y									
+
+정지제외단말사용기간일수	STOP_XCLN_TRM_USE_TERM_DAYS	전월말 기준 단말사용기간일수. (정지제외단말개통유지기간일수이며, 해당 값이 없을 경우 정지제외가입기간일수로 보정)	INTEGER	Y									
+
+단말사용기간개월수	TRM_USE_TERM_MMCT	전월말 기준 단말 사용기간 개월 수 구분 (99개월 이상은 '99'로 표기)	STRING	Y									
+
+요금제코드	PP_CD	요금제코드	STRING	Y									
+
+요금제명	PP_NM	요금제명	STRING	Y									
+
+순요율	PURE_RATE	요금제의 순액	NUMERIC	Y									
+
+요금제순액그룹명	PP_NCRG_GRP_NM	요금제 금액 구분명 : 1) 105이상, 2)95이상, 3)85이상, 4)75이상, 5)66이상, 6)49이상, 7)33이상, 8)33미만 	STRING	Y									
+
+요금제구분명	PP_DIVS_NM	요금제 기준 H/S 판단하는 구분자	STRING	Y									
+
+LTE5G요금제구분명	LTE_G5_PP_DIVS_NM	요금제 기준 망구분 : 1)5G, 2)LTE, 3)XX 	STRING	Y									
+
+BQ적재일시	BQ_LOAD_DTTM	BigQuery 적재 일시 	DATETIME	N									
+
+BQ적재사용자ID	BQ_LOAD_USER_ID	BigQuery 적재한 사용자 ID	STRING	N									
+
+ 

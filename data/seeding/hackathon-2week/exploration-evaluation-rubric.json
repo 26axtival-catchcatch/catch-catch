@@ -1,0 +1,246 @@
+{
+  "rubric_version": "1",
+  "minimum_score": 11,
+  "maximum_score": 14,
+  "source_groups": [
+    {
+      "group_id": "app_behavior",
+      "source_ids": ["hackathon_app_behavior"],
+      "minimum_sources": 1
+    },
+    {
+      "group_id": "search_or_voc",
+      "source_ids": ["hackathon_search_history", "hackathon_voc"],
+      "minimum_sources": 1
+    },
+    {
+      "group_id": "billing_or_feedback",
+      "source_ids": ["hackathon_billing_profile", "hackathon_search_feedback"],
+      "minimum_sources": 1
+    },
+    {
+      "group_id": "all_active_sources",
+      "source_ids": [
+        "hackathon_app_behavior",
+        "hackathon_billing_profile",
+        "hackathon_search_feedback",
+        "hackathon_search_history",
+        "hackathon_vas_subscription",
+        "hackathon_voc"
+      ],
+      "minimum_sources": 2
+    }
+  ],
+  "required_patterns": [
+    {
+      "pattern_id": "vas_navigation",
+      "criterion_ids": ["vas_pattern", "vas_sequence", "vas_recommendation"],
+      "minimum_points": 1
+    },
+    {
+      "pattern_id": "payment_consent",
+      "criterion_ids": ["payment_pattern", "payment_funnel", "payment_recommendation"],
+      "minimum_points": 1
+    }
+  ],
+  "criteria": [
+    {
+      "criterion_id": "vas_pattern",
+      "pattern_id": "vas_navigation",
+      "max_points": 2,
+      "required_tool_names": ["summarize_events", "analyze_event_sequences"],
+      "required_modes": ["repetition"],
+      "required_source_group_ids": ["app_behavior", "search_or_voc"],
+      "minimum_complete_result_refs": 2,
+      "require_scan_complete": true,
+      "require_evidence": false,
+      "require_sequence_or_funnel": true,
+      "require_recommendation": false,
+      "metric_rules": [
+        {"metric_names": ["event_count", "distinct_customer_count", "matched_count"], "minimum_matches": 1}
+      ],
+      "oracle_direction_rules": [],
+      "structured_predicates": [
+        {"kind": "tool_result", "tool_names": ["summarize_events", "analyze_event_sequences"], "modes": ["repetition"], "source_group_ids": ["app_behavior", "search_or_voc"], "minimum_complete_result_refs": 2, "scan_complete": true},
+        {"kind": "metric", "metric_names": ["event_count", "distinct_customer_count", "matched_count"], "minimum_metrics": 1},
+        {"kind": "sequence_or_funnel", "accepted_modes": ["repetition", "sequence"], "minimum_complete_result_refs": 1}
+      ]
+    },
+    {
+      "criterion_id": "vas_sequence",
+      "pattern_id": "vas_navigation",
+      "max_points": 2,
+      "required_tool_names": ["analyze_event_sequences", "read_event_evidence"],
+      "required_modes": ["sequence"],
+      "required_source_group_ids": ["app_behavior", "search_or_voc"],
+      "minimum_complete_result_refs": 2,
+      "require_scan_complete": true,
+      "require_evidence": true,
+      "require_sequence_or_funnel": true,
+      "require_recommendation": false,
+      "metric_rules": [
+        {"metric_names": ["matched_count", "completed_step_count", "span_minutes"], "minimum_matches": 1}
+      ],
+      "oracle_direction_rules": [],
+      "structured_predicates": [
+        {"kind": "tool_result", "tool_names": ["analyze_event_sequences", "read_event_evidence"], "modes": ["sequence"], "source_group_ids": ["app_behavior", "search_or_voc"], "minimum_complete_result_refs": 2, "scan_complete": true},
+        {"kind": "metric", "metric_names": ["matched_count", "completed_step_count", "span_minutes"], "minimum_metrics": 1},
+        {"kind": "sequence_or_funnel", "accepted_modes": ["sequence"], "minimum_complete_result_refs": 1},
+        {"kind": "evidence", "minimum_evidence_ids": 1, "require_authorized_parent_result": true}
+      ]
+    },
+    {
+      "criterion_id": "vas_recommendation",
+      "pattern_id": "vas_navigation",
+      "max_points": 1,
+      "required_tool_names": ["submit_exploration_report"],
+      "required_modes": [],
+      "required_source_group_ids": ["app_behavior", "search_or_voc"],
+      "minimum_complete_result_refs": 1,
+      "require_scan_complete": true,
+      "require_evidence": false,
+      "require_sequence_or_funnel": false,
+      "require_recommendation": true,
+      "metric_rules": [],
+      "oracle_direction_rules": [
+        {"oracle_metric": "vas_repeat_search_rate", "expected_direction": "decrease"}
+      ],
+      "structured_predicates": [
+        {"kind": "tool_result", "tool_names": ["submit_exploration_report"], "modes": [], "source_group_ids": ["app_behavior", "search_or_voc"], "minimum_complete_result_refs": 1, "scan_complete": true},
+        {"kind": "recommendation", "expected_directions": ["decrease", "increase"], "minimum_recommendations": 1},
+        {"kind": "oracle_direction", "oracle_metric": "vas_repeat_search_rate", "expected_direction": "decrease", "baseline_phase": "baseline", "comparison_phase": "post"}
+      ]
+    },
+    {
+      "criterion_id": "payment_pattern",
+      "pattern_id": "payment_consent",
+      "max_points": 2,
+      "required_tool_names": ["summarize_events", "analyze_event_sequences"],
+      "required_modes": ["sequence"],
+      "required_source_group_ids": ["app_behavior", "search_or_voc", "billing_or_feedback"],
+      "minimum_complete_result_refs": 2,
+      "require_scan_complete": true,
+      "require_evidence": false,
+      "require_sequence_or_funnel": true,
+      "require_recommendation": false,
+      "metric_rules": [
+        {"metric_names": ["event_count", "distinct_customer_count", "matched_count"], "minimum_matches": 1}
+      ],
+      "oracle_direction_rules": [],
+      "structured_predicates": [
+        {"kind": "tool_result", "tool_names": ["summarize_events", "analyze_event_sequences"], "modes": ["sequence"], "source_group_ids": ["app_behavior", "search_or_voc", "billing_or_feedback"], "minimum_complete_result_refs": 2, "scan_complete": true},
+        {"kind": "metric", "metric_names": ["event_count", "distinct_customer_count", "matched_count"], "minimum_metrics": 1},
+        {"kind": "sequence_or_funnel", "accepted_modes": ["sequence", "funnel"], "minimum_complete_result_refs": 1}
+      ]
+    },
+    {
+      "criterion_id": "payment_funnel",
+      "pattern_id": "payment_consent",
+      "max_points": 2,
+      "required_tool_names": ["analyze_event_sequences", "read_event_evidence"],
+      "required_modes": ["funnel"],
+      "required_source_group_ids": ["app_behavior", "billing_or_feedback"],
+      "minimum_complete_result_refs": 2,
+      "require_scan_complete": true,
+      "require_evidence": true,
+      "require_sequence_or_funnel": true,
+      "require_recommendation": false,
+      "metric_rules": [
+        {"metric_names": ["matched_count", "completed_step_count", "total_step_count"], "minimum_matches": 1}
+      ],
+      "oracle_direction_rules": [],
+      "structured_predicates": [
+        {"kind": "tool_result", "tool_names": ["analyze_event_sequences", "read_event_evidence"], "modes": ["funnel"], "source_group_ids": ["app_behavior", "billing_or_feedback"], "minimum_complete_result_refs": 2, "scan_complete": true},
+        {"kind": "metric", "metric_names": ["matched_count", "completed_step_count", "total_step_count"], "minimum_metrics": 1},
+        {"kind": "sequence_or_funnel", "accepted_modes": ["funnel"], "minimum_complete_result_refs": 1},
+        {"kind": "evidence", "minimum_evidence_ids": 1, "require_authorized_parent_result": true}
+      ]
+    },
+    {
+      "criterion_id": "payment_recommendation",
+      "pattern_id": "payment_consent",
+      "max_points": 1,
+      "required_tool_names": ["submit_exploration_report"],
+      "required_modes": [],
+      "required_source_group_ids": ["app_behavior", "billing_or_feedback"],
+      "minimum_complete_result_refs": 1,
+      "require_scan_complete": true,
+      "require_evidence": false,
+      "require_sequence_or_funnel": false,
+      "require_recommendation": true,
+      "metric_rules": [],
+      "oracle_direction_rules": [
+        {"oracle_metric": "payment_consent_exit_rate", "expected_direction": "decrease"},
+        {"oracle_metric": "payment_completion_rate", "expected_direction": "increase"}
+      ],
+      "structured_predicates": [
+        {"kind": "tool_result", "tool_names": ["submit_exploration_report"], "modes": [], "source_group_ids": ["app_behavior", "billing_or_feedback"], "minimum_complete_result_refs": 1, "scan_complete": true},
+        {"kind": "recommendation", "expected_directions": ["decrease", "increase"], "minimum_recommendations": 1},
+        {"kind": "oracle_direction", "oracle_metric": "payment_consent_exit_rate", "expected_direction": "decrease", "baseline_phase": "baseline", "comparison_phase": "post"}
+      ]
+    },
+    {
+      "criterion_id": "time_change",
+      "pattern_id": null,
+      "max_points": 2,
+      "required_tool_names": ["summarize_events"],
+      "required_modes": [],
+      "required_source_group_ids": ["all_active_sources"],
+      "minimum_complete_result_refs": 1,
+      "require_scan_complete": true,
+      "require_evidence": false,
+      "require_sequence_or_funnel": false,
+      "require_recommendation": false,
+      "metric_rules": [
+        {"metric_names": ["event_count", "distinct_customer_count", "ratio_1"], "minimum_matches": 1}
+      ],
+      "oracle_direction_rules": [
+        {"oracle_metric": "vas_repeat_search_rate", "expected_direction": "decrease"},
+        {"oracle_metric": "payment_completion_rate", "expected_direction": "increase"}
+      ],
+      "structured_predicates": [
+        {"kind": "tool_result", "tool_names": ["summarize_events"], "modes": [], "source_group_ids": ["all_active_sources"], "minimum_complete_result_refs": 1, "scan_complete": true},
+        {"kind": "metric", "metric_names": ["event_count", "distinct_customer_count", "ratio_1"], "minimum_metrics": 1},
+        {"kind": "oracle_direction", "oracle_metric": "payment_completion_rate", "expected_direction": "increase", "baseline_phase": "baseline", "comparison_phase": "post"}
+      ]
+    },
+    {
+      "criterion_id": "causal_limitation",
+      "pattern_id": null,
+      "max_points": 1,
+      "required_tool_names": ["submit_exploration_report"],
+      "required_modes": [],
+      "required_source_group_ids": ["all_active_sources"],
+      "minimum_complete_result_refs": 0,
+      "require_scan_complete": true,
+      "require_evidence": false,
+      "require_sequence_or_funnel": false,
+      "require_recommendation": false,
+      "metric_rules": [],
+      "oracle_direction_rules": [],
+      "structured_predicates": [
+        {"kind": "tool_result", "tool_names": ["submit_exploration_report"], "modes": [], "source_group_ids": ["all_active_sources"], "minimum_complete_result_refs": 0, "scan_complete": true},
+        {"kind": "causal_limitation", "minimum_limitations": 1, "observation_hypothesis_separate": true}
+      ]
+    },
+    {
+      "criterion_id": "exploration_coverage",
+      "pattern_id": null,
+      "max_points": 1,
+      "required_tool_names": ["inspect_data_space"],
+      "required_modes": [],
+      "required_source_group_ids": ["all_active_sources"],
+      "minimum_complete_result_refs": 2,
+      "require_scan_complete": true,
+      "require_evidence": false,
+      "require_sequence_or_funnel": false,
+      "require_recommendation": false,
+      "metric_rules": [],
+      "oracle_direction_rules": [],
+      "structured_predicates": [
+        {"kind": "tool_result", "tool_names": ["inspect_data_space"], "modes": [], "source_group_ids": ["all_active_sources"], "minimum_complete_result_refs": 2, "scan_complete": true},
+        {"kind": "coverage", "require_sources_catalog": true, "require_fields_catalog": true, "require_all_cited_queries_complete": true}
+      ]
+    }
+  ]
+}

@@ -1,0 +1,488 @@
+"""Pure Artifact-to-document and Markdown rendering tests."""
+
+from __future__ import annotations
+
+import json
+from datetime import datetime, timedelta, timezone
+from uuid import UUID
+
+import pytest
+
+from customer_signal.agent.contracts import RunRequest
+from customer_signal.domain.analysis import (
+    AnalysisGoal,
+    AnalysisNote,
+    AnalysisPlan,
+    AnalysisStep,
+    ContinueAfterStep,
+    ExpectedOutputSpec,
+    FactRef,
+    MeasureSpec,
+    PopulationSpec,
+    PublicRunError,
+    StepLimits,
+    VerifiedClaim,
+)
+from customer_signal.domain.facts import (
+    AnalysisMetricFact,
+    FactProvenance,
+    ProcessingStats,
+    SegmentCustomersPayload,
+    build_fact,
+)
+from customer_signal.domain.primitives import (
+    AggregateEventsInput,
+    CatalogSourcesInput,
+    ProfileEventsInput,
+)
+from customer_signal.domain.reports import (
+    AnalysisFinding,
+    AnalysisReportProvenance,
+    AnalysisScope,
+    CustomerSignalReport,
+    InsightReport,
+    Metric,
+)
+from customer_signal.domain.sources import EventScope, TimeRange
+from customer_signal.runtime.artifacts import (
+    ClarificationRecord,
+    RunArtifact,
+    RunVersions,
+    artifact_json_bytes,
+)
+from customer_signal.runtime.document_renderer import (
+    artifact_result_ids,
+    render_document,
+    render_markdown,
+    render_markdown_bytes,
+)
+
+
+NOW = datetime(2026, 8, 20, 9, tzinfo=timezone.utc)
+RUN_ID = UUID("33333333-3333-4333-8333-333333333333")
+SCOPE = EventScope(
+    start_at=NOW - timedelta(days=30),
+    end_at=NOW,
+    source_ids=["voc"],
+    max_events=100,
+)
+LIMITS = StepLimits(
+    max_input_events=100,
+    max_output_rows=20,
+    max_evidence=5,
+    timeout_seconds=10.0,
+)
+
+
+def _request(question: str = "불만이 반복된 고객 수를 알려줘") -> RunRequest:
+    return RunRequest(
+        question=question,
+        start_at=SCOPE.start_at,
+        end_at=SCOPE.end_at,
+        enabled_sources=["voc"],
+    )
+
+
+def _goal() -> AnalysisGoal:
+    return AnalysisGoal(
+        goal_id="goal-document",
+        objective="반복 불만 고객 규모를 확인한다",
+        population=PopulationSpec(description="선택 기간 고객"),
+        time_range=TimeRange(start_at=SCOPE.start_at, end_at=SCOPE.end_at),
+        source_ids=["voc"],
+        measures=[
+            MeasureSpec(
+                metric_key="segment_customer_count",
+                label="Segment customers",
+                aggregation="count",
+                unit="customers",
+            )
+        ],
+        output="aggregate",
+    )
+
+
+def _plan() -> AnalysisPlan:
+    return AnalysisPlan(
+        plan_id="plan-document",
+        revision=0,
+        goal_id="goal-document",
+        steps=[
+            AnalysisStep(
+                step_id="step-catalog",
+                primitive="catalog_sources",
+                parameters=CatalogSourcesInput(primitive="catalog_sources"),
+                source_ids=["voc"],
+                expected_output=ExpectedOutputSpec(
+                    payload_kind="catalog_sources", required_metric_keys=["source_count"]
+                ),
+                stop_condition=ContinueAfterStep(),
+                limits=LIMITS,
+            ),
+            AnalysisStep(
+                step_id="step-profile",
+                primitive="profile_events",
+                parameters=ProfileEventsInput(primitive="profile_events"),
+                source_ids=["voc"],
+                expected_output=ExpectedOutputSpec(
+                    payload_kind="profile_events",
+                    required_metric_keys=["customer_count", "event_count"],
+                ),
+                stop_condition=ContinueAfterStep(),
+                limits=LIMITS,
+            ),
+            AnalysisStep(
+                step_id="step-aggregate",
+                primitive="aggregate_events",
+                parameters=AggregateEventsInput(
+                    primitive="aggregate_events", aggregation="count", time_grain="day"
+                ),
+                source_ids=["voc"],
+                expected_output=ExpectedOutputSpec(
+                    payload_kind="aggregate_events", required_metric_keys=["event_count"]
+                ),
+                stop_condition=ContinueAfterStep(),
+                limits=LIMITS,
+            ),
+        ],
+    )
+
+
+def _fact():
+    metric = AnalysisMetricFact(
+        metric_key="segment_customer_count",
+        label="Segment customers",
+        value=2,
+        unit="customers",
+    )
+    payload = SegmentCustomersPayload(
+        kind="segment_customers",
+        processing=ProcessingStats(scanned_events=10, matched_events=2, returned_rows=2),
+        provenance=FactProvenance(
+            scope=SCOPE,
+            source_ids=["voc"],
+            adapter_versions={"voc": "adapter-1"},
+            manifest_versions={"voc": "manifest-1"},
+            dataset_version="dataset-1",
+        ),
+        metrics=[metric],
+        segment_id="segment-repeat",
+        customer_ids=["customer-1", "customer-2"],
+        predicate_counts={"repeated_complaint": 2},
+    )
+    return build_fact(
+        fact_id="fact-segment",
+        step_id="step-aggregate",
+        primitive="segment_customers",
+        result_id="segment_customers:document",
+        payload=payload,
+        scope=SCOPE,
+        created_at=NOW - timedelta(seconds=1),
+    )
+
+
+def _claim(fact) -> VerifiedClaim:
+    return VerifiedClaim(
+        claim_type="metric",
+        subject="segment_customer_count",
+        operator="eq",
+        target=2,
+        fact_refs=[
+            FactRef(
+                fact_id=fact.fact_id,
+                result_id=fact.result_id,
+                metric_key="segment_customer_count",
+                label="Segment customers",
+                unit="customers",
+                plan_revision=0,
+            )
+        ],
+        claim_id="claim-aaaaaaaaaaaaaaaaaaaaaaaa",
+        rendered_text="Segment customers: 2 customers",
+    )
+
+
+def _note(fact, claim: VerifiedClaim) -> AnalysisNote:
+    return AnalysisNote(
+        note_id="note-bbbbbbbbbbbbbbbbbbbbbbbb",
+        step_id="step-aggregate",
+        objective="반복 불만 Segment를 집계했습니다.",
+        fact_ids=[fact.fact_id],
+        claims=[claim],
+        next_step_id=None,
+        limitations=[],
+        source_ids=["voc"],
+        result_ids=[fact.result_id],
+        evidence_ids=[],
+        started_at=NOW - timedelta(seconds=2),
+        completed_at=NOW - timedelta(seconds=1),
+        duration_ms=1_000,
+        plan_revision=0,
+    )
+
+
+def _artifact() -> RunArtifact:
+    goal = _goal()
+    fact = _fact()
+    claim = _claim(fact)
+    report = CustomerSignalReport(
+        goal=goal,
+        headline="반복 불만 고객 2명",
+        executive_summary="검증된 공개 Fact에서 두 고객을 확인했습니다.",
+        metrics=fact.metrics,
+        findings=[
+            AnalysisFinding(
+                claim=claim,
+                statement="반복 불만 Segment에는 두 고객이 있습니다.",
+                fact_ids=[fact.fact_id],
+            )
+        ],
+        limitations=[],
+        provenance=AnalysisReportProvenance(
+            fact_ids=[fact.fact_id],
+            result_ids=[fact.result_id],
+            source_ids=["voc"],
+            dataset_versions=["dataset-1"],
+            adapter_versions={"voc": "adapter-1"},
+            manifest_versions={"voc": "manifest-1"},
+        ),
+    )
+    return RunArtifact(
+        run_id=RUN_ID,
+        status="completed",
+        created_at=NOW - timedelta(minutes=1),
+        updated_at=NOW,
+        completed_at=NOW,
+        request=_request(),
+        goal=goal,
+        plan=_plan(),
+        facts=[fact],
+        notes=[_note(fact, claim)],
+        report=report,
+        last_event_id=9,
+        versions=RunVersions(
+            dataset_versions=["dataset-1"],
+            adapter_versions={"voc": "adapter-1"},
+            manifest_versions={"voc": "manifest-1"},
+            prompt_version="prompt-1",
+            model_version="gemini-3.7-flash",
+        ),
+    )
+
+
+def test_document_and_markdown_render_only_artifact_owned_facts() -> None:
+    artifact = _artifact()
+    replayed = RunArtifact.model_validate_json(artifact_json_bytes(artifact))
+
+    document = render_document(replayed)
+    markdown = render_markdown(replayed)
+
+    assert document.headline == artifact.report.headline
+    assert document.question == artifact.request.question
+    assert document.scope.source_ids == artifact.request.enabled_sources
+    assert document.goal == artifact.goal
+    assert document.plan == artifact.plan
+    assert document.plan_history == [artifact.plan]
+    assert document.facts == artifact.facts
+    assert document.notes == artifact.notes
+    assert document.report == artifact.report
+    assert document.provenance.result_ids == artifact_result_ids(artifact)
+    assert document.provenance.fact_ids == [fact.fact_id for fact in artifact.facts]
+    assert "Segment customers: 2 customers" in markdown
+    assert "raw_fields" not in markdown
+    assert "provider_response" not in markdown
+    assert render_markdown_bytes(replayed) == f"{markdown}\n".encode()
+
+
+def test_markdown_leads_with_goal_conclusion_and_actions_before_appendices() -> None:
+    artifact = _artifact()
+
+    markdown = render_markdown(artifact)
+
+    overview = markdown.index("## 한눈에 보기")
+    goal = markdown.index("## 분석 목표 — 무엇을 확인하려 했나")
+    process = markdown.index("## 탐색 과정 — 단계별 진행 기록")
+    conclusion = markdown.index("## 결론 — 무엇을 알게 됐나")
+    actions = markdown.index("## 권장 액션 — 무엇을 해야 하나")
+    appendix = markdown.index("## 부록 A")
+    assert overview < goal < process < conclusion < actions < appendix
+    assert "- 분석 목표: 반복 불만 고객 규모를 확인한다" in markdown
+    assert "- 결론: 반복 불만 고객 2명" in markdown
+    assert "- 선택 이유:" in markdown
+    assert "- 확인한 사실:" in markdown
+    assert "- 다음 행동:" in markdown
+    assert "제안된 후속 조치가 없습니다." in markdown
+    assert "실행 궤적 요약:" in markdown
+    assert "| 단계 | 실행 내용 | 입력 | 핵심 출력 |" in markdown
+    assert "- 입력: 대상 Source voc · 집계 방식 count · 시간 단위 day" in markdown
+    assert "- 출력: 이벤트 10건을 스캔해 2건이 조건과 일치, 2행을 반환했습니다." in markdown
+    assert "Segment 고객 2명" in markdown
+    assert "조건 'repeated_complaint' 충족: 2건" in markdown
+
+
+def test_markdown_overview_explains_missing_conclusion_while_running() -> None:
+    base = _artifact()
+    artifact = base.model_copy(
+        update={"status": "running", "completed_at": None, "report": None}
+    )
+
+    markdown = render_markdown(artifact)
+
+    assert "- 결론: 분석이 진행 중이라 아직 결론이 없습니다." in markdown
+    assert "완료된 보고서가 아직 없습니다" in markdown
+
+
+def test_schema_v1_without_plan_history_projects_current_plan_and_public_facts() -> None:
+    payload = json.loads(artifact_json_bytes(_artifact()))
+    payload.pop("plan_history", None)
+
+    legacy = RunArtifact.model_validate_json(json.dumps(payload))
+    document = render_document(legacy)
+
+    assert legacy.plan_history == []
+    assert document.plan_history == [legacy.plan]
+    assert document.facts == legacy.facts
+
+
+def test_markdown_renders_plan_revisions_public_facts_claims_and_next_actions() -> None:
+    initial = _plan()
+    initial_steps = [
+        *initial.steps[:2],
+        initial.steps[2].model_copy(update={"selection_reason": "초기 집계 단계를 선택합니다."}),
+    ]
+    initial = initial.model_copy(
+        update={"rationale": "초기 요청을 바탕으로 계획했습니다.", "steps": initial_steps}
+    )
+    revised_step = initial.steps[2].model_copy(
+        update={
+            "parameters": AggregateEventsInput(
+                primitive="aggregate_events",
+                aggregation="count",
+                group_by=["topic"],
+                time_grain="day",
+            ),
+            "selection_reason": "Fact 결과에 따라 Topic 집계를 선택합니다.",
+        }
+    )
+    revised = initial.model_copy(
+        update={
+            "revision": 1,
+            "rationale": "Catalog Fact를 근거로 계획을 수정했습니다.",
+            "steps": [*initial.steps[:2], revised_step],
+        }
+    )
+    base = _artifact()
+    note = base.notes[0].model_copy(update={"next_action": "다음 검증 단계로 이동합니다."})
+    artifact = RunArtifact.model_validate(
+        {
+            **base.model_dump(),
+            "plan": revised,
+            "plan_history": [initial, revised],
+            "notes": [note],
+        }
+    )
+
+    document = render_document(artifact)
+    markdown = render_markdown(artifact)
+
+    assert document.plan_history == [initial, revised]
+    assert document.facts == artifact.facts
+    for expected in (
+        "revision 0",
+        "revision 1",
+        "초기 요청을 바탕으로 계획했습니다.",
+        "Catalog Fact를 근거로 계획을 수정했습니다.",
+        "초기 집계 단계를 선택합니다.",
+        "Fact 결과에 따라 Topic 집계를 선택합니다.",
+        r'\{"aggregation":"count","group_by":\["topic"\],"measure":null,',
+        "segment_customers",
+        "voc",
+        "Segment customers",
+        "scanned=10",
+        "matched=2",
+        "returned=2",
+        "segment_customers:document",
+        "Segment customers: 2 customers",
+        "다음 검증 단계로 이동합니다.",
+    ):
+        assert expected in markdown
+
+
+@pytest.mark.parametrize("status", ["running", "awaiting_clarification", "degraded", "failed"])
+def test_reportless_partial_degraded_and_failed_artifacts_render(status: str) -> None:
+    terminal = status in {"degraded", "failed"}
+    artifact = RunArtifact(
+        run_id=RUN_ID,
+        status=status,
+        created_at=NOW - timedelta(minutes=1),
+        updated_at=NOW,
+        completed_at=NOW if terminal else None,
+        request=_request(),
+        clarification=(
+            ClarificationRecord(
+                clarification_id="clarification-1",
+                question="분석 기간을 확인해 주세요.",
+            )
+            if status == "awaiting_clarification"
+            else None
+        ),
+        versions=RunVersions(),
+        limitations=["완료된 보고서가 없습니다."],
+        error=(
+            PublicRunError(code="analysis_failed", message="공개 가능한 오류")
+            if status == "failed"
+            else None
+        ),
+    )
+
+    document = render_document(artifact)
+    markdown = render_markdown(artifact)
+
+    assert document.report is None
+    assert document.status == status
+    assert status in markdown
+    assert "완료된 보고서가 없습니다." in markdown
+    if status == "failed":
+        assert "analysis_failed" in markdown
+
+
+def test_renderer_supports_legacy_report_without_changing_json_contract() -> None:
+    artifact = _artifact()
+    legacy = InsightReport(
+        analysis_type="general",
+        scope=AnalysisScope(
+            start_at=SCOPE.start_at,
+            end_at=SCOPE.end_at,
+            enabled_sources=["voc"],
+            population_description="선택 기간 고객",
+        ),
+        headline="Legacy 분석 결과",
+        executive_summary="기존 보고서도 기록합니다.",
+        metrics=[Metric(label="Customers", value=2, unit="customers", result_id="legacy:1")],
+        sources_used=["voc"],
+    )
+    artifact = artifact.model_copy(update={"report": legacy})
+
+    document = render_document(artifact)
+    markdown = render_markdown(artifact)
+
+    assert document.headline == "Legacy 분석 결과"
+    assert "기존 보고서도 기록합니다." in markdown
+    assert "Customers: 2 customers" in markdown
+
+
+def test_markdown_escapes_html_and_markdown_control_text() -> None:
+    artifact = _artifact()
+    request = artifact.request.model_copy(
+        update={"question": "<script>alert(1)</script>\n# forged heading"}
+    )
+    report = artifact.report.model_copy(update={"headline": '<img src=x onerror="alert(2)">'})
+    artifact = artifact.model_copy(update={"request": request, "report": report})
+
+    markdown = render_markdown(artifact)
+
+    assert "<script>" not in markdown
+    assert "<img" not in markdown
+    assert "&lt;script&gt;" in markdown
+    assert "&lt;img" in markdown
+    assert r"\# forged heading" in markdown
