@@ -55,8 +55,16 @@ def test_make_dev_seeds_before_launch_and_passes_source_directory(
     assert launched["mode"] == "bedrock"
     assert launched["source_dir"] == (source_override or f"{seed_path}/onboarded-sources")
     if source_override is None:
-        assert len(launched["sources"]) == 7
-        assert "hackathon_search_history" in launched["sources"]
+        assert set(launched["sources"]) == {
+            "hackathon_app_behavior",
+            "hackathon_billing_profile",
+            "hackathon_crm_campaign",
+            "hackathon_roaming_usage",
+            "hackathon_search_feedback",
+            "hackathon_search_history",
+            "hackathon_vas_subscription",
+            "hackathon_voc",
+        }
 
 
 def _normalized(path: Path) -> str:

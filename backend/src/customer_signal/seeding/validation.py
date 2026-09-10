@@ -36,6 +36,7 @@ def _daily_kpis(bundle: SeedBundle) -> list[dict[str, object]]:
     searches = bundle.tables["L0UR_SEARCH_HISTORY"]
     feedback = bundle.tables["L0UR_FEEDBACK"]
     voc = bundle.tables["L1RA_VOC_STT_DTL_H"]
+    crm = bundle.tables["L1CM_CRM_MSG_SEND_H"]
     search_by_run = {str(row["RUN_ID"]): row for row in searches}
     roaming_pattern = _roaming_pattern_customers(bundle)
     days = [
@@ -74,6 +75,29 @@ def _daily_kpis(bundle: SeedBundle) -> list[dict[str, object]]:
             row["CZ_LNK_KEY"]
             for row in voc
             if row["P_YYYYMMDD"] == day and row["CNSL_THMA_NM"] == "부가서비스 조회/해지"
+        }
+        vas_crm_delivered = {
+            row["CZ_LNK_KEY"]
+            for row in crm
+            if row["P_YYYYMMDD"] == day and row["SEND_RESULT_CD"] == "DELIVERED"
+        }
+        vas_crm_change_search = {
+            row["CZ_LNK_KEY"]
+            for row in vas_searches
+            if "구글원" in str(row["SEARCH_QUERY"])
+            and ("변경" in str(row["SEARCH_QUERY"]) or "바꾸" in str(row["SEARCH_QUERY"]))
+        }
+        vas_crm_recipients_to_date = {
+            row["CZ_LNK_KEY"]
+            for row in crm
+            if row["P_YYYYMMDD"] <= day and row["SEND_RESULT_CD"] == "DELIVERED"
+        }
+        vas_crm_change_searchers_to_date = {
+            row["CZ_LNK_KEY"]
+            for row in searches
+            if row["P_YYYYMMDD"] <= day
+            and "구글원" in str(row["SEARCH_QUERY"])
+            and ("변경" in str(row["SEARCH_QUERY"]) or "바꾸" in str(row["SEARCH_QUERY"]))
         }
 
         payment_customers = {row["CZ_LNK_KEY"] for row in payment_ga}
@@ -132,6 +156,12 @@ def _daily_kpis(bundle: SeedBundle) -> list[dict[str, object]]:
                 "vas_negative_feedback_rate": _rate(len(vas_feedback), len(vas_sessions)),
                 "vas_favorite_rate": _rate(len(vas_favorite), len(vas_sessions)),
                 "vas_voc_rate": _rate(len(vas_voc), len(vas_sessions)),
+                "vas_crm_delivered_count": len(vas_crm_delivered),
+                "vas_google_one_change_search_customer_count": len(vas_crm_change_search),
+                "vas_crm_recipient_change_search_rate_cumulative": _rate(
+                    len(vas_crm_change_searchers_to_date & vas_crm_recipients_to_date),
+                    len(vas_crm_recipients_to_date),
+                ),
                 "payment_customer_count": len(payment_customers),
                 "payment_completion_rate": _rate(len(payment_completed), len(payment_customers)),
                 "payment_consent_exit_rate": _rate(
@@ -160,7 +190,7 @@ def _daily_kpis(bundle: SeedBundle) -> list[dict[str, object]]:
 
 def _validate_schema(bundle: SeedBundle) -> None:
     if set(bundle.tables) != set(TABLE_COLUMNS):
-        raise SeedValidationError("bundle must contain exactly the seven locked tables")
+        raise SeedValidationError("bundle must contain exactly the eight locked tables")
     for table_name, rows in bundle.tables.items():
         expected = set(TABLE_COLUMNS[table_name])
         for row in rows:
@@ -173,6 +203,7 @@ def _validate_identifiers(bundle: SeedBundle) -> None:
         "L0UR_FEEDBACK": "ID",
         "L0UR_SEARCH_HISTORY": "ID",
         "L1DA_GA_REP_CHNL_BEHV_L": "GA_LNK_KEY",
+        "L1CM_CRM_MSG_SEND_H": "MESSAGE_ID",
         "L1RA_VOC_STT_DTL_H": "CALL_ID",
         "L1DA_RMNG_USE_MMLY_INTG_H": "CSZ_LNK_KEY",
     }
@@ -199,7 +230,7 @@ def _validate_dates(bundle: SeedBundle) -> None:
                 raise SeedValidationError(f"{table} has invalid load timestamp") from error
             if not start <= loaded_at.date() <= end:
                 raise SeedValidationError(f"{table} load date is outside the seed window")
-            for column in ("P_YYYYMMDD", "CREATED_AT", "CALL_CRTE_DTTM"):
+            for column in ("P_YYYYMMDD", "CREATED_AT", "CALL_CRTE_DTTM", "SEND_DTTM"):
                 if (
                     column in row
                     and not start.isoformat() <= str(row[column])[:10] <= end.isoformat()
@@ -224,6 +255,20 @@ def _validate_foreign_keys(bundle: SeedBundle) -> None:
     app_customers = {row["CZ_LNK_KEY"] for row in bundle.tables["L1DA_GA_REP_CHNL_BEHV_L"]}
     if any(row["CZ_LNK_KEY"] not in app_customers for row in bundle.tables["L1RA_VOC_STT_DTL_H"]):
         raise SeedValidationError("VOC must reference an app customer")
+    crm = bundle.tables["L1CM_CRM_MSG_SEND_H"]
+    if any(row["CZ_LNK_KEY"] not in app_customers for row in crm):
+        raise SeedValidationError("CRM messages must reference an app customer")
+    subscription_keys = {
+        (str(row["CUST_NO"]), str(row["ENTR_NO"]), str(row["PROD_CD"]))
+        for row in bundle.tables["L2ZI_MBL_VAS_ENTR_INFO_DALY_H"]
+        if row["SVC_STTS_CD"] == "A" and row["SRVL_YN"] == "Y"
+    }
+    if any(
+        (str(row["CUST_NO"]), str(row["ENTR_NO"]), str(row["TARGET_PROD_CD"]))
+        not in subscription_keys
+        for row in crm
+    ):
+        raise SeedValidationError("CRM recipients must have the targeted active subscription")
     app_keys = {
         (str(row["CUST_NO"]), str(row["ENTR_NO"]))
         for row in bundle.tables["L1DA_GA_REP_CHNL_BEHV_L"]
@@ -283,6 +328,63 @@ def _validate_temporal_order(bundle: SeedBundle) -> None:
         latest_app = latest_app_by_customer[row["CZ_LNK_KEY"]]
         if call_at <= latest_app:
             raise SeedValidationError("VOC must occur after the customer's last app event")
+
+    crm_sent_at = {
+        str(row["CZ_LNK_KEY"]): datetime.fromisoformat(str(row["SEND_DTTM"]))
+        for row in bundle.tables["L1CM_CRM_MSG_SEND_H"]
+    }
+    for row in bundle.tables["L0UR_SEARCH_HISTORY"]:
+        customer = str(row["CZ_LNK_KEY"])
+        if customer in crm_sent_at and "구글원" in str(row["SEARCH_QUERY"]):
+            if datetime.fromisoformat(str(row["CREATED_AT"])) <= crm_sent_at[customer]:
+                raise SeedValidationError("Google One change searches must follow the CRM message")
+
+
+def _validate_vas_crm_campaign(bundle: SeedBundle) -> None:
+    boundary = bundle.config.intervention_at.date().isoformat()
+    messages = bundle.tables["L1CM_CRM_MSG_SEND_H"]
+    recipients = {str(row["CZ_LNK_KEY"]) for row in messages}
+    if (
+        len(messages) != 240
+        or len(recipients) != 240
+        or {row["CAMPAIGN_ID"] for row in messages} != {"CMP-G1-OPTION-202609"}
+        or {row["SEND_RESULT_CD"] for row in messages} != {"DELIVERED"}
+        or {row["TARGET_PROD_CD"] for row in messages} != {"VAS-GOOGLEONE-100"}
+    ):
+        raise SeedValidationError("Google One CRM campaign must have 240 delivered recipients")
+
+    app_customers = {
+        str(row["CZ_LNK_KEY"])
+        for row in bundle.tables["L1DA_GA_REP_CHNL_BEHV_L"]
+        if row["P_YYYYMMDD"] < boundary and row["EVET_ACT_CATG_NM"] == "vas_wandering"
+    }
+    searches = [
+        row
+        for row in bundle.tables["L0UR_SEARCH_HISTORY"]
+        if row["P_YYYYMMDD"] < boundary and row["REWRITE_SEARCH_QUERY"] == "부가서비스 조회/해지"
+    ]
+    searchers = {str(row["CZ_LNK_KEY"]) for row in searches}
+    change_searchers = {
+        str(row["CZ_LNK_KEY"])
+        for row in searches
+        if "구글원" in str(row["SEARCH_QUERY"])
+        and ("변경" in str(row["SEARCH_QUERY"]) or "바꾸" in str(row["SEARCH_QUERY"]))
+    }
+    recipient_searchers = recipients & searchers
+    nonrecipient_searchers = (app_customers - recipients) & searchers
+    if (
+        len(app_customers) != 340
+        or len(recipient_searchers) != 160
+        or len(nonrecipient_searchers) != 20
+        or change_searchers != recipient_searchers
+    ):
+        raise SeedValidationError(
+            "CRM campaign must explain 160 Google One change searchers with a 20-customer control"
+        )
+    recipient_rate = len(recipient_searchers) / len(recipients)
+    control_rate = len(nonrecipient_searchers) / len(app_customers - recipients)
+    if recipient_rate / control_rate < 3:
+        raise SeedValidationError("CRM recipient search rate must be at least three times control")
 
 
 def _validate_baseline_cohorts(bundle: SeedBundle) -> None:
@@ -351,6 +453,13 @@ def _validate_three_day_trend(daily_kpis: list[dict[str, object]]) -> None:
 
 
 def _validate_goal_ranges(daily_kpis: list[dict[str, object]]) -> None:
+    for row in daily_kpis:
+        if any(
+            not 0.0 <= float(value) <= 1.0
+            for metric, value in row.items()
+            if metric.endswith("_rate")
+        ):
+            raise SeedValidationError("daily rate KPI must stay between zero and one")
     last = daily_kpis[-1]
     conditions = (
         float(last["vas_direct_reach_rate"]) >= 0.65,
@@ -553,6 +662,8 @@ def validate_bundle(bundle: SeedBundle) -> ValidationReport:
     checks["foreign_keys"] = "passed"
     _validate_temporal_order(bundle)
     checks["temporal_order"] = "passed"
+    _validate_vas_crm_campaign(bundle)
+    checks["crm_campaign"] = "passed"
     _validate_baseline_cohorts(bundle)
     checks["baseline_cohorts"] = "passed"
     daily_kpis = _daily_kpis(bundle)

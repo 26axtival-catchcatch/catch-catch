@@ -8,7 +8,7 @@
 make seed-hackathon
 ```
 
-명령은 `data/seeding/hackathon-2week/`에 7개 원시 CSV, `daily_kpis.csv`,
+명령은 `data/seeding/hackathon-2week/`에 8개 원시 CSV, `daily_kpis.csv`,
 `manifest.json`, 시스템 등록용 `onboarded-sources/`를 생성합니다. 같은 seed를 사용하면
 CSV 체크섬이 동일합니다. Make 명령은 의도적으로 `--force`를 사용해 기존 생성물을
 검증된 새 결과로 교체합니다.
@@ -37,6 +37,8 @@ uv run --project backend python -m customer_signal.seeding.cli \
 | 개선 구간 | 2026-09-11~2026-09-17 | 노출률 증가와 점진 개선 |
 
 부가서비스 시나리오는 메뉴 탐색 실패, 반복 검색, 즐겨찾기, 상담 이동을 보여줍니다.
+구글 원 100GB 가입자 대상 옵션 변경 안내 CRM을 함께 보면, 부가서비스 검색 증가가
+해지 수요가 아니라 안내 직후 발생한 옵션 변경 수요였다는 업무 맥락을 확인할 수 있습니다.
 소액결제 시나리오는 한도 변경의 동의 단계 이탈, 재시도, 검색, 상담 이동을 보여줍니다.
 로밍 시나리오는 요금제를 알아보다 앱에서 나간 뒤 상담사를 통해 가입한 고객을
 보여줍니다. 앱의 요금제 비교와 이탈, 상담 처리, 실제 로밍 상품 가입 기록을 연결해
@@ -50,6 +52,7 @@ uv run --project backend python -m customer_signal.seeding.cli \
 | `L1DA_GA_REP_CHNL_BEHV_L.csv` | 메뉴 이동, 체류, 즐겨찾기, 결제 단계, A/B 노출 |
 | `L0UR_SEARCH_HISTORY.csv` | 검색 의도, 반복 검색, 응답 템플릿 |
 | `L0UR_FEEDBACK.csv` | 검색 결과 부정 피드백 |
+| `L1CM_CRM_MSG_SEND_H.csv` | CRM 캠페인 대상, 발송 시점·결과, 안내 상품과 기능 |
 | `L1RA_VOC_STT_DTL_H.csv` | 실패 이후 상담 이력 |
 | `L2ZI_MBL_VAS_ENTR_INFO_DALY_H.csv` | 고객별 부가서비스 가입 프로필 |
 | `L1BAT_CUST_BLNG_AND_BNFT_SUM.csv` | 장기 가입, 부가서비스, 소액결제 프로필 |
@@ -58,11 +61,12 @@ uv run --project backend python -m customer_signal.seeding.cli \
 | `manifest.json` | 기간, seed, 코호트, 행 수, 검증 결과, 체크섬 |
 
 `daily_kpis.csv`는 검증과 발표용 파생 결과입니다. 에이전트 분석 Source로 선택하지
-않습니다.
+않습니다. CRM 관련 열은 당일 발송 수, 당일 구글 원 변경 검색 고객 수와 발송 이후
+누적 변경 검색률을 제공합니다.
 
 ## 4. 시스템 실행
 
-`make dev`는 해커톤 데이터를 시딩하고 7개 Source를 연결한 뒤 Bedrock 모드로
+`make dev`는 해커톤 데이터를 시딩하고 8개 Source를 연결한 뒤 Bedrock 모드로
 Backend와 Frontend를 시작합니다. `make dev-bedrock`도 같은 동작입니다.
 환경 파일을 shell에서 `source`하지 않고 Backend 실행 명령에만 전달합니다.
 
@@ -87,11 +91,12 @@ ONBOARDED_SOURCES_DIR=data/seeding/hackathon-2week/onboarded-sources \
 - Frontend: `http://127.0.0.1:3000`
 - Swagger: `http://127.0.0.1:8000/docs`
 
-`GET /api/sources`에는 다음 7개 Source가 추가로 표시되어야 합니다.
+`GET /api/sources`에는 다음 8개 Source가 추가로 표시되어야 합니다.
 
 - `hackathon_app_behavior`
 - `hackathon_search_history`
 - `hackathon_search_feedback`
+- `hackathon_crm_campaign`
 - `hackathon_voc`
 - `hackathon_vas_subscription`
 - `hackathon_billing_profile`
@@ -142,6 +147,18 @@ Source 선택은 탐색을 허용하는 범위입니다. 에이전트가 실제 
 Source는 `hackathon_app_behavior`, `hackathon_vas_subscription`,
 `hackathon_billing_profile`, `hackathon_roaming_usage`를 뜻합니다.
 
+부가서비스 검색 증가의 원인을 해석할 때는 같은 기간과 다음 질문을 고정하고
+`hackathon_crm_campaign`을 마지막에 추가합니다.
+
+> `부가서비스 관련 검색이 증가한 배경과 고객의 실제 의도를 찾아, 추적할 시그널을 제안해줘.`
+
+CRM 추가 전에는 반복 검색과 상담, 앱 메뉴 행동만 관측되므로 해지나 메뉴 문제를 원인으로
+확정할 수 없습니다. CRM 추가 후에는 9월 7일 구글 원 옵션 변경 안내를 받은 240명 중
+160명(66.7%)이 발송 이후 변경 의도로 검색했고, 비수신 100명 중 검색 고객은 20명(20.0%)임을
+연결할 수 있습니다. 수신군 검색률은 비수신군의 3.33배이며, 전체 부가서비스 검색 고객
+180명 중 160명(88.9%)이 안내 수신자입니다. 따라서 1차 시그널 후보는 `구글 원 옵션 변경
+안내 수신자의 변경 의도 검색률`이고, 반복 검색 실패율은 응답 적합성을 살피는 보조 지표입니다.
+
 기존 두 테이블에서도 검색 반복과 상담 전환은 보입니다. 여기서 검증하는 차이는
 두 테이블에 없는 고객이나 업무 상태까지 확인할 수 있는지입니다. 제한 탐색 결과는
 `문제 없음`이나 `0명`으로 단정하지 않고 `현재 Source로 판단 불가`로 해석해야 합니다.
@@ -162,10 +179,10 @@ Source를 많이 선택하면 실행 예산에 도달할 수 있습니다. 각 �
 
 ## 6. 검증 기록
 
-### 6.1 2026-09-09 데이터 검증
+### 6.1 2026-09-10 데이터 검증
 
-`make seed-hackathon`으로 7개 원시 CSV, 총 15,377행과 7개 Source를 생성했습니다.
-11개 생성 검증은 스키마, 날짜 범위, 식별자, 참조 무결성, 시간 순서, 기존 코호트,
+`make seed-hackathon`으로 8개 원시 CSV, 총 15,617행과 8개 Source를 생성합니다.
+생성 검증은 스키마, 날짜 범위, 식별자, 참조 무결성, 시간 순서, CRM 캠페인, 기존 코호트,
 확장 탐색 사례, 노출률, 대조군 유지, 추세와 목표 범위를 확인합니다.
 
 자동 테스트는 등록된 Source에서 앱 이탈과 상담 가입, 활성 로밍 상품을 연결했을 때

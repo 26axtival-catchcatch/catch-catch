@@ -25,6 +25,7 @@ def test_seed_contract_locks_window_and_selected_schema() -> None:
         "L0UR_FEEDBACK",
         "L0UR_SEARCH_HISTORY",
         "L1BAT_CUST_BLNG_AND_BNFT_SUM",
+        "L1CM_CRM_MSG_SEND_H",
         "L1DA_GA_REP_CHNL_BEHV_L",
         "L1DA_RMNG_USE_MMLY_INTG_H",
         "L1RA_VOC_STT_DTL_H",
@@ -206,6 +207,7 @@ def test_exported_registry_loads_in_the_application(tmp_path: Path) -> None:
         "hackathon_voc",
         "hackathon_vas_subscription",
         "hackathon_billing_profile",
+        "hackathon_crm_campaign",
         "hackathon_roaming_usage",
     }
 
@@ -240,6 +242,65 @@ def test_vas_two_sources_miss_quiet_customers_revealed_by_app_and_profiles() -> 
     assert all(
         sum(r["CUST_NO"] == customer for r in tables["L2ZI_MBL_VAS_ENTR_INFO_DALY_H"]) == 3
         for customer in quiet
+    )
+
+
+def test_vas_crm_campaign_explains_google_one_change_search_demand() -> None:
+    bundle = generate_seed_bundle()
+    tables = bundle.tables
+    boundary = "2026-09-11"
+    messages = tables["L1CM_CRM_MSG_SEND_H"]
+    recipients = {str(row["CZ_LNK_KEY"]) for row in messages}
+    google_one_subscribers = {
+        str(row["CUST_NO"])
+        for row in tables["L2ZI_MBL_VAS_ENTR_INFO_DALY_H"]
+        if row["PROD_CD"] == "VAS-GOOGLEONE-100"
+        and row["SVC_STTS_CD"] == "A"
+        and row["SRVL_YN"] == "Y"
+    }
+    searches = [
+        row
+        for row in tables["L0UR_SEARCH_HISTORY"]
+        if row["P_YYYYMMDD"] < boundary and row["REWRITE_SEARCH_QUERY"] == "부가서비스 조회/해지"
+    ]
+    searchers = {str(row["CZ_LNK_KEY"]) for row in searches}
+    change_searchers = {
+        str(row["CZ_LNK_KEY"])
+        for row in searches
+        if "구글원" in str(row["SEARCH_QUERY"])
+        and ("변경" in str(row["SEARCH_QUERY"]) or "바꾸" in str(row["SEARCH_QUERY"]))
+    }
+    baseline_app_customers = {
+        str(row["CZ_LNK_KEY"])
+        for row in tables["L1DA_GA_REP_CHNL_BEHV_L"]
+        if row["P_YYYYMMDD"] < boundary and row["EVET_ACT_CATG_NM"] == "vas_wandering"
+    }
+
+    assert len(messages) == len(recipients) == 240
+    assert recipients == google_one_subscribers
+    assert {row["SEND_RESULT_CD"] for row in messages} == {"DELIVERED"}
+    assert len(recipients & searchers) == len(change_searchers) == 160
+    assert len((baseline_app_customers - recipients) & searchers) == 20
+    assert (160 / 240) / (20 / 100) > 3
+    sent_at = {
+        str(row["CZ_LNK_KEY"]): datetime.fromisoformat(str(row["SEND_DTTM"])) for row in messages
+    }
+    assert all(
+        datetime.fromisoformat(str(row["CREATED_AT"])) > sent_at[str(row["CZ_LNK_KEY"])]
+        for row in searches
+        if str(row["CZ_LNK_KEY"]) in recipients
+    )
+    report = validate_bundle(bundle)
+    campaign_day = next(row for row in report.daily_kpis if row["date"] == "2026-09-07")
+    baseline_end = next(row for row in report.daily_kpis if row["date"] == "2026-09-10")
+    assert campaign_day["vas_crm_delivered_count"] == 240
+    assert campaign_day["vas_google_one_change_search_customer_count"] > 0
+    assert baseline_end["vas_crm_recipient_change_search_rate_cumulative"] == 0.6667
+    assert all(
+        0.0 <= float(value) <= 1.0
+        for row in report.daily_kpis
+        for metric, value in row.items()
+        if metric.endswith("_rate")
     )
 
 

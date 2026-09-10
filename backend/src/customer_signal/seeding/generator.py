@@ -41,6 +41,18 @@ _VAS_PRODUCTS = (
     ("VAS-MEDIA-02", "미디어팩", 7700),
     ("VAS-RING-03", "통화연결음", 1100),
 )
+_VAS_GOOGLE_ONE_PRODUCT = ("VAS-GOOGLEONE-100", "구글 원 100GB", 2400)
+_VAS_GOOGLE_ONE_CHANGE_QUERIES = (
+    "구글원 저장공간 변경",
+    "구글원 100GB에서 200GB 변경",
+    "구글원 옵션 바꾸기",
+    "구글원 부가서비스 변경",
+    "구글원 용량 변경 방법",
+    "구글원 200GB로 변경",
+)
+_VAS_CRM_CHANGE_SEARCHER_INDICES = frozenset(range(1, 161))
+_VAS_CRM_RECIPIENT_INDICES = frozenset(range(1, 161)) | frozenset(range(181, 261))
+_VAS_CRM_CAMPAIGN_DAY_OFFSET = 3
 _PAYMENT_QUERIES = (
     "소액결제 한도 늘리기",
     "결제 한도 변경",
@@ -151,7 +163,13 @@ def _add_vas_baseline(rows: list[TableRow], config: SeedConfig, rng: random.Rand
     unreachable_indices = set(range(100, 197))
     for index in range(1, 341):
         identity = _identity("vas", "baseline", index)
-        day = config.start_date + timedelta(days=(index - 1) % 7)
+        original_day = config.start_date + timedelta(days=(index - 1) % 7)
+        campaign_day = config.start_date + timedelta(days=_VAS_CRM_CAMPAIGN_DAY_OFFSET)
+        day = (
+            max(original_day, campaign_day)
+            if index in _VAS_CRM_CHANGE_SEARCHER_INDICES
+            else original_day
+        )
         started_at = datetime.combine(day, time(hour=9 + index % 8, minute=index % 6 * 5))
         session_id = f"SESN-VAS-B-{index:04d}"
         session_stay = rng.randint(60, 180)
@@ -202,12 +220,27 @@ def _add_vas_search_context(tables: dict[str, list[TableRow]], config: SeedConfi
     feedback_rows = tables["L0UR_FEEDBACK"]
     for index in range(1, 181):
         identity = _identity("vas", "baseline", index)
-        day = config.start_date + timedelta(days=(index - 1) % 7)
+        original_day = config.start_date + timedelta(days=(index - 1) % 7)
+        campaign_day = config.start_date + timedelta(days=_VAS_CRM_CAMPAIGN_DAY_OFFSET)
+        # CRM 수신 고객의 검색은 캠페인 발송 이후로 모아, 제한 Source에서는 검색 급증만
+        # 보이고 CRM Source를 추가했을 때 발송 시점과 변경 의도를 연결할 수 있게 한다.
+        day = (
+            max(original_day, campaign_day)
+            if index in _VAS_CRM_CHANGE_SEARCHER_INDICES
+            else original_day
+        )
         attempts = 2 if index <= 120 else 1
         for attempt in range(1, attempts + 1):
             created_at = datetime.combine(day, time(18, 0)) + timedelta(minutes=attempt * 10)
             run_id = f"RUN-VAS-B-{index:04d}-{attempt}"
             failed = index <= 120
+            query = (
+                _VAS_GOOGLE_ONE_CHANGE_QUERIES[
+                    (index + attempt) % len(_VAS_GOOGLE_ONE_CHANGE_QUERIES)
+                ]
+                if index in _VAS_CRM_CHANGE_SEARCHER_INDICES
+                else _VAS_QUERIES[(index + attempt) % len(_VAS_QUERIES)]
+            )
             search_rows.append(
                 {
                     "CZ_LNK_KEY": identity.cz_link_key,
@@ -215,7 +248,7 @@ def _add_vas_search_context(tables: dict[str, list[TableRow]], config: SeedConfi
                     "ID": 100_000 + index * 10 + attempt,
                     "THREAD_ID": f"THREAD-VAS-B-{index:04d}",
                     "RUN_ID": run_id,
-                    "SEARCH_QUERY": _VAS_QUERIES[(index + attempt) % len(_VAS_QUERIES)],
+                    "SEARCH_QUERY": query,
                     "SEARCH_RESULT": "가입정보 메뉴에서 부가서비스를 확인할 수 있습니다.",
                     "CREATED_AT": created_at.isoformat(timespec="seconds"),
                     "STATUS": "failed" if failed else "completed",
@@ -253,7 +286,9 @@ def _add_vas_voc_context(tables: dict[str, list[TableRow]], config: SeedConfig) 
     voc_rows = tables["L1RA_VOC_STT_DTL_H"]
     for index in range(60, 121):
         identity = _identity("vas", "baseline", index)
-        day = config.start_date + timedelta(days=(index - 1) % 7)
+        original_day = config.start_date + timedelta(days=(index - 1) % 7)
+        campaign_day = config.start_date + timedelta(days=_VAS_CRM_CAMPAIGN_DAY_OFFSET)
+        day = max(original_day, campaign_day)
         occurred_at = datetime.combine(day, time(20, index % 60))
         voc_rows.append(
             {
@@ -314,7 +349,12 @@ def _add_vas_profiles(tables: dict[str, list[TableRow]], config: SeedConfig) -> 
     for index in range(1, 341):
         identity = _identity("vas", "baseline", index)
         day = config.start_date + timedelta(days=(index - 1) % 7)
-        for sequence, (product_code, product_name, amount) in enumerate(_VAS_PRODUCTS, start=1):
+        products = (
+            (_VAS_PRODUCTS[0], _VAS_GOOGLE_ONE_PRODUCT, _VAS_PRODUCTS[2])
+            if index in _VAS_CRM_RECIPIENT_INDICES
+            else _VAS_PRODUCTS
+        )
+        for sequence, (product_code, product_name, amount) in enumerate(products, start=1):
             profile_rows.append(
                 {
                     "P_YYYYMMDD": day.isoformat(),
@@ -344,9 +384,45 @@ def _add_vas_profiles(tables: dict[str, list[TableRow]], config: SeedConfig) -> 
                 identity,
                 snapshot_day=day,
                 age=25 + index % 36,
-                service_amount=sum(product[2] for product in _VAS_PRODUCTS),
+                service_amount=sum(product[2] for product in products),
                 micropayment_amount=0,
             )
+        )
+
+
+def _add_vas_crm_campaign(tables: dict[str, list[TableRow]], config: SeedConfig) -> None:
+    """Add one delivered CRM campaign to Google One subscribers in the baseline cohort."""
+
+    rows = tables["L1CM_CRM_MSG_SEND_H"]
+    campaign_day = config.start_date + timedelta(days=_VAS_CRM_CAMPAIGN_DAY_OFFSET)
+    sent_at = datetime.combine(campaign_day, time(8, 0))
+    for index in sorted(_VAS_CRM_RECIPIENT_INDICES):
+        identity = _identity("vas", "baseline", index)
+        rows.append(
+            {
+                "P_YYYYMMDD": campaign_day.isoformat(),
+                "CZ_LNK_KEY": identity.cz_link_key,
+                "BASE_DT": campaign_day.strftime("%Y%m%d"),
+                "MESSAGE_ID": f"CRM-G1-20260907-{index:04d}",
+                "CAMPAIGN_ID": "CMP-G1-OPTION-202609",
+                "CAMPAIGN_NM": "구글 원 세부 옵션 변경 기능 안내",
+                "MESSAGE_TEMPLATE_ID": "SMS-G1-OPTION-CHANGE-V1",
+                "SEND_DTTM": sent_at.isoformat(timespec="seconds"),
+                "CHANNEL_CD": "SMS",
+                "SEND_RESULT_CD": "DELIVERED",
+                "TARGET_SEGMENT_NM": "구글 원 100GB 부가서비스 가입자",
+                "TARGET_PROD_CD": _VAS_GOOGLE_ONE_PRODUCT[0],
+                "TARGET_PROD_NM": _VAS_GOOGLE_ONE_PRODUCT[1],
+                "FEATURE_NM": "구글 원 저장공간 옵션 변경",
+                "MESSAGE_CNTN": (
+                    "구글 원 이용 고객님, 9월부터 저장공간 옵션을 변경할 수 있습니다. "
+                    "자세한 내용은 U+ 앱에서 확인해 주세요."
+                ),
+                "ENTR_NO": identity.entry_no,
+                "CUST_NO": identity.customer_no,
+                "BQ_LOAD_DTTM": (sent_at + timedelta(hours=2)).isoformat(timespec="seconds"),
+                "BQ_LOAD_USER_ID": "synthetic-seeder",
+            }
         )
 
 
@@ -989,6 +1065,7 @@ def generate_seed_bundle(config: SeedConfig | None = None) -> SeedBundle:
     _add_vas_search_context(tables, resolved)
     _add_vas_voc_context(tables, resolved)
     _add_vas_profiles(tables, resolved)
+    _add_vas_crm_campaign(tables, resolved)
     _add_payment_baseline(tables["L1DA_GA_REP_CHNL_BEHV_L"], resolved, rng)
     _add_payment_success_controls(tables["L1DA_GA_REP_CHNL_BEHV_L"], resolved, rng)
     _add_payment_search_context(tables, resolved)

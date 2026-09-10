@@ -1,0 +1,37 @@
+기준일(파티션키)	P_YYYYMMDD	기준일(파티션키)	DATE	Y	1
+
+CSZ연결키	CZ_LNK_KEY	고객 연결키	INTEGER	Y	2
+
+기준일자	BASE_DT	기준일자(YYYYMMDD)	STRING	Y	3
+
+메시지ID	MESSAGE_ID	고객별 메시지 발송 식별자	STRING	Y	4
+
+캠페인ID	CAMPAIGN_ID	CRM 캠페인 식별자	STRING	Y	5
+
+캠페인명	CAMPAIGN_NM	CRM 캠페인명	STRING
+
+메시지템플릿ID	MESSAGE_TEMPLATE_ID	발송 메시지 템플릿 식별자	STRING
+
+발송일시	SEND_DTTM	메시지 발송 일시	DATETIME
+
+채널코드	CHANNEL_CD	SMS, LMS 등 발송 채널	STRING
+
+발송결과코드	SEND_RESULT_CD	DELIVERED, FAILED 등 발송 결과	STRING
+
+대상세그먼트명	TARGET_SEGMENT_NM	캠페인 수신 대상 고객군	STRING
+
+대상상품코드	TARGET_PROD_CD	안내 대상 부가서비스 상품 코드	STRING
+
+대상상품명	TARGET_PROD_NM	안내 대상 부가서비스 상품명	STRING
+
+기능명	FEATURE_NM	캠페인에서 안내한 신규 기능	STRING
+
+메시지내용	MESSAGE_CNTN	고객에게 발송한 안내 문구	STRING
+
+가입번호	ENTR_NO	가입번호	STRING
+
+고객번호	CUST_NO	고객번호(가입자번호)	STRING
+
+BQ적재일시	BQ_LOAD_DTTM	데이터 적재 일시	DATETIME
+
+BQ적재사용자ID	BQ_LOAD_USER_ID	데이터 적재 사용자	STRING

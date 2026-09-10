@@ -10,6 +10,9 @@
     "roaming_direct_consultation_customers": 14,
     "vas_customers_absent_from_search_and_voc": 160,
     "vas_favorite_customers": 84,
+    "vas_google_one_change_search_customers": 160,
+    "vas_google_one_crm_recipients": 240,
+    "vas_nonrecipient_search_customers": 20,
     "vas_unreachable_absent_from_search_and_voc": 16,
     "vas_unreachable_customers": 97,
     "vas_voc_customers": 61,
@@ -18,6 +21,7 @@
   "checks": {
     "baseline_cohorts": "passed",
     "control_stability": "passed",
+    "crm_campaign": "passed",
     "date_window": "passed",
     "exploration_cases": "passed",
     "exposure": "passed",
@@ -29,14 +33,15 @@
     "three_day_trend": "passed"
   },
   "checksums": {
-    "L0UR_FEEDBACK.csv": "925feb55434f8e7bcdbab0705cf1f0bcdd94eb98df7a996597e8d202117b3fef",
-    "L0UR_SEARCH_HISTORY.csv": "8827ca0f7b550fad62824701cb7e93d5ba6848e1cc8223adde9e433a18f5e747",
-    "L1BAT_CUST_BLNG_AND_BNFT_SUM.csv": "391b549c82436acdd3dac3614996bd1cefc2b47988ad1443a59f6497319a37a9",
-    "L1DA_GA_REP_CHNL_BEHV_L.csv": "6463386381ec6f1cafffb843a1b1d6178421d32691ad78239d786a9f78d05ce3",
+    "L0UR_FEEDBACK.csv": "ea7428623d5f17956aaa388797004ea9241a9ba1f8d1dd1f96d1be5d4863413f",
+    "L0UR_SEARCH_HISTORY.csv": "866bcab9d49acf3b47a85a02807404f94accb333d5d663724419603f80a99d0d",
+    "L1BAT_CUST_BLNG_AND_BNFT_SUM.csv": "0b537fff1e25afbb5e025b6ee244d98c7e1b0e1481026253fdafca1b46de178a",
+    "L1CM_CRM_MSG_SEND_H.csv": "cf5231db564e9141973b54a7ceb34b1fbce48a182e64fbe60adf07e41204a0fe",
+    "L1DA_GA_REP_CHNL_BEHV_L.csv": "b7a7719137c872558c7935e57463865732d0bc3081301f4db09937d57c2b74fe",
     "L1DA_RMNG_USE_MMLY_INTG_H.csv": "e688a7906f5b9004281c5128c5616e89282f9f13161658623ed5c9b02b6f2eff",
-    "L1RA_VOC_STT_DTL_H.csv": "ff0f86c7198b568e441fc913f134237a52ed6fb6bd6bfcfa16c7c54986b1c5ce",
-    "L2ZI_MBL_VAS_ENTR_INFO_DALY_H.csv": "f3d076c80c4bc32d78fdef391d25d995c9f9691075787ebb90156fde0c719ac4",
-    "daily_kpis.csv": "a63b055df7b591aa105ba45b0047bcedceee0d51c36e4706a7a7fd5b1d8c251d"
+    "L1RA_VOC_STT_DTL_H.csv": "5c48c3eaa41d35b7be3b1c2b8ab84401ab5c6ef4d8fcb42a9d3a34948889a282",
+    "L2ZI_MBL_VAS_ENTR_INFO_DALY_H.csv": "59743067a4e0ed7512a9d431f5cf8a70bc20c68dab227cdc45204e4443553310",
+    "daily_kpis.csv": "5cd8341a9fedce5a7b37631678238146e62aa7ca8337983351bbe3c18d8b99e0"
   },
   "exploration_cases": {
     "limited_sources": [
@@ -48,6 +53,7 @@
       "hackathon_roaming_usage"
     ],
     "roaming_snapshot_semantics": "month_to_date_as_of_departure_day_load",
+    "vas_context_source": "hackathon_crm_campaign",
     "vas_expanded_sources": [
       "hackathon_app_behavior",
       "hackathon_vas_subscription"
@@ -77,13 +83,16 @@
     "roaming_browse_exit_agent_signup_rate": 0.4,
     "roaming_customer_count": 20,
     "roaming_usage_rate": 0.8,
+    "vas_crm_delivered_count": 0,
+    "vas_crm_recipient_change_search_rate_cumulative": 0.0,
     "vas_direct_reach_rate": 0.0,
-    "vas_favorite_rate": 0.2449,
-    "vas_negative_feedback_rate": 0.2653,
-    "vas_repeat_search_rate": 0.3673,
-    "vas_session_count": 49,
-    "vas_unreachable_rate": 0.2653,
-    "vas_voc_rate": 0.1837
+    "vas_favorite_rate": 0.0,
+    "vas_google_one_change_search_customer_count": 0,
+    "vas_negative_feedback_rate": 0.0,
+    "vas_repeat_search_rate": 0.0,
+    "vas_session_count": 26,
+    "vas_unreachable_rate": 0.1923,
+    "vas_voc_rate": 0.0
   },
   "intervention_at": "2026-09-11T09:00:00",
   "last_day_kpis": {
@@ -101,8 +110,11 @@
     "roaming_browse_exit_agent_signup_rate": 0.05,
     "roaming_customer_count": 20,
     "roaming_usage_rate": 0.8,
+    "vas_crm_delivered_count": 0,
+    "vas_crm_recipient_change_search_rate_cumulative": 0.6667,
     "vas_direct_reach_rate": 0.74,
     "vas_favorite_rate": 0.08,
+    "vas_google_one_change_search_customer_count": 0,
     "vas_negative_feedback_rate": 0.1,
     "vas_repeat_search_rate": 0.16,
     "vas_session_count": 50,
@@ -118,11 +130,12 @@
     "L0UR_FEEDBACK": 339,
     "L0UR_SEARCH_HISTORY": 1540,
     "L1BAT_CUST_BLNG_AND_BNFT_SUM": 1550,
+    "L1CM_CRM_MSG_SEND_H": 240,
     "L1DA_GA_REP_CHNL_BEHV_L": 9250,
     "L1DA_RMNG_USE_MMLY_INTG_H": 280,
     "L1RA_VOC_STT_DTL_H": 348,
     "L2ZI_MBL_VAS_ENTR_INFO_DALY_H": 2070
   },
-  "schema_version": 2,
+  "schema_version": 3,
   "seed": 20260831
 }

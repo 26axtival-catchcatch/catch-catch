@@ -1,0 +1,89 @@
+{
+  "source_id": "hackathon_crm_campaign",
+  "label": "해커톤 CRM 캠페인 발송",
+  "description": "구글 원 부가서비스 기능 변경 안내를 발송한 합성 CRM 이력",
+  "timestamp_column": "SEND_DTTM",
+  "timezone": "Asia/Seoul",
+  "event_type": {
+    "column": null,
+    "const": "crm_message",
+    "value_map": null,
+    "default": null
+  },
+  "action": {
+    "column": null,
+    "const": "send_campaign_message",
+    "value_map": null,
+    "default": null
+  },
+  "topic": {
+    "column": "TARGET_PROD_NM",
+    "const": null,
+    "value_map": null,
+    "default": null
+  },
+  "outcome": {
+    "column": "SEND_RESULT_CD",
+    "const": null,
+    "value_map": null,
+    "default": null
+  },
+  "text": {
+    "column": "MESSAGE_CNTN",
+    "const": null,
+    "value_map": null,
+    "default": null
+  },
+  "identity": {
+    "namespace": "synthetic_customer",
+    "customer_column": "CZ_LNK_KEY",
+    "link_method": "exact",
+    "confidence": 1.0
+  },
+  "dimensions": {
+    "campaign_id": {
+      "column": "CAMPAIGN_ID",
+      "semantic_type": "identifier",
+      "description": "CRM 캠페인 식별자",
+      "pii_classification": "none",
+      "masking": null
+    },
+    "campaign_name": {
+      "column": "CAMPAIGN_NM",
+      "semantic_type": "category",
+      "description": "CRM 캠페인명",
+      "pii_classification": "none",
+      "masking": null
+    },
+    "channel": {
+      "column": "CHANNEL_CD",
+      "semantic_type": "category",
+      "description": "메시지 발송 채널",
+      "pii_classification": "none",
+      "masking": null
+    },
+    "target_segment": {
+      "column": "TARGET_SEGMENT_NM",
+      "semantic_type": "category",
+      "description": "캠페인 대상 고객군",
+      "pii_classification": "none",
+      "masking": null
+    },
+    "target_product_code": {
+      "column": "TARGET_PROD_CD",
+      "semantic_type": "category",
+      "description": "캠페인 대상 부가서비스 상품 코드",
+      "pii_classification": "none",
+      "masking": null
+    },
+    "feature": {
+      "column": "FEATURE_NM",
+      "semantic_type": "category",
+      "description": "안내한 신규 기능",
+      "pii_classification": "none",
+      "masking": null
+    }
+  },
+  "measures": {},
+  "status": "approved"
+}

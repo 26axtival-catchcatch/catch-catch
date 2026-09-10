@@ -88,7 +88,7 @@ make dev-fixture
 
 Bedrock 해커톤 데모는 `make dev`로 실행합니다. Backend를 시작하기 전에
 `make seed-hackathon`으로 9월 4일~17일 합성 데이터를 생성하고, 생성된
-`data/seeding/hackathon-2week/onboarded-sources`의 7개 Source를 연결합니다.
+`data/seeding/hackathon-2week/onboarded-sources`의 8개 Source를 연결합니다.
 매번 기존 해커톤 생성물을 갱신하며, Bedrock 키는 아래 환경 설정을 따릅니다.
 `make dev-bedrock`도 같은 동작입니다. 생성 경로는 `HACKATHON_SEED_PATH`,
 Backend가 읽을 Source 경로는 `ONBOARDED_SOURCES_DIR`로 변경할 수 있습니다.
