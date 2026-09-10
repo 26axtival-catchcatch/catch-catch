@@ -52,9 +52,10 @@ export function AgentWorkspace({ events, halted = false, completed = false, spee
           <section className={styles.graphPanel} aria-labelledby={`${id}-topology-title`}>
             <header className={styles.columnHeader}><div><p className={styles.columnKicker}>AGENT TOPOLOGY</p>
               <h2 id={`${id}-topology-title`}>{completed ? "멀티에이전트 실행 기록" : "실시간 멀티에이전트 실행"}</h2></div>
-              <span className={styles.graphLegend}>드래그로 실행 단계 확인</span>
+              <span className={styles.graphLegend}>현재 실행을 따라 이동 · 드래그로 이전 단계 확인</span>
             </header>
-            <AgentGraph topology={topology} halted={halted || completed} speed={speed} />
+            <AgentGraph topology={topology} halted={halted || completed} speed={speed}
+              planning={events.length > 0 && activities.length === 0 && !halted && !completed} />
           </section>
         </div>
       </> : null}

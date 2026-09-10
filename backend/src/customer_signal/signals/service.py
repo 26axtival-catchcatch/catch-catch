@@ -188,6 +188,7 @@ class SignalService:
         start_at: datetime,
         end_at: datetime,
         trace_run_id: str | None = None,
+        evaluate_alerts: bool = True,
     ) -> Measurement:
         trace = self._trace(f"시그널 재측정: {signal.title}", signal.definition, trace_run_id)
         with (
@@ -219,7 +220,9 @@ class SignalService:
                 end_at=end_at,
                 trace_id=trace.trace_id,
             )
-            persisted = self.store.add_measurement(signal.signal_id, measurement)
+            persisted = self.store.add_measurement(
+                signal.signal_id, measurement, evaluate_alerts=evaluate_alerts,
+            )
             observation.update(output=persisted.model_dump(mode="json"))
             signal_span.update(
                 output={

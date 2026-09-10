@@ -9,6 +9,7 @@ import {
   ReactFlowProvider,
   getSmoothStepPath,
   getViewportForBounds,
+  useNodesInitialized,
   useReactFlow,
   type Edge,
   type EdgeProps,
@@ -36,6 +37,7 @@ const NODE_DIMENSIONS = {
 type LayoutDirection = "LR" | "TB";
 type AgentNodeData = AgentTopologyNode & {
   direction: LayoutDirection;
+  planning: boolean;
 } & Record<string, unknown>;
 type AgentFlowNode = Node<AgentNodeData, "agent">;
 type SignalEdgeData = {
@@ -50,6 +52,8 @@ interface AgentGraphProps {
   topology: AgentTopology;
   halted: boolean;
   speed: number;
+  /** 목표와 계획은 도착했지만 첫 역할 노드는 아직 만들어지기 전인 구간. */
+  planning?: boolean;
 }
 
 const AgentNodeCard = memo(function AgentNodeCard({ data }: NodeProps<AgentFlowNode>) {
@@ -62,9 +66,11 @@ const AgentNodeCard = memo(function AgentNodeCard({ data }: NodeProps<AgentFlowN
       data-state={data.state}
       data-category={data.category}
       data-role={data.role ?? undefined}
+      data-planning={data.planning}
       role="listitem"
       aria-label={`${data.label}, ${data.meta}`}
     >
+      {data.planning ? <PlanningField /> : null}
       <Handle
         className={styles.handle}
         type="target"
@@ -143,6 +149,7 @@ function layoutTopology(
   halted: boolean,
   speed: number,
   direction: LayoutDirection,
+  planning: boolean,
 ): { nodes: AgentFlowNode[]; edges: SignalFlowEdge[] } {
   const graph = new Graph<GraphLabel, NodeLabel, EdgeLabel>();
   graph.setGraph({
@@ -175,7 +182,11 @@ function layoutTopology(
     return {
       id: node.id,
       type: "agent",
-      data: { ...node, direction } as AgentNodeData,
+      data: {
+        ...node,
+        direction,
+        planning: planning && node.id === "workflow:setup",
+      } as AgentNodeData,
       position,
       sourcePosition: direction === "LR" ? Position.Right : Position.Bottom,
       targetPosition: direction === "LR" ? Position.Left : Position.Top,
@@ -251,12 +262,32 @@ function focusBounds(nodes: readonly AgentFlowNode[]) {
   return { x: left, y: top, width: right - left, height: bottom - top };
 }
 
-function AgentGraphCanvas({ topology, halted, speed }: AgentGraphProps) {
+function PlanningField() {
+  return (
+    <span
+      className={styles.planningField}
+      role="status"
+      aria-label="분석 역할 경로를 설계하고 있어요"
+    >
+      <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+        <path className={styles.planningBranch} d="M 0 50 C 18 50, 20 24, 42 24 H 96" />
+        <path className={styles.planningBranch} d="M 0 50 H 96" />
+        <path className={styles.planningBranch} d="M 0 50 C 18 50, 20 76, 42 76 H 96" />
+        <circle className={styles.planningTarget} cx="96" cy="24" r="1.45" />
+        <circle className={styles.planningTarget} cx="96" cy="50" r="1.45" />
+        <circle className={styles.planningTarget} cx="96" cy="76" r="1.45" />
+      </svg>
+      <span aria-hidden="true">ROLE PATHS · PLANNING</span>
+    </span>
+  );
+}
+
+function AgentGraphCanvas({ topology, halted, speed, planning = false }: AgentGraphProps) {
   const canvasRef = useRef<HTMLDivElement>(null);
   const direction = useLayoutDirection();
   const { nodes, edges } = useMemo(
-    () => layoutTopology(topology, halted, speed, direction),
-    [topology, halted, speed, direction],
+    () => layoutTopology(topology, halted, speed, direction, planning),
+    [topology, halted, speed, direction, planning],
   );
   const focusNodes = useMemo(() => focusWindow(nodes), [nodes]);
   const cameraTarget = useMemo(() => {
@@ -275,31 +306,40 @@ function AgentGraphCanvas({ topology, halted, speed }: AgentGraphProps) {
   }, [direction, focusNodes]);
   const cameraTargetRef = useRef(cameraTarget);
   cameraTargetRef.current = cameraTarget;
+  const nodesInitialized = useNodesInitialized();
   const { setViewport } = useReactFlow<AgentFlowNode, SignalFlowEdge>();
+  const planningDuration = Math.max(1.1, 2.4 * speed);
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas || !cameraTargetRef.current) return;
+    if (!canvas || !cameraTargetRef.current || !nodesInitialized) return;
 
+    let measureFrame = 0;
     let frame = 0;
     const refit = () => {
+      window.cancelAnimationFrame(measureFrame);
       window.cancelAnimationFrame(frame);
-      frame = window.requestAnimationFrame(() => {
-        const target = cameraTargetRef.current;
-        const width = canvas.clientWidth;
-        const height = canvas.clientHeight;
-        if (!target || width <= 0 || height <= 0) return;
-        const viewport = getViewportForBounds(
-          target.bounds,
-          width,
-          height,
-          0.66,
-          1.05,
-          0.28,
-        );
-        // SSE가 몰릴 때 연속 카메라 애니메이션이 서로 덮어써 빈 화면처럼
-        // 보이지 않도록 안정된 위치로 즉시 맞춘다.
-        void setViewport(viewport);
+      // React Flow가 새 topology prop을 내부 store와 DOM 크기에 반영한 뒤
+      // 카메라를 맞춘다. 한 프레임만 기다리면 빠른 SSE 묶음에서 이전 노드
+      // 범위로 되돌아가 새 역할들이 화면 밖에 남을 수 있다.
+      measureFrame = window.requestAnimationFrame(() => {
+        frame = window.requestAnimationFrame(() => {
+          const target = cameraTargetRef.current;
+          const width = canvas.clientWidth;
+          const height = canvas.clientHeight;
+          if (!target || width <= 0 || height <= 0) return;
+          const viewport = getViewportForBounds(
+            target.bounds,
+            width,
+            height,
+            0.66,
+            1.05,
+            0.28,
+          );
+          // SSE가 몰릴 때 연속 카메라 애니메이션이 서로 덮어써 빈 화면처럼
+          // 보이지 않도록 안정된 위치로 즉시 맞춘다.
+          void setViewport(viewport);
+        });
       });
     };
     const observer = new ResizeObserver(refit);
@@ -308,15 +348,18 @@ function AgentGraphCanvas({ topology, halted, speed }: AgentGraphProps) {
 
     return () => {
       observer.disconnect();
+      window.cancelAnimationFrame(measureFrame);
       window.cancelAnimationFrame(frame);
     };
-  }, [cameraTarget?.key, setViewport]);
+  }, [cameraTarget?.key, nodesInitialized, setViewport]);
 
   return (
     <div
       ref={canvasRef}
       className={styles.canvas}
       data-halted={halted}
+      data-planning={planning}
+      style={{ "--planning-duration": `${planningDuration}s` } as React.CSSProperties}
       role={nodes.length > 0 ? "list" : undefined}
       aria-label="멀티에이전트 실행 토폴로지"
     >

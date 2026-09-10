@@ -124,3 +124,59 @@ def test_referenced_tables_uses_external_access_disabled_connection():
             data.referenced_tables("SELECT * FROM read_csv_auto('/tmp/not-authorized.csv')")
     finally:
         data.close()
+
+
+def test_snapshot_load_batches_rows_and_preserves_typed_sparse_values(monkeypatch):
+    """Large snapshots must not issue an INSERT for every individual event."""
+    import customer_signal.investigation.data as module
+    from datetime import timedelta
+
+    connect = module.duckdb.connect
+    inserted_rows_per_statement = []
+
+    class Connection:
+        def __init__(self, *args, **kwargs):
+            self.connection = connect(*args, **kwargs)
+
+        def __getattr__(self, name):
+            return getattr(self.connection, name)
+
+        def executemany(self, sql, rows):
+            if sql.startswith("INSERT INTO events"):
+                inserted_rows_per_statement.extend([1] * len(rows))
+            return self.connection.executemany(sql, rows)
+
+        def execute(self, sql, *args):
+            if sql.startswith("INSERT INTO events"):
+                inserted_rows_per_statement.append(None)
+            return self.connection.execute(sql, *args)
+
+    monkeypatch.setattr(module.duckdb, "connect", Connection)
+    request = RunRequest(
+        question="적재 성능 검증",
+        start_at="2026-09-04T00:00:00Z",
+        end_at="2026-09-11T00:00:00Z",
+        enabled_sources=["app"],
+    )
+    events = [event(i) for i in range(10001)]
+    events[-1] = events[-1].model_copy(update={
+        "occurred_at": datetime(2026, 9, 6, 9, 30, tzinfo=timezone(timedelta(hours=9))),
+        "dimensions": {"quote": "한글 'quoted' \\ value"},
+        "measures": {"amount": 12.5},
+    })
+    data = InvestigationData(request=request, events=events, manifests=[], snapshot_id="batch")
+    try:
+        assert data.query("SELECT count(*) AS n FROM events")["rows"] == [{"n": 10001}]
+        assert data.query(
+            "SELECT occurred_at, dim_menu, dim_quote, measure_amount, measure_page_stay_seconds "
+            "FROM events WHERE event_id = 'event-10000'"
+        )["rows"] == [{
+            "occurred_at": "2026-09-06 00:30:00",
+            "dim_menu": None,
+            "dim_quote": "한글 'quoted' \\ value",
+            "measure_amount": 12.5,
+            "measure_page_stay_seconds": None,
+        }]
+        assert len(inserted_rows_per_statement) <= 2
+    finally:
+        data.close()

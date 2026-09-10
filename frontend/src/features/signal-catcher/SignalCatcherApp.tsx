@@ -6,6 +6,7 @@ import { ActionScreen } from "./action/ActionScreen";
 import { ExperimentMenu } from "./action/ExperimentMenu";
 import { SignalAlertInbox } from "./alerts/SignalAlertInbox";
 import { useSignalAlerts } from "./alerts/use-signal-alerts";
+import { SignalFastForward } from "./alerts/SignalFastForward";
 import { AskScreen } from "./ask/AskScreen";
 import { BriefingScreen } from "./briefing/BriefingScreen";
 import { DEMO_BRIEFING } from "./briefing/briefing-mock";
@@ -101,11 +102,31 @@ export function SignalCatcherApp({
   const signalAlerts = useSignalAlerts();
   const [question, setQuestion] = useState("");
   const [selectedSignalId, setSelectedSignalId] = useState<string | null>(null);
+  const [signalRevision, setSignalRevision] = useState(0);
+  useEffect(() => {
+    const signalId = new URL(window.location.href).searchParams.get("signal");
+    if (signalId) setSelectedSignalId(signalId);
+    const open = (event: MessageEvent) => {
+      if (event.data?.type === "catchcatch:open-signal" && typeof event.data.signalId === "string") {
+        setSelectedSignalId(event.data.signalId);
+        setSignalRevision((current) => current + 1);
+      }
+    };
+    navigator.serviceWorker?.addEventListener("message", open);
+    return () => navigator.serviceWorker?.removeEventListener("message", open);
+  }, []);
   const sourceLabels = useMemo(
     () => Object.fromEntries(controller.sourceOptions.map((source) => [source.id, source.label])),
     [controller.sourceOptions],
   );
-  const closeSignal = useCallback(() => setSelectedSignalId(null), []);
+  const closeSignal = useCallback(() => {
+    setSelectedSignalId(null);
+    const url = new URL(window.location.href);
+    if (url.searchParams.has("signal")) {
+      url.searchParams.delete("signal");
+      window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}`);
+    }
+  }, []);
   const [actionId, setActionId] = useState<string>("search_keyword");
   /** 리포트에서 "이어지는 액션"으로 넘어왔을 때 결과 화면이 안내할 카드. */
   const [highlightActionId, setHighlightActionId] = useState<string | null>(null);
@@ -192,9 +213,19 @@ export function SignalCatcherApp({
           </span>
         </button>
         <span className={styles.barSpacer} />
+        {!usesDemo ? <SignalFastForward
+          disabled={session.phase === "catching"}
+          beforeRun={signalAlerts.refresh}
+          onCompleted={() => {
+            liveBriefing.refresh();
+            setSignalRevision((current) => current + 1);
+            void signalAlerts.refresh().catch(() => undefined);
+          }}
+        /> : null}
         <SignalAlertInbox
           events={signalAlerts.events}
           error={signalAlerts.error}
+          notificationError={signalAlerts.notificationError}
           onOpenSignal={setSelectedSignalId}
           onClear={signalAlerts.clear}
         />
@@ -357,6 +388,7 @@ export function SignalCatcherApp({
       <div id={OVERLAY_ID} />
       {selectedSignalId ? (
         <SignalDetailModal
+          key={`${selectedSignalId}:${signalRevision}`}
           signalId={selectedSignalId}
           sourceLabels={sourceLabels}
           onClose={closeSignal}

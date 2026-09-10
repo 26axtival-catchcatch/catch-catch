@@ -106,6 +106,42 @@ describe("createAgentTopology", () => {
     expect(topology.nodes.some((node) => node.id === "tool-query")).toBe(false);
   });
 
+  it("루트 이벤트보다 먼저 보이는 하위 activity도 parent와 role로 에이전트 노드를 만든다", () => {
+    const topology = createAgentTopology([
+      activity({
+        node_id: "model-coordinator",
+        parent_node_id: "agent-coordinator-live",
+        kind: "model",
+        role: "coordinator",
+        task_id: "task-coordination",
+        status: "started",
+        name: "generation",
+        display_text: "분석 목표에 맞는 역할을 나누고 있어요.",
+        duration_ms: null,
+      }),
+      activity({
+        node_id: "tool-coordinator",
+        parent_node_id: "agent-coordinator-live",
+        kind: "tool",
+        role: "coordinator",
+        task_id: "task-coordination",
+        status: "started",
+        name: "query_data",
+        display_text: "데이터 질의",
+        duration_ms: null,
+      }),
+    ]);
+
+    expect(topology.nodes).toHaveLength(1);
+    expect(topology.nodes[0]).toMatchObject({
+      id: "agent-coordinator-live",
+      role: "coordinator",
+      label: "총괄 에이전트",
+      state: "active",
+      badges: ["started", "MODEL 1", "TOOL 1"],
+    });
+  });
+
   it("서버가 보내지 않은 의존 노드나 연결을 추정하지 않는다", () => {
     const topology = createAgentTopology([
       activity({

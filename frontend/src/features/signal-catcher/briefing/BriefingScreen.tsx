@@ -63,6 +63,22 @@ function sparkPath(trend: number[]): string {
     .join(" ");
 }
 
+function splitLead(text: string) {
+  const value = text.trim();
+  const sentenceEnd = value.search(/[.!?。](?:\s+|$)/);
+  if (sentenceEnd < 0) return { lead: value, detail: "" };
+  const end = sentenceEnd + 1;
+  return { lead: value.slice(0, end).trim(), detail: value.slice(end).trim() };
+}
+
+function sourceSummary(sourceIds: string[], sourceLabels: Record<string, string>): string | null {
+  if (!sourceIds.length) return null;
+  const labels = [...new Set(sourceIds.map((id) => sourceLabels[id]).filter(Boolean))];
+  if (!labels.length) return `${sourceIds.length.toLocaleString("ko-KR")}개 데이터셋`;
+  if (labels.length <= 3) return labels.join(" · ");
+  return `${labels.slice(0, 3).join(" · ")} 외 ${labels.length - 3}개`;
+}
+
 export function BriefingScreen({
   briefing,
   question,
@@ -95,6 +111,8 @@ export function BriefingScreen({
   const signalIdsRef = useRef("");
 
   const current = signals[deck.index] ?? null;
+  const currentCopy = current ? splitLead(current.body) : null;
+  const currentSources = current ? sourceSummary(current.sourceIds, sourceLabels) : null;
   const signalIds = signals.map((signal) => signal.id).join("\u0000");
 
   useEffect(() => {
@@ -134,7 +152,8 @@ export function BriefingScreen({
             type="button"
             className={styles.addReq}
             onClick={() => setExploreOpen(true)}
-            aria-pressed={exploreOpen}
+            aria-expanded={exploreOpen}
+            aria-controls="briefing-request"
           >
             ＋ 새 시그널 찾기
           </button>
@@ -159,12 +178,12 @@ export function BriefingScreen({
         </article>
       ) : current ? (
         <>
-          <p className={styles.lede}>
+          <h1 className={styles.lede}>
             <Highlight text={briefing.lede} />
-          </p>
+          </h1>
 
           {exploreOpen ? (
-            <article className={styles.requestWorkspace} aria-label="새 시그널 찾기">
+            <article id="briefing-request" className={styles.requestWorkspace} aria-label="새 시그널 찾기">
               <AskScreen
                 mode="briefing-request"
                 question={question}
@@ -206,9 +225,10 @@ export function BriefingScreen({
             style={deck.cardStyle}
             data-drag={deck.dragging ? "1" : undefined}
             data-from={deck.from ?? undefined}
+            aria-live="polite"
           >
             <p className={styles.kicker}>
-              브리핑 {deck.index + 1} · {current.name}
+              브리핑 {deck.index + 1}
               {current.fromRequest ? (
                 <span className={styles.fromReq}>◆ 내 요청으로 잡음</span>
               ) : null}
@@ -219,46 +239,63 @@ export function BriefingScreen({
             <h2 className={styles.headline}>
               <Highlight text={current.headline} />
             </h2>
-            <p className={styles.body}>{current.body}</p>
-            {current.periodLabel ? <p className={styles.period}>관측 {current.periodLabel}</p> : null}
-            {current.limitation ? <p className={styles.cardNote}>{current.limitation}</p> : null}
+            <p className={styles.body}>{currentCopy?.lead}</p>
+            {currentCopy?.detail ? (
+              <details className={styles.bodyDetails}>
+                <summary>분석 내용 자세히 <span aria-hidden="true">⌄</span></summary>
+                <p>{currentCopy.detail}</p>
+              </details>
+            ) : null}
+            {current.periodLabel ? <p className={styles.period}><b>관측 기간</b>{current.periodLabel}</p> : null}
+            {current.limitation ? <p className={styles.cardNote}><b>측정 참고</b>{current.limitation}</p> : null}
 
             <div className={styles.row}>
-              <ul className={styles.metrics}>
-                {current.metrics.map((metric) => (
-                  <li key={metric.label}>
-                    <span className={styles.metricLabel}>{metric.label}</span>
-                    <span className={styles.metricValue}>{metric.value}</span>
-                    <span className={styles.metricDelta} data-dir={metric.direction}>
-                      {metric.direction === "up" ? "▲ " : metric.direction === "down" ? "▼ " : ""}
-                      {metric.delta}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-              <svg
-                className={styles.spark}
-                viewBox="0 0 200 38"
-                preserveAspectRatio="none"
-                aria-hidden="true"
-              >
-                <path className={styles.sparkSoft} d="M0 21 L200 21" />
-                <path d={sparkPath(current.trend)} />
-              </svg>
+              <div className={styles.metricGroup}>
+                <p className={styles.sectionLabel}>주요 지표</p>
+                {current.metrics.length ? (
+                  <ul className={styles.metrics}>
+                    {current.metrics.map((metric) => (
+                      <li key={metric.label}>
+                        <span className={styles.metricLabel}>{metric.label}</span>
+                        <span className={styles.metricValue}>{metric.value}</span>
+                        <span className={styles.metricDelta} data-dir={metric.direction}>
+                          {metric.direction === "up" ? "이전 측정 대비 ▲ " : metric.direction === "down" ? "이전 측정 대비 ▼ " : ""}
+                          {metric.delta}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className={styles.metricEmpty}>비교할 첫 측정값을 준비하고 있어요.</p>
+                )}
+              </div>
+              {current.trend.length >= 2 ? (
+                <div className={styles.trend}>
+                  <p className={styles.sectionLabel}>최근 흐름</p>
+                  <svg
+                    className={styles.spark}
+                    viewBox="0 0 200 38"
+                    preserveAspectRatio="none"
+                    aria-hidden="true"
+                  >
+                    <path className={styles.sparkSoft} d="M0 21 L200 21" />
+                    <path d={sparkPath(current.trend)} />
+                  </svg>
+                </div>
+              ) : null}
             </div>
 
+            <div className={styles.signalMeta}>
+              <span><b>분석 기준</b>{current.evidenceNote}</span>
+              {currentSources ? <span><b>확인한 데이터</b>{currentSources}</span> : null}
+            </div>
             <div className={styles.acts}>
               <button type="button" className={styles.btn} onClick={() => onOpenSignal(current)}>
-                자세히 보기
+                시그널 상세 보기
               </button>
               <button type="button" className={styles.ghost} onClick={() => loadMoreError ? onLoadMore?.() : deck.step(1)}>
-                {loadingMore ? "다음 카드 불러오는 중…" : loadMoreError ? "다음 카드 다시 불러오기" : "넘기기"}
+                {loadingMore ? "다음 시그널 불러오는 중…" : loadMoreError ? "다음 시그널 다시 불러오기" : "다음 시그널"}
               </button>
-              <span className={styles.hint}>
-                {current.sourceIds.length
-                  ? current.sourceIds.map((id) => sourceLabels[id] ?? id).join(" · ")
-                  : current.evidenceNote}
-              </span>
             </div>
           </article>
           </div>
@@ -269,15 +306,14 @@ export function BriefingScreen({
           </>
           )}
 
-          <div className={styles.rest} role="tablist" aria-label="브리핑 탭">
+          <div className={styles.rest} aria-label="브리핑 목록">
             {signals.map((signal, i) => (
               <button
                 key={signal.id}
                 type="button"
                 className={styles.chip}
-                role="tab"
                 data-cur={!exploreOpen && deck.index === i ? "1" : undefined}
-                aria-selected={!exploreOpen && deck.index === i}
+                aria-current={!exploreOpen && deck.index === i ? "true" : undefined}
                 onClick={() => {
                   setExploreOpen(false);
                   deck.go(i);
@@ -289,9 +325,8 @@ export function BriefingScreen({
             <button
               type="button"
               className={`${styles.chip} ${styles.chipAdd}`}
-              role="tab"
               data-cur={exploreOpen ? "1" : undefined}
-              aria-selected={exploreOpen}
+              aria-current={exploreOpen ? "true" : undefined}
               onClick={() => setExploreOpen(true)}
             >
               ＋ 새 시그널 찾기

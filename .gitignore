@@ -12,6 +12,7 @@ __pycache__/
 data/run-artifacts/
 node_modules/
 .next/
+.next-e2e*/
 frontend/AGENTS.md
 frontend/CLAUDE.md
 coverage/

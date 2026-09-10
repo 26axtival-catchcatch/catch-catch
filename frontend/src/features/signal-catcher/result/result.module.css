@@ -4,7 +4,7 @@
 }
 
 .inner {
-  width: min(64rem, 100%);
+  width: min(70rem, 100%);
   margin-inline: auto;
 }
 
@@ -35,6 +35,7 @@
 
 .headline {
   margin: 0;
+  max-width: 22em;
   font-family: var(--font-display);
   font-weight: 400;
   font-size: clamp(1.8rem, 5vw, 2.85rem);
@@ -138,12 +139,33 @@
   color: var(--chalk);
 }
 
+.summaryCard {
+  padding: 1.15rem 1.3rem 1.2rem;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--signal);
+  border-radius: 4px var(--radius) var(--radius) 4px;
+  background:
+    linear-gradient(100deg, var(--signal-wash), transparent 36%),
+    var(--card);
+}
+
+.summaryKicker {
+  margin: 0 0 0.35rem;
+  color: var(--signal-soft);
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
+}
+
 .summary {
   margin: 0;
-  max-width: 46rem;
-  color: var(--fog);
-  font-size: 1rem;
-  line-height: 1.78;
+  max-width: 62rem;
+  color: var(--chalk);
+  font-size: clamp(1rem, 1.8vw, 1.13rem);
+  font-weight: 500;
+  line-height: 1.75;
+  letter-spacing: -0.008em;
+  text-wrap: pretty;
 }
 
 /* ── Metrics ─────────────────────────────────────────── */
@@ -330,17 +352,73 @@
 
 .blockTitle {
   margin: 0 0 0.85rem;
-  font-size: 0.98rem;
+  font-size: 1.16rem;
   font-weight: 600;
+  text-wrap: balance;
 }
 
 /* ── Findings & actions ──────────────────────────────── */
 .insight {
-  margin-top: 2.75rem;
+  margin-top: clamp(3rem, 7vw, 5rem);
   display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
-  gap: 2rem;
+  grid-template-columns: minmax(0, 1fr);
+  gap: clamp(3.5rem, 8vw, 6rem);
   align-items: start;
+}
+
+.insightGroup {
+  min-width: 0;
+}
+
+.sectionHead {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.35rem 1rem;
+  align-items: end;
+  margin-bottom: 1.15rem;
+  padding-bottom: 0.9rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--line) 72%, var(--chalk));
+}
+
+.sectionHead > div {
+  min-width: 0;
+}
+
+.sectionHead p {
+  margin: 0 0 0.2rem;
+  color: var(--signal-soft);
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.13em;
+}
+
+.sectionHead h2 {
+  margin: 0;
+  color: var(--chalk);
+  font-size: clamp(1.35rem, 3vw, 1.75rem);
+  font-weight: 600;
+  line-height: 1.35;
+  text-wrap: balance;
+}
+
+.sectionHead > span {
+  min-width: 2.4rem;
+  height: 2.4rem;
+  display: grid;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--signal) 45%, transparent);
+  border-radius: 50%;
+  background: var(--signal-wash);
+  color: var(--signal-soft);
+  font: 500 0.78rem var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.sectionHead small {
+  grid-column: 1 / -1;
+  color: var(--fog);
+  font-size: 0.84rem;
+  line-height: 1.65;
 }
 
 .findings,
@@ -349,54 +427,315 @@
   margin: 0;
   padding: 0;
   display: grid;
-  gap: 0.7rem;
+  gap: 0.9rem;
 }
 
 .findings li {
-  padding: 1rem 1.1rem;
-  background: var(--card);
-  border: 1px solid var(--line);
+  display: grid;
+  grid-template-columns: 3.7rem minmax(0, 1fr);
+  align-items: start;
+  padding: clamp(1.2rem, 3vw, 1.55rem);
+  background:
+    linear-gradient(105deg, var(--jade-wash), transparent 26%),
+    var(--card);
+  border: 1px solid color-mix(in srgb, var(--line) 78%, var(--chalk));
   border-left: 3px solid var(--jade);
   border-radius: 4px var(--radius) var(--radius) 4px;
+  overflow-wrap: anywhere;
+}
+
+.findingIndex {
+  grid-column: 1;
+  grid-row: 1 / 5;
+  margin: 0;
+  color: var(--signal-soft);
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
 }
 
 .findingText {
+  grid-column: 2;
   margin: 0;
-  font-size: 0.94rem;
+  max-width: 66ch;
+  color: var(--chalk);
+  font-size: clamp(1rem, 1.7vw, 1.12rem);
+  font-weight: 600;
+  line-height: 1.65;
+  letter-spacing: -0.008em;
+  text-wrap: pretty;
+}
+
+.copyDetails {
+  margin-top: 0.75rem;
+  max-width: 76ch;
+  color: var(--fog);
+}
+
+.findings .copyDetails,
+.findings .evidenceGroup {
+  grid-column: 2;
+}
+
+.copyDetails summary {
+  width: fit-content;
+  min-height: 2.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--signal-soft);
+  font-size: 0.8rem;
+  font-weight: 500;
+  list-style: none;
+  cursor: pointer;
+  user-select: none;
+}
+
+.copyDetails summary::-webkit-details-marker,
+.evidenceGroup summary::-webkit-details-marker {
+  display: none;
+}
+
+.copyDetails summary:hover {
+  color: var(--chalk);
+}
+
+.copyDetails summary span,
+.evidenceGroup summary i {
+  display: inline-block;
+  font-style: normal;
+  transition: transform 180ms var(--ease);
+}
+
+.copyDetails[open] summary span,
+.evidenceGroup[open] summary i {
+  transform: rotate(180deg);
+}
+
+.copyDetails > p {
+  margin: 0 0 0.3rem;
+  padding: 0.85rem 0 0.2rem;
+  border-top: 1px solid var(--line-soft);
+  color: var(--fog);
+  font-size: 0.93rem;
+  line-height: 1.82;
+  text-wrap: pretty;
+}
+
+/* 장문 executive summary는 원문의 섹션과 라벨을 읽을 수 있는 계층으로 다시 펼친다. */
+.summaryCard .copyDetails {
+  max-width: none;
+}
+
+.summaryCard .copyDetails > summary:focus-visible {
+  outline: 2px solid var(--signal);
+  outline-offset: 0.25rem;
+  border-radius: 0.2rem;
+}
+
+.summaryDetail {
+  display: grid;
+  margin-top: 0.15rem;
+  border-top: 1px solid var(--line-soft);
+}
+
+.summarySection {
+  display: grid;
+  grid-template-columns: minmax(9.5rem, 0.28fr) minmax(0, 1fr);
+  gap: 1rem clamp(1.5rem, 4vw, 3.25rem);
+  padding: clamp(1.35rem, 3vw, 1.9rem) 0;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.summarySection:last-child {
+  border-bottom: 0;
+  padding-bottom: 0.45rem;
+}
+
+.summarySectionHead {
+  align-self: start;
+  min-width: 0;
+}
+
+.summarySectionHead p {
+  margin: 0 0 0.35rem;
+  color: var(--signal-soft);
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+
+.summarySectionHead h3 {
+  margin: 0;
+  color: var(--chalk);
+  font-size: clamp(0.98rem, 1.8vw, 1.1rem);
+  font-weight: 600;
+  line-height: 1.55;
+  letter-spacing: -0.008em;
+  overflow-wrap: anywhere;
+  text-wrap: pretty;
+}
+
+.summarySectionBody {
+  min-width: 0;
+  display: grid;
+  gap: 0.8rem;
+}
+
+.summaryParagraphs {
+  display: grid;
+  gap: 0.4rem;
+  max-width: 70ch;
+}
+
+.summaryParagraphs p {
+  margin: 0;
+  color: color-mix(in srgb, var(--fog) 90%, var(--chalk));
+  font-size: clamp(0.9rem, 1.5vw, 0.97rem);
+  line-height: 1.82;
+  letter-spacing: -0.004em;
+  overflow-wrap: anywhere;
+  text-wrap: pretty;
+}
+
+.summaryPoint {
+  display: grid;
+  grid-template-columns: minmax(7.6rem, 9rem) minmax(0, 1fr);
+  gap: 0.65rem 1.1rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--card-2) 68%, transparent);
+}
+
+.summaryPointLabel {
+  margin: 0;
+  color: var(--signal-soft);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 500;
   line-height: 1.65;
 }
 
-.chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.3rem;
-  margin-top: 0.6rem;
+.summarySection[data-kind="limitation"] {
+  margin-top: 0.35rem;
+  padding: 1.1rem;
+  border: 1px solid color-mix(in srgb, var(--amber) 24%, var(--line));
+  border-radius: var(--radius);
+  background: var(--amber-wash);
 }
 
-.chips button {
-  border: 1px solid var(--line);
+.summarySection[data-kind="limitation"] .summarySectionHead p,
+.summarySection[data-kind="limitation"] .summarySectionHead h3 {
+  color: var(--amber);
+}
+
+.evidenceGroup {
+  margin-top: 0.9rem;
+  max-width: 100%;
+}
+
+.evidenceGroup summary {
+  min-height: 2.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  width: fit-content;
+  max-width: 100%;
+  padding: 0.42rem 0.75rem;
+  border: 1px solid color-mix(in srgb, var(--line) 76%, var(--chalk));
+  border-radius: var(--radius-lg);
   background: var(--card-2);
   color: var(--fog);
-  border-radius: 100px;
-  padding: 0.15rem 0.6rem;
-  font-family: var(--font-mono);
-  font-size: 0.68rem;
+  list-style: none;
   cursor: pointer;
-  transition:
-    border-color 160ms ease,
-    color 160ms ease;
+  user-select: none;
 }
 
-.chips button:hover {
+.evidenceGroup summary:hover {
   border-color: var(--signal);
+  color: var(--chalk);
+}
+
+.evidenceGroup summary strong {
+  color: var(--chalk);
+  font-size: 0.78rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.evidenceGroup summary span {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--fog);
+  font-size: 0.76rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.evidenceGroup summary i {
+  flex: none;
   color: var(--signal-soft);
 }
 
-.actions li {
-  padding: 1.1rem 1.15rem;
-  background: var(--card);
-  border: 1px solid var(--line);
+.evidenceLinks {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  gap: 0.45rem;
+  margin-top: 0.65rem;
+  padding: 0.75rem;
+  border: 1px solid var(--line-soft);
   border-radius: var(--radius);
+  background: color-mix(in srgb, var(--ground) 55%, transparent);
+}
+
+.evidenceLinks button {
+  min-width: 0;
+  min-height: 2.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.55rem;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--card);
+  color: var(--fog);
+  font: inherit;
+  font-size: 0.78rem;
+  cursor: pointer;
+  text-align: left;
+}
+
+.evidenceLinks button:hover {
+  border-color: var(--signal);
+  color: var(--chalk);
+}
+
+.evidenceLinks button span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.evidenceLinks button small {
+  flex: none;
+  color: var(--signal-soft);
+  font: 0.66rem var(--font-mono);
+}
+
+.actions li {
+  display: grid;
+  grid-template-columns: 3.7rem minmax(0, 1fr);
+  gap: 0;
+  padding: clamp(1.2rem, 3vw, 1.55rem);
+  background: var(--card);
+  border: 1px solid color-mix(in srgb, var(--line) 78%, var(--chalk));
+  border-radius: var(--radius);
+  overflow-wrap: anywhere;
   transition:
     border-color 400ms ease,
     box-shadow 400ms ease;
@@ -406,6 +745,18 @@
 .actions li[data-highlight="true"] {
   border-color: var(--signal);
   box-shadow: 0 0 0 4px var(--signal-wash);
+}
+
+.actionNumber {
+  color: var(--signal);
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.5;
+}
+
+.actionBody {
+  min-width: 0;
 }
 
 /* 액션 카드가 곧 실험 목록이다. 상태 배지와 진행 바를 카드에 얹는다. */
@@ -438,30 +789,40 @@
   background: var(--signal);
 }
 
-.actions h4 {
+.actions h3 {
   margin: 0 0 0.45rem;
-  font-size: 0.95rem;
+  max-width: 68ch;
+  color: var(--chalk);
+  font-size: clamp(1rem, 1.8vw, 1.15rem);
   font-weight: 600;
-  line-height: 1.5;
+  line-height: 1.6;
+  letter-spacing: -0.008em;
+  text-wrap: pretty;
 }
 
-.actions p {
+.actionReason {
   margin: 0;
-  font-size: 0.86rem;
-  line-height: 1.68;
+  max-width: 72ch;
+  font-size: 0.94rem;
+  line-height: 1.78;
   color: var(--fog);
+  text-wrap: pretty;
 }
 
 .actionFoot {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
   gap: 0.75rem;
-  margin-top: 0.8rem;
-  flex-wrap: wrap;
+  margin-top: 0.95rem;
+}
+
+.actionFoot .evidenceGroup {
+  margin-top: 0;
 }
 
 .actionSoon {
+  align-self: center;
   font-family: var(--font-mono);
   font-size: 0.66rem;
   letter-spacing: 0.1em;
@@ -469,6 +830,15 @@
   border: 1px solid var(--line);
   border-radius: 100px;
   padding: 0.25rem 0.7rem;
+}
+
+.insightEmpty {
+  margin: 0;
+  padding: 1.2rem;
+  border: 1px dashed var(--line);
+  border-radius: var(--radius);
+  color: var(--fog);
+  font-size: 0.9rem;
 }
 
 /* ── Foot ────────────────────────────────────────────── */
@@ -483,6 +853,7 @@
 }
 
 .primaryBtn {
+  min-height: 2.75rem;
   border: 0;
   border-radius: var(--radius-sm);
   background: var(--signal);
@@ -501,6 +872,7 @@
 }
 
 .ghostBtn {
+  min-height: 2.75rem;
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
   background: none;
@@ -697,6 +1069,68 @@
 }
 
 @media (max-width: 35rem) {
+  .screen {
+    padding-inline: 1rem;
+  }
+
+  .summaryCard {
+    padding-inline: 1rem;
+  }
+
+  .summarySection {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.75rem;
+  }
+
+  .summaryPoint {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.35rem;
+    padding: 0.85rem;
+  }
+
+  .summarySection[data-kind="limitation"] {
+    padding: 0.9rem;
+  }
+
+  .sectionHead {
+    gap: 0.35rem 0.65rem;
+  }
+
+  .findings li,
+  .actions li {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.55rem;
+    padding: 1.1rem;
+  }
+
+  .findingIndex,
+  .findingText,
+  .findings .copyDetails,
+  .findings .evidenceGroup {
+    grid-column: 1;
+    grid-row: auto;
+  }
+
+  .actionNumber {
+    font-size: 0.76rem;
+  }
+
+  .actionFoot {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .primaryBtn {
+    width: 100%;
+  }
+
+  .evidenceGroup summary {
+    width: 100%;
+  }
+
+  .evidenceLinks {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .watchCallout {
     grid-template-columns: 1fr;
   }
@@ -713,7 +1147,13 @@
 
 @media (prefers-reduced-motion: reduce) {
   .drawer,
-  .drawerScrim {
+  .drawerScrim,
+  .actions li {
     animation: none;
+  }
+
+  .copyDetails summary span,
+  .evidenceGroup summary i {
+    transition: none;
   }
 }
