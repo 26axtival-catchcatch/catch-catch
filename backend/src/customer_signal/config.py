@@ -26,6 +26,7 @@ class Settings(BaseSettings):
     bedrock_investigator_model: str = Field(
         default="us.anthropic.claude-sonnet-4-6", pattern=r"\S"
     )
+    bedrock_verifier_model: str | None = Field(default=None, pattern=r"\S")
     gemini_model: str = "gemini-3.7-flash"
     gemini_fallback_model: str = "gemini-3.6-flash"
     database_path: Path = Path("data/generated/customer_signal.duckdb")

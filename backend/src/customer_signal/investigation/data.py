@@ -88,9 +88,7 @@ class InvestigationData:
             self.events.append(sanitize_trace_value(row))
         self.events.sort(key=lambda e: (str(e["occurred_at"]), e["event_id"]))
         self.customer_ids = {e["customer_id"] for e in self.events}
-        self._db = duckdb.connect(
-            config={"enable_external_access": "false"}
-        )
+        self._db = duckdb.connect(config={"enable_external_access": "false"})
         columns = {key for e in self.events for key in e}
         columns.update(
             (
@@ -188,7 +186,9 @@ class InvestigationData:
         with self._lock:
             return set(self._db.get_table_names(sql))
 
-    def query(self, sql: str) -> dict:
+    def query(self, sql: str, *, preview_limit: int = 100) -> dict:
+        if not 1 <= preview_limit <= 100:
+            raise ValueError("invalid query preview limit")
         if _UNSAFE_SQL.search(sql):
             raise ValueError("only read-only queries of this data space are allowed")
         with self._lock:
@@ -211,10 +211,34 @@ class InvestigationData:
                 "owner": query_owner.get(),
             }
             self.queries[query_id] = record
-            if {"event_id", "customer_id", "occurred_at", "action"} <= set(columns):
-                reviewed = {row["customer_id"] for row in rows[:100] if row["customer_id"] in self.customer_ids}
-                self.journey_reads.setdefault(query_owner.get(), set()).update(reviewed)
-            return {**record, "rows": record["rows"][:100], "truncated": len(rows) > 100}
+            preview = record["rows"][:preview_limit]
+            self._credit_journey_rows(record, preview)
+            return {**record, "rows": preview, "truncated": len(rows) > preview_limit}
+
+    def _credit_journey_rows(self, record: dict, rows: list[dict]) -> None:
+        # Only evidence delivered from this task's own query is independent review.
+        if record["owner"] == query_owner.get() and {
+            "event_id",
+            "customer_id",
+            "occurred_at",
+            "action",
+        } <= set(record["columns"]):
+            reviewed = {
+                row["customer_id"] for row in rows if row["customer_id"] in self.customer_ids
+            }
+            self.journey_reads.setdefault(query_owner.get(), set()).update(reviewed)
+
+    def read_query_result(self, query_id: str, *, offset: int = 0, limit: int = 20) -> dict:
+        if query_id not in self.queries or offset < 0 or not 1 <= limit <= 20:
+            raise ValueError("invalid query page")
+        record = self.queries[query_id]
+        rows = record["rows"][offset : offset + limit]
+        self._credit_journey_rows(record, rows)
+        return {k: v for k, v in record.items() if k != "rows"} | {
+            "rows": rows,
+            "offset": offset,
+            "next_offset": offset + len(rows) if offset + len(rows) < record["row_count"] else None,
+        }
 
     def cohort(self, query_id: str) -> list[str]:
         record = self.queries.get(query_id)

@@ -56,9 +56,13 @@ class SignalWorkbench:
             "instruction": "User selection is required for registration.",
         }
 
-    def context(self) -> list[dict]:
+    def context(
+        self, *, candidate_ids: set[str] | None = None, compact: bool = False
+    ) -> list[dict]:
         items = []
-        for cid, definition in self.proposals.items():
+        for cid, definition in list(self.proposals.items()):
+            if candidate_ids is not None and cid not in candidate_ids:
+                continue
             fingerprint = definition_fingerprint(definition)
             measurement = next(
                 (
@@ -68,11 +72,16 @@ class SignalWorkbench:
                 ),
                 None,
             )
+            value = measurement.model_dump(mode="json") if measurement else None
+            if value is not None and compact:
+                from customer_signal.investigation.verification import compact_measurement
+
+                value = compact_measurement(value)
             items.append(
                 {
                     "candidate_id": cid,
                     "definition": definition.model_dump(mode="json"),
-                    "measurement": measurement.model_dump(mode="json") if measurement else None,
+                    "measurement": value,
                 }
             )
         return items
