@@ -18,6 +18,8 @@ from customer_signal.signals.comparison import (
 )
 from customer_signal.signals.schedule_contracts import DailyResults, DailySchedule, ScheduleUpdate
 from customer_signal.signals.scheduling import ScheduleBusy, ScheduleStore
+from customer_signal.signals.alert_api import create_alert_router
+from customer_signal.signals.alert_recommendations import fixture_recommendations
 
 
 class RequestModel(BaseModel):
@@ -83,10 +85,15 @@ def history_response(items: list[Measurement]) -> MeasurementHistory:
     )
 
 
-def create_router(*, store, is_completed: Callable[[str], bool], load_data: Callable) -> APIRouter:
+def create_router(
+    *, store, is_completed: Callable[[str], bool], load_data: Callable,
+    recommend: Callable = fixture_recommendations,
+) -> APIRouter:
     router = APIRouter(tags=["signals"])
-    service = SignalService(store=store, load_data=load_data)
+    service = SignalService(store=store, load_data=load_data, recommend=recommend)
     schedules = ScheduleStore(store)
+    # Alert router declares the shared tag itself; avoid duplicate inherited tags.
+    alert_router = create_alert_router(service=service)
 
     def signal_or_404(signal_id):
         try:
@@ -258,4 +265,7 @@ def create_router(*, store, is_completed: Callable[[str], bool], load_data: Call
             baseline = results[1].measurement if len(results) > 1 else None
         return compare_measurements(baseline, target)
 
-    return router
+    combined = APIRouter()
+    combined.include_router(router)
+    combined.include_router(alert_router)
+    return combined

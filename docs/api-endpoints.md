@@ -121,6 +121,11 @@ FastAPI OpenAPI 스키마에 포함되지 않으므로 Swagger UI 에 나타나�
 | PATCH | `/api/signals/{signal_id}` | `status`: active/paused/archived | `Signal` |
 | POST | `/api/signals/{signal_id}/measurements` | `start_at`, `end_at` 지정 재측정 | `Measurement` |
 | GET | `/api/signals/{signal_id}/measurements` | 전체 이력, 기간별 최신 성공 값, 비교 가능 여부 | `MeasurementHistory` |
+| GET | `/api/signals/{signal_id}/alert-recommendations` | 저장된 모델 추천 알림 조건, 기존 데이터는 null 가능 | `RecommendationSet \| null` |
+| POST | `/api/signals/{signal_id}/alert-recommendations` | 기존 시그널의 추천 생성 또는 실패 재시도 | `RecommendationSet` |
+| GET | `/api/signals/{signal_id}/alert-rules` | 사용자 선택 조건과 편집 버전 조회 | `AlertRules` |
+| PUT | `/api/signals/{signal_id}/alert-rules` | 추천 선택과 임계값 변경, 빈 목록으로 전체 해제 | `AlertRules` |
+| GET | `/api/signal-alert-events` | `after` 커서 이후 알림 이벤트 폴링, `limit` 페이지 크기 | `AlertEvents` |
 
 등록과 재측정은 HTTP 200을 반환합니다. 없는 시그널/후보는 404, 완료되지 않은 Run의 후보 조회, 등록은 409,
 잘못된 요청은 422입니다. 직접 등록 시 최초 측정이 불가능해도 422이며 등록을 저장하지 않습니다.
@@ -131,6 +136,24 @@ FastAPI OpenAPI 스키마에 포함되지 않으므로 Swagger UI 에 나타나�
 `latest_by_window`는 기간별 최신 성공 값을 우선하며, 실패 이력은 `items`에 남습니다.
 관측 기간 길이, 정의, Source 범위/버전이 다르거나 기간이 겹치면 비교 불가 사유를 반환합니다.
 자세한 연결 순서와 수치 해석은 [시그널 FE 인계](signal-fe-handoff.md)를 참고합니다.
+
+등록 응답의 `Signal.alert_recommendations`에 모델이 지표별로 제안한 하루 기준 조건을 제공합니다.
+사용자가 `alert-rules`에 선택하기 전에는 이벤트를 만들지 않습니다. 추천 실패는 등록을 취소하지 않고
+`status=unavailable`로 표시합니다. 성공한 추천은 고정하며 재등록과 조회에서 다시 생성하지 않습니다.
+추천 모델은 서버의 `AGENT_MODE`를 사용합니다. Bedrock은 `BEDROCK_INVESTIGATOR_MODEL`,
+Gemini는 `GEMINI_MODEL`을 사용하며 provider 실패를 fixture로 대체하지 않습니다.
+
+규칙 PUT에는 조회한 `revision`과 전체 `items`를 보냅니다. 버전 충돌은 409, 잘못된 추천 ID,
+중복 선택과 임계값은 422입니다. 빈 목록은 전체 해제입니다. 숫자를 바꾸지 않은 동일 선택은 상태를 유지합니다.
+성공한 하루 측정이 조건에 진입할 때만 이벤트를 저장하며 정상 범위 관측 후 재진입하면 다시 생성합니다.
+측정과 규칙 상태, 이벤트 저장은 하나의 트랜잭션입니다. 결측과 비교 불가는 진입 상태를 초기화하지 않습니다.
+
+이벤트 GET의 `after`를 생략하면 항목 없이 현재 최신 커서를 반환합니다. `after=0`은 전체 이력,
+`after=N`은 `sequence > N`의 오름차순 페이지입니다. `limit`은 기본 100, 최대 500입니다.
+응답의 `next_cursor`를 처리 후 저장하며 `has_more=true`이면 바로 다음 페이지를 조회합니다.
+`latest_cursor`는 전체 최신 순번이므로 페이지를 건너뛰는 용도로 사용하면 안 됩니다.
+현재 설정과 이벤트는 앱 전체에서 공유합니다. 전체 응답 예시와 프론트 연결 순서는
+[시그널 알림 FE 인계](signal-alerts-fe-handoff.md)에 정리했습니다.
 
 등록, 재측정 성공 응답 헤더 `X-Langfuse-Trace-Id`는 해당 작업을 기록한 trace ID입니다.
 후보 선택 등록은 **원래 분석 trace**, 직접 등록, 수동 재측정은 **이번 API 작업 trace**를 반환합니다.
