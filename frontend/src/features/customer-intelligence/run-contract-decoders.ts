@@ -144,6 +144,12 @@ export function decodeSourceId(value: unknown, path: string): SourceId {
   return /^[a-z][a-z0-9_]{1,63}$/.test(sourceId) ? sourceId : invalid(path);
 }
 
+/** Source manifest가 정의하는 Backend EventType 식별자 계약과 동일한 열린 vocabulary. */
+export function decodeEventType(value: unknown, path: string): string {
+  const eventType = expectId(value, path);
+  return /^[a-z][a-z0-9_]{1,63}$/.test(eventType) ? eventType : invalid(path);
+}
+
 export function decodeRunStatus(value: unknown, path: string): RunStatus {
   return expectOneOf(value, RUN_STATUSES, path);
 }
@@ -773,11 +779,7 @@ function decodeJourneyEvent(value: unknown, path: string) {
     evidence_id: expectId(record.evidence_id, `${path}.evidence_id`),
     source_id: decodeSourceId(record.source_id, `${path}.source_id`),
     occurred_at: expectTimestamp(record.occurred_at, `${path}.occurred_at`),
-    event_type: expectOneOf(
-      record.event_type,
-      ["search", "feedback", "digital_behavior", "subscription", "voc"] as const,
-      `${path}.event_type`,
-    ),
+    event_type: decodeEventType(record.event_type, `${path}.event_type`),
     action: expectString(record.action, `${path}.action`),
     topic: expectString(record.topic, `${path}.topic`),
     outcome: expectString(record.outcome, `${path}.outcome`),

@@ -79,6 +79,8 @@ def test_only_independently_remeasured_confirmed_proposal_can_be_persisted(tmp_p
         wb.persist([candidate], [decision])
         proposals = store.list_proposals(wb.run_id)
         assert len(proposals) == 1
+        assert proposals[0].observation_id is None
+        assert proposals[0].trace_id == wb.run_id.replace("-", "")
         assert store.list_signals() == []
         assert store.register(proposals[0].proposal_id).title == "반복 탐색"
         with pytest.raises(ValueError):

@@ -8,6 +8,7 @@ from typing import Literal, Self
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, FiniteFloat, model_validator
 
 from customer_signal.domain.types import SourceId
+from customer_signal.signals.alert_contracts import RecommendationSet
 
 SignalStatus = Literal["active", "paused", "archived"]
 _RESERVED = {"affected_customer_count", "denominator_customer_count", "affected_customer_rate"}
@@ -58,6 +59,7 @@ class MetricValue(Contract):
 class Measurement(Contract):
     measurement_id: str
     definition_fingerprint: str
+    pipeline_version: str = "signal-sql-v1"
     start_at: AwareDatetime
     end_at: AwareDatetime
     measured_at: AwareDatetime = Field(default_factory=now)
@@ -86,6 +88,8 @@ class Proposal(Contract):
     run_id: str
     candidate_id: str
     task_id: str | None = None
+    trace_id: str | None = None
+    observation_id: str | None = None
     title: str = Field(min_length=1)
     description: str = Field(min_length=1)
     definition: SignalDefinition
@@ -104,3 +108,4 @@ class Signal(Contract):
     created_at: AwareDatetime = Field(default_factory=now)
     proposal_id: str | None = None
     origin: Literal["analysis", "user_defined"] = "analysis"
+    alert_recommendations: RecommendationSet | None = None

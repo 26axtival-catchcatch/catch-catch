@@ -1,5 +1,8 @@
 "use client";
 
+import type { AnyRunStreamEvent } from "../../customer-intelligence/contracts";
+import { AgentWorkspace } from "../catching/AgentWorkspace";
+import { EMPTY_HISTORY, useRunHistory } from "../conversation/use-run-history";
 import type { CatchReport } from "../state/types";
 
 import styles from "./trace.module.css";
@@ -7,6 +10,7 @@ import styles from "./trace.module.css";
 interface TraceScreenProps {
   report: CatchReport;
   question: string;
+  topologyEvents?: AnyRunStreamEvent[];
   onBack: () => void;
 }
 
@@ -14,9 +18,12 @@ interface TraceScreenProps {
  * Tier 3. 결론까지의 계보를 끝까지 파고드는 화면.
  * 통과한 주장뿐 아니라 탈락한 주장과 그 사유까지 같은 무게로 싣는다.
  */
-export function TraceScreen({ report, question, onBack }: TraceScreenProps) {
+export function TraceScreen({ report, question, onBack, topologyEvents = EMPTY_HISTORY }: TraceScreenProps) {
+  const history = useRunHistory(report.runId, topologyEvents);
   const { score } = report;
-  const passRate = Math.round((score.claimsPassed / score.claimsTotal) * 100);
+  const passRate = score.claimsTotal
+    ? Math.round((score.claimsPassed / score.claimsTotal) * 100)
+    : 0;
 
   return (
     <div className={styles.screen}>
@@ -30,6 +37,10 @@ export function TraceScreen({ report, question, onBack }: TraceScreenProps) {
           <h1>이 결론은 이렇게 나왔어요</h1>
           <p className={styles.question}>&ldquo;{question}&rdquo;</p>
         </header>
+
+        <section className={styles.conversation} aria-label="분석 과정 상세">
+          <AgentWorkspace events={history.events} completed loading={history.loading} error={history.error} onRetry={history.retry} />
+        </section>
 
         <dl className={styles.score}>
           <div data-tone={passRate === 100 ? "ok" : "warn"}>

@@ -158,6 +158,8 @@ class CustomerSignalPack:
 
 def _emission_for(event: AnalysisEvent) -> PackEmission | None:
     payload = event.payload
+    if event.type == "agent_activity":
+        return ActivityDraft(payload={"activity": "agent_activity", **payload})
     if event.type == "goal_created":
         return GoalDraft(value=_object(payload["goal"]))
     if event.type == "plan_created":

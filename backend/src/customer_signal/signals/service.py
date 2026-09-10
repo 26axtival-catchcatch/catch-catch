@@ -10,12 +10,16 @@ from customer_signal.agent.contracts import RunRequest
 from customer_signal.observability.langfuse import (
     LangfuseRunContext,
     bind_langfuse_run,
+    bind_langfuse_trace,
     public_observation,
     signal_observation,
 )
 from customer_signal.signals.contracts import Measurement, Proposal, Signal, SignalDefinition
 from customer_signal.signals.measurement import measure_definition, unavailable_measurement
 from customer_signal.signals.store import SignalStore
+from customer_signal.signals.alerts import AlertStore
+from customer_signal.signals.alert_contracts import RecommendationSet
+from customer_signal.signals.alert_recommendations import fixture_recommendations
 
 
 class MeasurementUnavailable(ValueError):
@@ -23,9 +27,35 @@ class MeasurementUnavailable(ValueError):
 
 
 class SignalService:
-    def __init__(self, *, store: SignalStore, load_data: Callable):
+    def __init__(
+        self, *, store: SignalStore, load_data: Callable,
+        recommend: Callable[[Signal, Measurement], RecommendationSet] = fixture_recommendations,
+    ):
         self.store = store
         self.load_data = load_data
+        self.recommend = recommend
+
+    def ensure_recommendations(
+        self, signal: Signal, measurement: Measurement, *, retry: bool = False,
+    ) -> Signal:
+        signal = self.store.get_signal(signal.signal_id)
+        current = signal.alert_recommendations
+        if current is not None and (current.status == "ready" or not retry):
+            return signal
+        with public_observation(
+            name="customer_signal.alert_recommendation", stage="alert_recommendation",
+            input={"signal_id": signal.signal_id, "measurement_id": measurement.measurement_id},
+        ) as observation:
+            try:
+                recommendations = self.recommend(signal, measurement)
+            except Exception:
+                recommendations = RecommendationSet(
+                    status="unavailable", source="model",
+                    reason="추천 조건을 생성하지 못했습니다. 다시 시도할 수 있습니다.",
+                )
+            updated = AlertStore(self.store).save_recommendations(signal.signal_id, recommendations)
+            observation.update(output=updated.alert_recommendations.model_dump(mode="json"))
+            return updated
 
     @staticmethod
     def _trace(
@@ -70,9 +100,15 @@ class SignalService:
         return result.model_copy(update={"trace_id": trace_id})
 
     def register_proposal(self, proposal: Proposal, *, trace_run_id: str | None = None) -> Signal:
-        trace = self._trace(f"시그널 등록: {proposal.title}", proposal.definition, trace_run_id)
+        trace = LangfuseRunContext(
+            run_id=proposal.run_id,
+            run_kind="generic",
+            question=f"시그널 등록: {proposal.title}",
+            source_ids=tuple(proposal.definition.source_ids),
+            parent_observation_id=proposal.observation_id,
+        )
         with (
-            bind_langfuse_run(trace),
+            bind_langfuse_trace(trace),
             signal_observation(
                 operation="registration",
                 proposal_id=proposal.proposal_id,
@@ -81,10 +117,12 @@ class SignalService:
                 input={
                     "definition": proposal.definition.model_dump(mode="json"),
                     "source_run_id": proposal.run_id,
+                    "request_id": trace_run_id,
                 },
             ) as observation,
         ):
             signal, persisted = self.store.register_with_measurement(proposal.proposal_id)
+            signal = self.ensure_recommendations(signal, persisted)
             observation.update(
                 output={
                     "signal_id": signal.signal_id,
@@ -133,6 +171,7 @@ class SignalService:
                 definition=definition,
                 measurement=measurement,
             )
+            signal = self.ensure_recommendations(signal, persisted)
             observation.update(
                 output={
                     "signal_id": signal.signal_id,
@@ -149,6 +188,7 @@ class SignalService:
         start_at: datetime,
         end_at: datetime,
         trace_run_id: str | None = None,
+        evaluate_alerts: bool = True,
     ) -> Measurement:
         trace = self._trace(f"시그널 재측정: {signal.title}", signal.definition, trace_run_id)
         with (
@@ -180,7 +220,9 @@ class SignalService:
                 end_at=end_at,
                 trace_id=trace.trace_id,
             )
-            persisted = self.store.add_measurement(signal.signal_id, measurement)
+            persisted = self.store.add_measurement(
+                signal.signal_id, measurement, evaluate_alerts=evaluate_alerts,
+            )
             observation.update(output=persisted.model_dump(mode="json"))
             signal_span.update(
                 output={

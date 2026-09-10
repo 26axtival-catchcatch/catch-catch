@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-import { STAGES, STAGE_TICKS, observabilityLinks } from "../state/mock";
+import { STAGES, observabilityLinks } from "../state/mock";
 import { markOf } from "../state/tick-marks";
 import type { CatchReport } from "../state/types";
 
@@ -14,21 +14,6 @@ interface ProcessTraceProps {
   onOpenTrace: () => void;
 }
 
-const TICKS = STAGES.map((stage) => ({
-  stage,
-  ticks: STAGE_TICKS[stage.key] ?? [],
-}));
-
-const TOOL_CALLS = TICKS.reduce(
-  (total, group) => total + group.ticks.filter((tick) => tick.kind === "tool").length,
-  0,
-);
-
-const CATCHES = TICKS.reduce(
-  (total, group) => total + group.ticks.filter((tick) => tick.kind === "fact").length,
-  0,
-);
-
 /**
  * 분석 중 흘러간 처리 과정을 결과 화면에서 그대로 다시 펼친다.
  * 로딩 화면은 지나가면 사라지기 때문에, 결론을 의심한 사람이 되돌아올 자리가 필요하다.
@@ -38,9 +23,19 @@ export function ProcessTrace({ report, onOpenTrace }: ProcessTraceProps) {
   const [open, setOpen] = useState(false);
   const { score } = report;
   const links = observabilityLinks(report.runId);
+  const ticks = STAGES.map((stage) => ({
+    stage,
+    ticks: report.traceLog.filter((tick) => tick.stage === stage.key),
+  }));
+  const toolCalls = report.traceLog.filter((item) => item.kind === "tool").length;
+  const catches = report.traceLog.filter((item) => item.kind === "fact").length;
 
   return (
     <section className={styles.wrap}>
+      <div className={styles.detailEntry}>
+        <div><strong>에이전트가 나눈 대화</strong><p>단서를 찾고 검증한 과정을 시간순으로 살펴보세요.</p></div>
+        <button type="button" onClick={onOpenTrace}>상세 보러가기 <span aria-hidden="true">→</span></button>
+      </div>
       <button
         type="button"
         className={styles.toggle}
@@ -49,7 +44,7 @@ export function ProcessTrace({ report, onOpenTrace }: ProcessTraceProps) {
       >
         <span className={styles.toggleLabel}>이 결론이 나온 과정 보기</span>
         <span className={styles.toggleMeta}>
-          {STAGES.length}단계 · 도구 {TOOL_CALLS}회 · 포착 {CATCHES}건 ·{" "}
+          {STAGES.length}단계 · 도구 {toolCalls}회 · 포착 {catches}건 ·{" "}
           {(score.durationMs / 1000).toFixed(1)}초
         </span>
         <span className={styles.chevron} data-open={open} aria-hidden="true">
@@ -64,7 +59,7 @@ export function ProcessTrace({ report, onOpenTrace }: ProcessTraceProps) {
           </p>
 
           <ol className={styles.stages}>
-            {TICKS.map(({ stage, ticks }, index) => (
+            {ticks.map(({ stage, ticks: stageTicks }, index) => (
               <li key={stage.key} className={styles.stage}>
                 <div className={styles.stageHead}>
                   <span className={styles.stageNo}>{index + 1}</span>
@@ -73,8 +68,8 @@ export function ProcessTrace({ report, onOpenTrace }: ProcessTraceProps) {
                 </div>
 
                 <ol className={styles.rail}>
-                  {ticks.map((tick) => (
-                    <li key={tick.text} className={styles.row} data-kind={tick.kind}>
+                  {stageTicks.map((tick, tickIndex) => (
+                    <li key={`${tick.meta}-${tickIndex}`} className={styles.row} data-kind={tick.kind}>
                       <span className={styles.mark} aria-hidden="true">
                         {markOf(tick)}
                       </span>

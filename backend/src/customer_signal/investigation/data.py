@@ -50,6 +50,7 @@ class InvestigationData:
         self.manifests = manifests
         self.snapshot_id = snapshot_id
         self.queries: dict[str, dict] = {}
+        self._cohort_tables: dict[str, str] = {}
         self.journey_reads: dict[str, set[str]] = {}
         self._lock = Lock()
         self.events = []
@@ -88,9 +89,7 @@ class InvestigationData:
             self.events.append(sanitize_trace_value(row))
         self.events.sort(key=lambda e: (str(e["occurred_at"]), e["event_id"]))
         self.customer_ids = {e["customer_id"] for e in self.events}
-        self._db = duckdb.connect(
-            config={"enable_external_access": "false"}
-        )
+        self._db = duckdb.connect(config={"enable_external_access": "false"})
         columns = {key for e in self.events for key in e}
         columns.update(
             (
@@ -122,18 +121,27 @@ class InvestigationData:
         )
         if self.events:
             self._db.execute("BEGIN TRANSACTION")
-            self._db.executemany(
-                "INSERT INTO events VALUES (" + ",".join("?" for _ in self.columns) + ")",
-                [
-                    [
-                        e[c].astimezone(timezone.utc).replace(tzinfo=None)
+            # Bind one JSON string per batch: binding individual Python cells
+            # repeatedly probes optional pandas types, even inside list parameters.
+            # Strict typed conversion preserves NULLs, numbers and UTC timestamps
+            # without enabling file access or adding a dataframe dependency.
+            structure = json.dumps([types])
+            for offset in range(0, len(self.events), 10_000):
+                batch = self.events[offset : offset + 10_000]
+                rows = [
+                    {
+                        c: e[c].astimezone(timezone.utc).replace(tzinfo=None)
                         if c == "occurred_at"
                         else e.get(c)
                         for c in self.columns
-                    ]
-                    for e in self.events
-                ],
-            )
+                    }
+                    for e in batch
+                ]
+                self._db.execute(
+                    "INSERT INTO events SELECT "
+                    "unnest(json_transform_strict(?, ?), recursive := true)",
+                    [json.dumps(rows, ensure_ascii=False, default=str), structure],
+                )
             self._db.execute("COMMIT")
         for source_id in request.enabled_sources:
             self._db.execute(
@@ -188,13 +196,20 @@ class InvestigationData:
         with self._lock:
             return set(self._db.get_table_names(sql))
 
-    def query(self, sql: str) -> dict:
+    def query(self, sql: str, *, preview_limit: int = 100, expose_cohort: bool = False) -> dict:
+        if not 1 <= preview_limit <= 100:
+            raise ValueError("invalid query preview limit")
         if _UNSAFE_SQL.search(sql):
             raise ValueError("only read-only queries of this data space are allowed")
         with self._lock:
             statements = self._db.extract_statements(sql)
             if len(statements) != 1 or statements[0].type != duckdb.StatementType.SELECT:
                 raise ValueError("exactly one SELECT is required")
+            if self._cohort_tables and any(
+                self._cohort_tables.get(table.lower(), query_owner.get()) != query_owner.get()
+                for table in self._query_table_names(sql)
+            ):
+                raise ValueError("cohort table belongs to another task")
             cursor = self._db.execute(sql)
             columns = [d[0] for d in cursor.description]
             if len(columns) != len(set(columns)):
@@ -210,11 +225,90 @@ class InvestigationData:
                 "snapshot_id": self.snapshot_id,
                 "owner": query_owner.get(),
             }
+            if (
+                expose_cohort
+                and columns == ["customer_id"]
+                and all(
+                    isinstance(row["customer_id"], str) and row["customer_id"] in self.customer_ids
+                    for row in rows
+                )
+            ):
+                index = len(self._cohort_tables) + 1
+                while (
+                    table := f"verification_cohort_{index}"
+                ) in self._cohort_tables or table in self.request.enabled_sources:
+                    index += 1
+                self._db.execute(f'CREATE TEMP TABLE "{table}" (customer_id VARCHAR PRIMARY KEY)')
+                self._cohort_tables[table] = query_owner.get()
+                try:
+                    ids = sorted({row["customer_id"] for row in rows})
+                    if ids:
+                        self._db.executemany(
+                            f'INSERT INTO "{table}" VALUES (?)', [(cid,) for cid in ids]
+                        )
+                except Exception:
+                    self._db.execute(f'DROP TABLE "{table}"')
+                    self._cohort_tables.pop(table)
+                    raise
+                record["cohort_table"] = table
             self.queries[query_id] = record
-            if {"event_id", "customer_id", "occurred_at", "action"} <= set(columns):
-                reviewed = {row["customer_id"] for row in rows[:100] if row["customer_id"] in self.customer_ids}
-                self.journey_reads.setdefault(query_owner.get(), set()).update(reviewed)
-            return {**record, "rows": record["rows"][:100], "truncated": len(rows) > 100}
+            preview = record["rows"][:preview_limit]
+            self._credit_journey_rows(record, preview)
+            return {**record, "rows": preview, "truncated": len(rows) > preview_limit}
+
+    def _query_table_names(self, sql: str) -> set[str]:
+        # get_table_names binds placeholder relations and rejects valid JOIN USING
+        # queries. Walk the parser AST instead, including qualified/nested refs.
+        parsed = json.loads(self._db.execute("SELECT json_serialize_sql(?)", [sql]).fetchone()[0])
+        if parsed.get("error"):
+            raise ValueError("query syntax could not be inspected")
+        names, pending = set(), [parsed]
+        while pending:
+            node = pending.pop()
+            if isinstance(node, dict):
+                if node.get("type") == "BASE_TABLE":
+                    names.add(node["table_name"])
+                if node.get("type") == "TABLE_FUNCTION" and node.get("function", {}).get(
+                    "function_name", ""
+                ).lower() not in {"range", "generate_series", "unnest", "json_each", "json_tree"}:
+                    # Macros such as histogram_values hide query_table calls from
+                    # the parser AST. Only non-relational-input functions are safe.
+                    raise ValueError("table function is not allowed with cohort tables")
+                function = node.get("function_name", "")
+                if (
+                    _UNSAFE_SQL.search(function + "(")
+                    or function.lower() == "json_execute_serialized_sql"
+                ):
+                    raise ValueError("dynamic SQL functions cannot access cohort tables")
+                pending.extend(node.values())
+            elif isinstance(node, list):
+                pending.extend(node)
+        return names
+
+    def _credit_journey_rows(self, record: dict, rows: list[dict]) -> None:
+        # Only evidence delivered from this task's own query is independent review.
+        if record["owner"] == query_owner.get() and {
+            "event_id",
+            "customer_id",
+            "occurred_at",
+            "action",
+        } <= set(record["columns"]):
+            reviewed = {
+                row["customer_id"] for row in rows if row["customer_id"] in self.customer_ids
+            }
+            self.journey_reads.setdefault(query_owner.get(), set()).update(reviewed)
+
+    def read_query_result(self, query_id: str, *, offset: int = 0, limit: int = 20) -> dict:
+        if query_id not in self.queries or offset < 0 or not 1 <= limit <= 20:
+            raise ValueError("invalid query page")
+        record = self.queries[query_id]
+        rows = record["rows"][offset : offset + limit]
+        self._credit_journey_rows(record, rows)
+        return {k: v for k, v in record.items() if k != "rows"} | {
+            "rows": rows,
+            "offset": offset,
+            "next_offset": offset + len(rows) if offset + len(rows) < record["row_count"] else None,
+        }
 
     def cohort(self, query_id: str) -> list[str]:
         record = self.queries.get(query_id)

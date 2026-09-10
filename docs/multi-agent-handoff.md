@@ -2,8 +2,12 @@
 
 갱신일: 2026-09-10. Backend 핵심 구현과 제한, 확장 데이터의 실제 Gemini 실행을 검증했습니다.
 
+후속 변경으로 기존 SSE에 `agent_activity`를 추가했습니다.
+실제 역할 진행과 토폴로지, 모델/도구 상세는 [에이전트 액티비티 FE 인계](agent-activity-handoff.md)를 따릅니다.
+아래 실행 사례와 보고서 매핑은 유지합니다.
+
 FE 담당자가 기존 중앙 어댑터로 새 분석을 연결할 수 있도록 실행 순서와 결과 매핑을 정리했습니다.
-FE 화면 구현은 이번 변경에 포함하지 않습니다.
+기존 타임라인에 액티비티 표시를 연결했습니다. 전용 토폴로지 화면은 후속 FE 구현 범위입니다.
 
 ## 실행 순서
 
@@ -44,8 +48,8 @@ FE 화면 구현은 이번 변경에 포함하지 않습니다.
 
 ## 기존 중앙 어댑터와 계약
 
-[wire_projection.py](../backend/src/customer_signal/runtime/wire_projection.py),
-[run-client.ts](../frontend/src/features/customer-intelligence/run-client.ts)와 FE 소스는 변경하지 않았습니다.
+[wire_projection.py](../backend/src/customer_signal/runtime/wire_projection.py)와
+[run-client.ts](../frontend/src/features/customer-intelligence/run-client.ts)에 새 액티비티 이벤트를 연결했습니다.
 요청 필드, `mode`, 202 응답의 세 필드, SSE 이름과 payload, 상태 enum,
 Artifact `schema_version=1`, `report_kind=customer_signal`을 유지합니다.
 
@@ -72,10 +76,10 @@ Backend 재시작 후에도 완료 당시의 여정과 근거를 유지합니다
 전체 cohort 질의 결과와 상세 조사 기록은 Backend 내부 감사 파일에 보관합니다.
 기존 다운로드 JSON은 공개 Artifact이고 내부 감사 파일 전체를 반환하지 않습니다.
 
-공개 SSE에는 신규 역할 enum을 넣지 않았습니다. 기존 Goal과 Plan은 시작 시,
+실제 역할 진행은 후속 추가한 `agent_activity`로 확인합니다. 기존 Goal과 Plan은 시작 시,
 Fact와 Note는 확보한 결과를 공개 계약으로 변환할 때 발행합니다.
 `step_started/completed`의 시간은 해당 공개 Fact 기록 단계의 시간입니다.
-모델 조사 역할의 실제 소요 시간은 Langfuse에서 확인합니다.
+모델 조사 역할의 실제 소요 시간은 `agent_activity.duration_ms`와 Langfuse에서 확인합니다.
 Fact의 `processing`은 이미 계산한 결과를 공개 형식으로 변환한 단계의 통계이며,
 전체 공간의 이벤트 수와 실제 SQL은 내부 감사 파일에 기록합니다.
 
@@ -85,7 +89,7 @@ Backend가 구동된 것만으로 이 화면의 실연결이 완료되지는 않
 
 ## 추가 구현 내역
 
-공개 API, SSE 종류, 필수 응답 필드는 추가하지 않았습니다.
+아래는 최초 구현 내역입니다. 후속 변경으로 `agent_activity` SSE를 추가했으며 기존 필수 응답 필드는 유지합니다.
 
 | 추가 내용 | 위치 | FE 영향 |
 | --- | --- | --- |

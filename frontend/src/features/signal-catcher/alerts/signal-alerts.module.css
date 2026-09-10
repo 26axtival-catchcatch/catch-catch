@@ -1,0 +1,38 @@
+.wrap { position: relative; }
+.trigger { display: inline-flex; align-items: center; gap: .35rem; border: 1px solid var(--line); border-radius: var(--radius-lg); padding: .35rem .7rem; background: var(--card); color: var(--fog); font: inherit; font-size: .7rem; }
+.trigger svg { fill: var(--signal); }
+.trigger:not([data-active="true"]) svg {
+  fill: transparent;
+  stroke: var(--signal);
+  stroke-linejoin: round;
+  stroke-width: 8px;
+}
+.trigger[data-active="true"] { border-color: var(--signal); color: var(--chalk); }
+.trigger b { min-width: 1rem; border-radius: 1rem; background: var(--signal); color: white; font: 500 .58rem var(--font-mono); }
+.panel { position: absolute; z-index: 20; top: calc(100% + .65rem); right: 0; width: min(22rem, calc(100vw - 2rem)); overflow: hidden; border: 1px solid color-mix(in srgb, var(--signal) 34%, var(--line)); border-radius: var(--radius); background: var(--raise); box-shadow: var(--shadow); }
+.panel header { display: flex; justify-content: space-between; gap: 1rem; padding: .9rem 1rem; border-bottom: 1px solid var(--line-soft); }
+.panel header div { display: grid; }
+.panel header strong { color: var(--chalk); font-size: .78rem; }
+.panel header span { color: var(--fog-dim); font-size: .62rem; }
+.panel header button, .permission { border: 0; background: transparent; color: var(--signal-soft); font: inherit; font-size: .64rem; }
+.panel ul { max-height: 18rem; overflow: auto; margin: 0; padding: .35rem; list-style: none; }
+.panel li button { width: 100%; display: flex; align-items: flex-start; gap: .55rem; border: 0; border-radius: .55rem; padding: .68rem; background: transparent; color: var(--fog); text-align: left; font: inherit; }
+.panel li button:hover { background: var(--signal-wash); }
+.panel li svg { flex: none; margin-top: .15rem; fill: var(--signal); }
+.panel li span { min-width: 0; display: grid; }
+.panel li strong { overflow: hidden; color: var(--chalk); font-size: .72rem; text-overflow: ellipsis; white-space: nowrap; }
+.panel li small { color: var(--fog-dim); font-size: .62rem; }
+.panel > p { margin: 0; padding: 1.2rem; color: var(--fog-dim); font-size: .72rem; text-align: center; }
+.permission { width: 100%; padding: .65rem; border-top: 1px solid var(--line-soft); background: var(--card); }
+.permissionSettings { padding: .7rem 1rem; color: var(--fog); text-align: left; }
+.permissionSettings p { margin: .25rem 0; font-size: .72rem; line-height: 1.55; }
+.permissionSettings small { display: block; color: var(--fog-dim); font-size: .64rem; }
+.permissionSettings .permission { border: 1px solid var(--line); border-radius: .5rem; margin-bottom: .4rem; cursor: pointer; }
+.trigger:disabled { opacity: .55; cursor: wait; }
+.resultPanel { position: absolute; top: calc(100% + .65rem); right: 0; z-index: 20; width: min(22rem, calc(100vw - 2rem)); padding: 1rem 2rem 1rem 1rem; border: 1px solid var(--line); border-radius: var(--radius); background: var(--raise); box-shadow: var(--shadow); }
+.resultPanel p { margin: 0; color: var(--chalk); font-size: .75rem; line-height: 1.65; }
+.dismiss { position: absolute; top: .3rem; right: .4rem; background: transparent; border: 0; color: var(--fog); cursor: pointer; font-size: 1.2rem; }
+@media (max-width: 35rem) {
+  .trigger { padding-inline: .55rem; white-space: nowrap; }
+  .resultPanel, .panel { position: fixed; top: 5rem; left: 1rem; right: 1rem; width: auto; }
+}

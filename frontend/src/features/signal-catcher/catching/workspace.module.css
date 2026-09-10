@@ -1,0 +1,12 @@
+.container { width: 100%; min-width: 0; }
+.toolbar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1.1rem 0; }
+.switch { display: inline-flex; flex: none; gap: 1.2rem; }
+.switch button { display: flex; gap: .45rem; align-items: center; padding: .65rem 0; border: 0; border-bottom: 2px solid transparent; background: transparent; color: var(--fog-dim); font: inherit; font-size: .8rem; cursor: pointer; }
+.switch button[aria-pressed="true"] { color: var(--chalk); border-bottom-color: var(--chalk); }
+.switch button:hover { color: var(--chalk); }
+.hint { margin: 0; font-size: .71rem; color: var(--fog); }
+.notice { color: var(--amber); font-size: .8rem; }
+.notice button { color: inherit; background: transparent; border: 0; font: inherit; cursor: pointer; text-decoration: underline; }
+.topology { grid-template-columns: minmax(14rem, .78fr) minmax(0, 1.42fr); }
+@media (max-width: 900px) { .topology { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 700px) { .hint { display: none; } .toolbar { padding: .75rem 0; } }

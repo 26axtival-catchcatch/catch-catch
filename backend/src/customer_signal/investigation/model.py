@@ -4,11 +4,18 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import math
 from collections.abc import Callable
 from typing import Any
 
-from botocore.exceptions import ClientError
+from botocore.exceptions import (
+    ClientError,
+    ConnectionClosedError,
+    ConnectTimeoutError,
+    EndpointConnectionError,
+    ReadTimeoutError,
+)
 from langchain_aws import ChatBedrockConverse
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage, ToolMessage
 from langchain_google_genai import ChatGoogleGenerativeAI
@@ -16,10 +23,26 @@ from langsmith import tracing_context
 from pydantic import BaseModel, ConfigDict, Field, SecretStr, ValidationError
 
 from customer_signal.agent.generic_gemini import _is_typed_not_found
+from customer_signal.investigation.activity import ActivityDetails, operation, tool_details
+from customer_signal.investigation.commentary import public_model_text
 from customer_signal.investigation.contracts import InvestigationResult, Verification
+from customer_signal.investigation.verification import (
+    VERIFIER_PREVIEW_ROWS,
+    bound_messages,
+    message_bytes,
+    recheck_candidate,
+    tool_preview,
+)
 from customer_signal.investigation.data import InvestigationData
 from customer_signal.observability.langfuse import build_langfuse_config, public_observation
 from customer_signal.signals.workbench import MeasureArgs, ProposeArgs
+
+
+logger = logging.getLogger(__name__)
+_BEDROCK_RETRY_DELAYS = (1, 2, 4)
+_BEDROCK_CONNECTION_ERRORS = (
+    ConnectionClosedError, ConnectTimeoutError, EndpointConnectionError, ReadTimeoutError,
+)
 
 
 class _NoArgs(BaseModel):
@@ -28,6 +51,12 @@ class _NoArgs(BaseModel):
 
 class _QueryArgs(_NoArgs):
     sql: str = Field(min_length=1)
+
+
+class _QueryPageArgs(_NoArgs):
+    query_id: str = Field(min_length=1)
+    offset: int = Field(default=0, ge=0)
+    limit: int = Field(default=20, ge=1, le=20)
 
 
 class _JourneyArgs(_NoArgs):
@@ -45,15 +74,32 @@ _TOOL_CONTRACTS = {
     ),
     "query_data": (
         _QueryArgs,
-        "Run one read-only DuckDB SELECT across the authorized data space. Returns a query_id, row count and at most 100 preview rows.",
+        "Run one read-only DuckDB SELECT across the authorized data space. Returns a query_id, full row count and a bounded preview. Full rows remain available through read_query_result.",
+    ),
+    "read_query_result": (
+        _QueryPageArgs,
+        "Read a page of a previously executed query by ID. Does not execute SQL or grant independent query ownership. Use query_data for independent verification.",
+    ),
+    "recheck_candidate": (
+        _NoArgs,
+        "Verifier only: independently re-execute the assigned candidate's SQL, read its representative journeys, and remeasure its signal in one call. Returns owned evidence, not a verdict. Review SQL semantics and query normal counterexamples or corrections as needed.",
     ),
     "customer_journey": (
         _JourneyArgs,
         "Read the ordered public journey for one customer_id found in this data space.",
     ),
-    "find_signals": (_NoArgs, "Find registered signals and fixed metric definitions before proposing duplicates."),
-    "measure_signal": (MeasureArgs, "Execute a reusable signal definition on its fixed source set in this run window. Returns server-calculated metrics and measurement_id. Never supply numeric values. Use SQL without fixed dates, customer IDs or sample LIMIT."),
-    "propose_signal": (ProposeArgs, "Propose a candidate using your own successful measurement_id. Does NOT register a signal; user selection is required. candidate_id must match your finish result."),
+    "find_signals": (
+        _NoArgs,
+        "Find registered signals and fixed metric definitions before proposing duplicates.",
+    ),
+    "measure_signal": (
+        MeasureArgs,
+        "Execute a reusable signal definition on its fixed source set in this run window. Returns server-calculated metrics and measurement_id. Never supply numeric values. Use SQL without fixed dates, customer IDs or sample LIMIT.",
+    ),
+    "propose_signal": (
+        ProposeArgs,
+        "Propose a candidate using your own successful measurement_id. Does NOT register a signal; user selection is required. candidate_id must match your finish result.",
+    ),
     "finish": (
         _FinishArgs,
         "Submit the role result as a JSON string matching the provided result_schema. Validation feedback permits correction.",
@@ -84,8 +130,19 @@ candidate in executed query IDs and representative journeys. No hidden ground-tr
 are available. State uncertainty and limitations explicitly; do not fabricate evidence or IDs.
 For cohort_query_id, execute a SELECT returning distinct customer_id rows for the entire cohort.
 Use aggregate queries for counts; preview rows may be truncated and are not the whole population.
-Only cite query IDs actually returned by query_data. The final result must follow result_schema
+Only cite query IDs actually returned by query_data or the verifier's recheck_candidate.
+recheck_candidate returns newly executed, independently owned queries and a fresh measurement;
+do not repeat successful unchanged checks just to call the individual tools again.
+Verifier query results may include cohort_table: an immutable full customer set owned by this task.
+JOIN that table for follow-up aggregates instead of repeating a long cohort CTE in each SELECT.
+Other tasks cannot query that table. Never use temporary cohort tables inside reusable signal definitions.
+The final result must follow result_schema
 and be submitted with finish(document=<JSON string>). Write public results in Korean.
+When useful, include a brief Korean public-facing progress update in your ordinary text
+alongside a tool batch: the next check or an observed high-level finding. These text updates
+are shown in the agent conversation. Do not expose private reasoning, SQL, raw rows, customer
+identifiers, credentials or tool argument JSON. Do not narrate routine tool names or invent
+findings. Updates need no extra tool or model call; submit final results with finish as usual.
 When signal_tools_enabled is true, investigators MUST measure_signal and propose_signal for
 supported candidates BEFORE finish when measurable. If a reusable metric cannot be established,
 retain the analytical candidate with explicit limitations; it stays unconfirmed and unregistrable.
@@ -100,11 +157,47 @@ The server counts DISTINCT customers and calculates percent. Optional metrics us
 All source tables are already restricted to the requested period: NEVER hardcode dates or customer IDs,
 never use LIMIT for cohort definitions. Use stable observed behavior, not invented labels or outcomes.
 If measurement fails, repair the SQL/definition, or omit unsupported optional metrics/denominator.
-Verifier MUST inspect every proposed definition and independently call measure_signal with it before
-confirming; its affected cohort must match the verifier's directly queried final cohort. If correcting
+Verifier MUST inspect every proposed definition and independently measure it through recheck_candidate
+or measure_signal before confirming; its affected cohort must match the verifier's directly queried
+final cohort. Mechanical replay does not validate SQL semantics or normal comparisons. If correcting
 the definition, call propose_signal with the same candidate_id and the new measurement first.
 Reporter explains proposed metrics and limitations; it cannot register or change definitions.
 No tool registers signals. Registration is a separate human-selected API action.
+"""
+
+_VERIFIER_PROMPT = """
+Minimize remote model round trips while preserving independent semantic verification.
+The server has already called recheck_candidate under YOUR task owner before your first response.
+Read that tool result and the assigned SQL/definition first. Successful prepared checks count as
+your independent evidence; do not repeat them or reread the same representative journeys.
+If the evidence suffices, submit finish immediately. Otherwise request ALL currently identifiable
+missing checks in ONE response: normal-cohort counterexamples, same-customer/intent feedback,
+event ordering and final resolution. Prefer compact grouped aggregates to paging through raw rows.
+Use the prepared cohort_table for joins. Every independent query belongs in the same tool batch,
+including a normal representative journey when its customer_id is already known.
+After receiving that batch, decide and finish. Another batch is warranted only for a concrete
+unresolved issue that could change the verdict or a failed query/definition that needs correction.
+Do not start a fresh exploratory investigation, repeat established counts, or collect more examples
+of an already established pattern. Missing behavioral proof must stay candidate/rejected; do not
+confirm merely to finish quickly. Do not request reinvestigation for optional enrichment.
+Keep reasons and limitations concise and cite the decisive query IDs, not every exploratory ID.
+"""
+
+_INVESTIGATOR_PROMPT = """
+Minimize remote model round trips while keeping the assignment's evidence complete.
+Request all currently independent checks in the SAME response: cohort and normal-group aggregates,
+intent/ordering/resolution evidence, and representative journeys whose customer IDs are known.
+After reading those results, request dependent checks together. Prefer grouped aggregates to
+raw-row enumeration, and do not repeat a successful count or journey already in the history.
+For each supported pattern, execute its full SELECT DISTINCT customer_id with query_data and
+retain that returned query_id for finish. measure_signal returns measurement_id and metric values;
+its internal SQL runs belong to a separate data space and cannot supply finish query IDs.
+Measure independent signal definitions in the same response, then propose them using the returned
+measurement IDs. Once the cohort, representative journeys, normal comparison and final resolution
+support a candidate, finish with concise decisive evidence. Continue only for an unresolved issue
+that could change the conclusion or a failed query/definition needing correction. Do not add
+optional examples just to enrich a supported pattern, or invent evidence to finish sooner.
+Missing evidence stays an explicit limitation or an unsupported candidate; do not force a result.
 """
 
 
@@ -181,7 +274,12 @@ class GeminiInvestigationModel:
         if self._api_key is None:
             raise self._error("not_configured", "API Key가 설정되지 않았습니다.")
         messages: list[BaseMessage] = [
-            SystemMessage(content=_SYSTEM_PROMPT),
+            SystemMessage(
+                content=_SYSTEM_PROMPT + (
+                    _VERIFIER_PROMPT if role == "verifier" else
+                    _INVESTIGATOR_PROMPT if role == "investigator" else ""
+                )
+            ),
             HumanMessage(
                 content=json.dumps(
                     {
@@ -197,7 +295,43 @@ class GeminiInvestigationModel:
                 )
             ),
         ]
+        if role == "verifier" and result_type is Verification:
+            # Mandatory local work needs no model decision or remote round trip.
+            # Keep this actual server-executed tool pair in the recoverable history;
+            # the entire result must reach the model before any verdict is accepted.
+            async with operation("tool", "recheck_candidate") as activity:
+                prepared = await self._run_tool(
+                    name="recheck_candidate",
+                    arguments={},
+                    data=data,
+                    result_type=result_type,
+                    task_id=task_id,
+                    context=context,
+                )
+                activity.details = tool_details("recheck_candidate", prepared)
+                activity.failed = activity.details.error_code is not None
+            messages.extend(
+                [
+                    AIMessage(
+                        content="Server-prepared mandatory verification checks.",
+                        tool_calls=[
+                            {
+                                "name": "recheck_candidate",
+                                "args": {},
+                                "id": "verification-precheck",
+                            }
+                        ],
+                    ),
+                    ToolMessage(
+                        content=json.dumps(prepared, ensure_ascii=False, default=str),
+                        tool_call_id="verification-precheck",
+                        name="recheck_candidate",
+                    ),
+                ]
+            )
         while True:
+            if role == "verifier":
+                messages = bound_messages(messages)
             response = await self._invoke(
                 messages,
                 role=role,
@@ -213,16 +347,33 @@ class GeminiInvestigationModel:
                 )
             for call in response.tool_calls:
                 name, arguments = call["name"], call["args"]
-                output = await self._run_tool(
-                    name=name,
-                    arguments=arguments,
-                    data=data,
-                    result_type=result_type,
-                    task_id=task_id,
-                    context=context,
-                )
+                async with operation("tool", name if name in _TOOL_CONTRACTS else "unknown_tool") as activity:
+                    if (
+                        result_type is Verification
+                        and name == "finish"
+                        and len(response.tool_calls) > 1
+                    ):
+                        # Review this batch before accepting a verdict, while still
+                        # publishing the rejected finish attempt to the activity stream.
+                        output = {
+                            "error": "finish_requires_separate_turn",
+                            "instruction": "Read this batch's tool results, then submit finish alone in the next response.",
+                        }
+                    else:
+                        output = await self._run_tool(
+                            name=name,
+                            arguments=arguments,
+                            data=data,
+                            result_type=result_type,
+                            task_id=task_id,
+                            context=context,
+                        )
+                    activity.details = tool_details(name, output)
+                    activity.failed = activity.details.error_code is not None
                 if isinstance(output, BaseModel):
                     return output
+                if role in {"investigator", "verifier"}:
+                    output = tool_preview(name, output)
                 messages.append(
                     ToolMessage(
                         content=json.dumps(output, ensure_ascii=False, default=str),
@@ -282,17 +433,36 @@ class GeminiInvestigationModel:
         ) as observation:
             try:
                 workbench = getattr(data, "signal_workbench", None)
-                if name in {"find_signals", "measure_signal", "propose_signal"}:
+                if name == "recheck_candidate":
+                    if result_type is not Verification:
+                        raise ValueError("recheck requires a verification assignment")
+                    output = await asyncio.to_thread(recheck_candidate, data, context or {})
+                elif name in {"find_signals", "measure_signal", "propose_signal"}:
                     if workbench is None:
                         raise ValueError("signal tools are not enabled for this run")
                     if isinstance(validated, MeasureArgs):
                         output = await asyncio.to_thread(workbench.measure, validated.definition)
                     elif isinstance(validated, ProposeArgs):
+                        if result_type is Verification and validated.candidate_id not in {
+                            c["candidate_id"] for c in (context or {}).get("candidates", [])
+                        }:
+                            raise ValueError("candidate is outside verification assignment")
                         output = workbench.propose(validated.candidate_id, validated.measurement_id)
                     else:
                         output = await asyncio.to_thread(workbench.find)
+                elif isinstance(validated, _QueryPageArgs):
+                    output = data.read_query_result(
+                        validated.query_id, offset=validated.offset, limit=validated.limit
+                    )
                 elif isinstance(validated, _QueryArgs):
-                    output = await asyncio.to_thread(data.query, validated.sql)
+                    options = (
+                        {"preview_limit": VERIFIER_PREVIEW_ROWS, "expose_cohort": True}
+                        if result_type is Verification
+                        else {"preview_limit": VERIFIER_PREVIEW_ROWS}
+                        if result_type is InvestigationResult
+                        else {}
+                    )
+                    output = await asyncio.to_thread(data.query, validated.sql, **options)
                 elif isinstance(validated, _JourneyArgs):
                     output = data.journey(validated.customer_id)
                 else:
@@ -358,6 +528,7 @@ class GeminiInvestigationModel:
         role: str,
         task_id: str,
         round_index: int,
+        retry_attempt: int | None = None,
     ) -> AIMessage:
         model = self._models.get(model_name)
         if model is None:
@@ -368,13 +539,27 @@ class GeminiInvestigationModel:
             run_name=f"customer_signal.{role}", provider=self.agent_mode, stage=role
         )
         config["metadata"].update(
-            task_id=task_id, round_index=round_index, role=role, model=model_name
+            task_id=task_id,
+            round_index=round_index,
+            role=role,
+            model=model_name,
+            context_bytes=message_bytes(messages),
         )
-        async with asyncio.timeout(self._timeout_seconds):
-            # Investigation uses Langfuse callbacks even if legacy LangSmith flags
-            # remain enabled in the process environment. Restore the caller's context.
-            with tracing_context(enabled=False):
-                return await chain.ainvoke(messages, config=config)
+        if retry_attempt is not None:
+            config["metadata"]["retry_attempt"] = retry_attempt
+        async with operation("model", "generation", model=model_name) as activity:
+            async with asyncio.timeout(self._timeout_seconds):
+                # Keep Langfuse callbacks while disabling legacy LangSmith tracing.
+                with tracing_context(enabled=False):
+                    response = await chain.ainvoke(messages, config=config)
+            if isinstance(response, AIMessage):
+                activity.commentary = public_model_text(response.content)
+                usage = response.usage_metadata or {}
+                activity.details = ActivityDetails(
+                    tool_count=len(response.tool_calls),
+                    input_tokens=usage.get("input_tokens"), output_tokens=usage.get("output_tokens"),
+                )
+            return response
 
     def _create_model(self, model_name: str):
         return self._model_factory(
@@ -402,6 +587,7 @@ class BedrockInvestigationModel(GeminiInvestigationModel):
         api_key: str | None,
         model: str,
         investigator_model: str | None = None,
+        verifier_model: str | None = None,
         region: str = "us-east-1",
         model_factory: Callable[..., Any] = ChatBedrockConverse,
         timeout_seconds: float | None = None,
@@ -410,6 +596,9 @@ class BedrockInvestigationModel(GeminiInvestigationModel):
             raise ValueError("Bedrock region and model must be nonblank")
         if investigator_model is not None and not investigator_model.strip():
             raise ValueError("Bedrock investigator model must be nonblank")
+        if verifier_model is not None and not verifier_model.strip():
+            raise ValueError("Bedrock verifier model must be nonblank")
+        self._verifier_model = (verifier_model or model).strip()
         self._investigator_model = (investigator_model or model).strip()
         self._region = region.strip()
         # Explicit selection: never silently downgrade or switch providers.
@@ -422,7 +611,43 @@ class BedrockInvestigationModel(GeminiInvestigationModel):
         )
 
     def _model_for_role(self, role: str) -> str:
+        if role == "verifier":
+            return self._verifier_model
         return self._investigator_model if role == "investigator" else self._primary_model
+
+    async def _invoke_model(
+        self,
+        model_name: str,
+        messages: list[BaseMessage],
+        *,
+        role: str,
+        task_id: str,
+        round_index: int,
+    ) -> AIMessage:
+        # Retry only the interrupted model request, never completed data tools.
+        # Each attempt retains its own activity and Langfuse generation span.
+        retry_attempt = 0
+        while True:
+            try:
+                return await super()._invoke_model(
+                    model_name,
+                    messages,
+                    role=role,
+                    task_id=task_id,
+                    round_index=round_index,
+                    retry_attempt=retry_attempt,
+                )
+            except _BEDROCK_CONNECTION_ERRORS as error:
+                if retry_attempt == len(_BEDROCK_RETRY_DELAYS):
+                    raise
+                delay = _BEDROCK_RETRY_DELAYS[retry_attempt]
+                retry_attempt += 1
+                # Provider messages can contain private payloads or credentials.
+                logger.warning(
+                    "Bedrock connection retry %d/%d in %ds (%s)",
+                    retry_attempt, len(_BEDROCK_RETRY_DELAYS), delay, type(error).__name__,
+                )
+                await asyncio.sleep(delay)
 
     def _create_model(self, model_name: str):
         return self._model_factory(
@@ -431,6 +656,7 @@ class BedrockInvestigationModel(GeminiInvestigationModel):
             api_key=SecretStr(self._api_key) if self._api_key else None,
             max_tokens=None,
             timeout=self._timeout_seconds,
+            # The async adapter owns retries, avoiding a second SDK retry loop.
             max_retries=0,
         )
 
@@ -508,7 +734,10 @@ def _reference_feedback(
                         if missing:
                             problem = "representative_not_reviewed"
                             representatives = sorted(missing)
-            if problem is None and (workbench := getattr(data, "signal_workbench", None)) is not None:
+            if (
+                problem is None
+                and (workbench := getattr(data, "signal_workbench", None)) is not None
+            ):
                 if workbench.verified_measurement(decision, task_id) is None:
                     problem = "independent_signal_measurement_required"
             if problem:

@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { FormEvent } from "react";
 
-import { SignalMark } from "../brand/Brand";
+import { AskScreen, type AskConditions } from "../ask/AskScreen";
+import type { SourceOption } from "../state/types";
 
 import { useSwipeDeck } from "./use-swipe-deck";
 import type { Briefing, BriefingSignal } from "./types";
@@ -11,12 +11,29 @@ import styles from "./briefing.module.css";
 
 interface BriefingScreenProps {
   briefing: Briefing;
+  /** 빈 브리핑 카드 안의 메인 입력값. */
+  question: string;
+  onQuestionChange: (value: string) => void;
   /** 카드의 "이 시그널 확인하기". 그 시그널의 리포트로 넘어간다. */
   onOpenSignal: (signal: BriefingSignal) => void;
-  /** "비슷한 걸 더 찾기"와 마지막 장의 입력. 지금 바로 훑어 본다. */
-  onAsk: (question: string) => void;
-  /** 상단 "＋ 지켜볼 것 요청하기". 다음 브리핑부터 반영되는 요청을 건다. */
-  onRequestWatch: (request: string) => void;
+  /** 빈 브리핑의 입력으로 지금 바로 훑어 본다. */
+  onAsk: (question: string, conditions: AskConditions) => void;
+  notice: string | null;
+  suggestedQuestions: string[];
+  sourceCount?: number | null;
+  fixedPeriodLabel?: string;
+  conditionsLocked?: boolean;
+  periodLocked?: boolean;
+  sourceOptions?: readonly SourceOption[];
+  initialStartAt?: string;
+  initialEndAt?: string;
+  loading?: boolean;
+  error?: string | null;
+  onRetry?: () => void;
+  loadingMore?: boolean;
+  loadMoreError?: string | null;
+  onLoadMore?: () => void;
+  sourceLabels?: Record<string, string>;
 }
 
 /**
@@ -46,345 +63,318 @@ function sparkPath(trend: number[]): string {
     .join(" ");
 }
 
-interface AskRowProps {
-  placeholder: string;
-  submitLabel: string;
-  value: string;
-  onChange: (value: string) => void;
-  onSubmit: () => void;
-  autoFocus?: boolean;
-  /** Esc 로 닫는다. 열어 둔 자리를 키보드만으로 되돌릴 수 있어야 한다. */
-  onCancel: () => void;
+function splitLead(text: string) {
+  const value = text.trim();
+  const sentenceEnd = value.search(/[.!?。](?:\s+|$)/);
+  if (sentenceEnd < 0) return { lead: value, detail: "" };
+  const end = sentenceEnd + 1;
+  return { lead: value.slice(0, end).trim(), detail: value.slice(end).trim() };
 }
 
-/** 요청/추가 질문이 쓰는 한 줄 입력. 두 자리가 같은 모양을 쓴다. */
-function AskRow({
-  placeholder,
-  submitLabel,
-  value,
-  onChange,
-  onSubmit,
-  autoFocus,
-  onCancel,
-}: AskRowProps) {
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    if (autoFocus) inputRef.current?.focus();
-  }, [autoFocus]);
-
-  function submit(event: FormEvent) {
-    event.preventDefault();
-    if (!value.trim()) return;
-    onSubmit();
-  }
-
-  return (
-    <form
-      className={styles.askRow}
-      onSubmit={submit}
-      onKeyDown={(event) => {
-        if (event.key === "Escape") onCancel();
-      }}
-    >
-      <span className={styles.askIcon} aria-hidden="true">⌕</span>
-      <input
-        ref={inputRef}
-        className={styles.askInput}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        placeholder={placeholder}
-        aria-label={placeholder}
-      />
-      <button type="submit" className={styles.askSubmit} disabled={!value.trim()}>
-        {submitLabel}
-      </button>
-    </form>
-  );
+function sourceSummary(sourceIds: string[], sourceLabels: Record<string, string>): string | null {
+  if (!sourceIds.length) return null;
+  const labels = [...new Set(sourceIds.map((id) => sourceLabels[id]).filter(Boolean))];
+  if (!labels.length) return `${sourceIds.length.toLocaleString("ko-KR")}개 데이터셋`;
+  if (labels.length <= 3) return labels.join(" · ");
+  return `${labels.slice(0, 3).join(" · ")} 외 ${labels.length - 3}개`;
 }
 
 export function BriefingScreen({
   briefing,
+  question,
+  onQuestionChange,
   onOpenSignal,
   onAsk,
-  onRequestWatch,
+  notice,
+  suggestedQuestions,
+  sourceCount,
+  fixedPeriodLabel,
+  conditionsLocked,
+  periodLocked,
+  sourceOptions,
+  initialStartAt,
+  initialEndAt,
+  loading = false,
+  error = null,
+  onRetry,
+  loadingMore = false,
+  loadMoreError = null,
+  onLoadMore,
+  sourceLabels = {},
 }: BriefingScreenProps) {
   const { signals } = briefing;
-  // 시그널 뒤에 "더 찾기" 한 장을 붙여 브리핑의 끝을 빈 화면으로 두지 않는다
-  const total = signals.length + 1;
-  const deck = useSwipeDeck(total);
+  // 훅은 빈 브리핑에서도 같은 순서로 호출하되, 실제 덱은 렌더링하지 않는다.
+  const deck = useSwipeDeck(Math.max(signals.length, 1));
 
-  const [talkOpen, setTalkOpen] = useState(false);
-  const [sheetOpen, setSheetOpen] = useState(false);
-  const [askText, setAskText] = useState("");
-  const [requestText, setRequestText] = useState("");
-  /** 방금 건 요청. 접수됐다는 것을 화면에서 바로 돌려준다. */
-  const [justRequested, setJustRequested] = useState<string | null>(null);
-  const talkRef = useRef<HTMLDivElement>(null);
-  const sheetRef = useRef<HTMLDivElement>(null);
+  const [exploreOpen, setExploreOpen] = useState(false);
+  const selectedSignalRef = useRef<string | null>(null);
+  const signalIdsRef = useRef("");
 
-  const current = deck.index < signals.length ? signals[deck.index] : null;
+  const current = signals[deck.index] ?? null;
+  const currentCopy = current ? splitLead(current.body) : null;
+  const currentSources = current ? sourceSummary(current.sourceIds, sourceLabels) : null;
+  const signalIds = signals.map((signal) => signal.id).join("\u0000");
 
-  function openTalk() {
-    setTalkOpen(true);
-    // 화면을 넘기지 않고 아래에 대화가 이어붙는다
-    requestAnimationFrame(() =>
-      talkRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" }),
-    );
-  }
+  useEffect(() => {
+    if (signalIdsRef.current && signalIdsRef.current !== signalIds) {
+      const selectedIndex = selectedSignalRef.current
+        ? signals.findIndex((signal) => signal.id === selectedSignalRef.current)
+        : -1;
+      if (selectedIndex >= 0) deck.go(selectedIndex);
+      else {
+        selectedSignalRef.current = signals[0]?.id ?? null;
+        deck.go(0);
+      }
+    }
+    signalIdsRef.current = signalIds;
+  }, [deck.go, signalIds, signals]);
 
-  function toggleSheet() {
-    setSheetOpen((open) => {
-      if (open) return false;
-      requestAnimationFrame(() =>
-        sheetRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" }),
-      );
-      return true;
-    });
-  }
+  useEffect(() => {
+    selectedSignalRef.current = signals[deck.index]?.id ?? null;
+    // 신호 목록이 갱신된 경우는 위 효과가 기존 ID를 먼저 복원한다.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [deck.index]);
 
-  function submitAsk() {
-    onAsk(askText.trim());
-    setAskText("");
-  }
-
-  function submitRequest() {
-    const request = requestText.trim();
-    onRequestWatch(request);
-    setJustRequested(request);
-    setRequestText("");
-    setSheetOpen(false);
-  }
+  useEffect(() => {
+    if (!exploreOpen && briefing.nextOffset !== null && deck.index >= signals.length - 1 && !loadingMore && !loadMoreError) onLoadMore?.();
+  }, [briefing.nextOffset, deck.index, exploreOpen, loadMoreError, loadingMore, onLoadMore, signals.length]);
 
   return (
     <div className={styles.screen}>
       {/* 요청 막대 — 지켜볼 것을 거는 자리가 항상 상단에 있다 */}
       <div className={styles.reqBar}>
         <p className={styles.date}>오늘의 브리핑 · {briefing.dateLabel}</p>
-        {briefing.requestCount > 0 ? (
+        {signals.length > 0 && briefing.requestCount > 0 ? (
           <span className={styles.reqCount}>내 요청 {briefing.requestCount}건 반영</span>
         ) : null}
-        <button
-          type="button"
-          className={styles.addReq}
-          onClick={toggleSheet}
-          aria-expanded={sheetOpen}
-        >
-          ＋ 지켜볼 것 요청하기
-        </button>
+        {signals.length > 0 ? (
+          <button
+            type="button"
+            className={styles.addReq}
+            onClick={() => setExploreOpen(true)}
+            aria-expanded={exploreOpen}
+            aria-controls="briefing-request"
+          >
+            ＋ 새 시그널 찾기
+          </button>
+        ) : null}
       </div>
 
-      <p className={styles.lede}>
-        <Highlight text={briefing.lede} />
-      </p>
+      {loading ? (
+        <article className={styles.briefingState} role="status">
+          <span className={styles.statePulse} aria-hidden="true" />
+          <div>
+            <b>지켜보는 변화를 모으고 있어요</b>
+            <p>지켜보는 변화의 최근 수치와 흐름을 불러옵니다.</p>
+          </div>
+        </article>
+      ) : error ? (
+        <article className={styles.briefingState} role="alert" data-error="true">
+          <div>
+            <b>브리핑을 불러오지 못했어요</b>
+            <p>{error}</p>
+          </div>
+          {onRetry ? <button type="button" onClick={onRetry}>다시 불러오기</button> : null}
+        </article>
+      ) : current ? (
+        <>
+          <h1 className={styles.lede}>
+            <Highlight text={briefing.lede} />
+          </h1>
 
-      <div
-        className={styles.deck}
-        tabIndex={0}
-        role="group"
-        aria-label="오늘의 시그널"
-        onKeyDown={(event) => {
-          if (event.key === "ArrowRight") {
-            event.preventDefault();
-            deck.step(1);
-          }
-          if (event.key === "ArrowLeft") {
-            event.preventDefault();
-            deck.step(-1);
-          }
-        }}
-        {...deck.handlers}
-      >
-        {current ? (
+          {exploreOpen ? (
+            <article id="briefing-request" className={styles.requestWorkspace} aria-label="새 시그널 찾기">
+              <AskScreen
+                mode="briefing-request"
+                question={question}
+                onQuestionChange={onQuestionChange}
+                onSubmit={(conditions) => onAsk(question, conditions)}
+                notice={notice}
+                suggestedQuestions={suggestedQuestions}
+                sourceCount={sourceCount}
+                fixedPeriodLabel={fixedPeriodLabel}
+                conditionsLocked={conditionsLocked}
+                periodLocked={periodLocked}
+                sourceOptions={sourceOptions}
+                initialStartAt={initialStartAt}
+                initialEndAt={initialEndAt}
+              />
+            </article>
+          ) : (
+          <>
+          <div
+            className={styles.deck}
+            tabIndex={0}
+            role="group"
+            aria-label="오늘의 브리핑"
+            onKeyDown={(event) => {
+              if (event.key === "ArrowRight") {
+                event.preventDefault();
+                deck.step(1);
+              }
+              if (event.key === "ArrowLeft") {
+                event.preventDefault();
+                deck.step(-1);
+              }
+            }}
+            {...deck.handlers}
+          >
           <article
             key={current.id}
             className={styles.card}
             style={deck.cardStyle}
             data-drag={deck.dragging ? "1" : undefined}
             data-from={deck.from ?? undefined}
+            aria-live="polite"
           >
             <p className={styles.kicker}>
-              시그널 {deck.index + 1} · {current.name}
+              브리핑 {deck.index + 1}
               {current.fromRequest ? (
                 <span className={styles.fromReq}>◆ 내 요청으로 잡음</span>
               ) : null}
               <span className={styles.count}>
-                {deck.index + 1} / {total}
+                {deck.index + 1} / {briefing.total}
               </span>
             </p>
             <h2 className={styles.headline}>
               <Highlight text={current.headline} />
             </h2>
-            <p className={styles.body}>{current.body}</p>
+            <p className={styles.body}>{currentCopy?.lead}</p>
+            {currentCopy?.detail ? (
+              <details className={styles.bodyDetails}>
+                <summary>분석 내용 자세히 <span aria-hidden="true">⌄</span></summary>
+                <p>{currentCopy.detail}</p>
+              </details>
+            ) : null}
+            {current.periodLabel ? <p className={styles.period}><b>관측 기간</b>{current.periodLabel}</p> : null}
+            {current.limitation ? <p className={styles.cardNote}><b>측정 참고</b>{current.limitation}</p> : null}
 
             <div className={styles.row}>
-              <ul className={styles.metrics}>
-                {current.metrics.map((metric) => (
-                  <li key={metric.label}>
-                    <span className={styles.metricLabel}>{metric.label}</span>
-                    <span className={styles.metricValue}>{metric.value}</span>
-                    <span className={styles.metricDelta} data-dir={metric.direction}>
-                      {metric.direction === "up" ? "▲" : "▼"} {metric.delta}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-              <svg
-                className={styles.spark}
-                viewBox="0 0 200 38"
-                preserveAspectRatio="none"
-                aria-hidden="true"
-              >
-                <path className={styles.sparkSoft} d="M0 21 L200 21" />
-                <path d={sparkPath(current.trend)} />
-              </svg>
+              <div className={styles.metricGroup}>
+                <p className={styles.sectionLabel}>주요 지표</p>
+                {current.metrics.length ? (
+                  <ul className={styles.metrics}>
+                    {current.metrics.map((metric) => (
+                      <li key={metric.label}>
+                        <span className={styles.metricLabel}>{metric.label}</span>
+                        <span className={styles.metricValue}>{metric.value}</span>
+                        <span className={styles.metricDelta} data-dir={metric.direction}>
+                          {metric.direction === "up" ? "이전 측정 대비 ▲ " : metric.direction === "down" ? "이전 측정 대비 ▼ " : ""}
+                          {metric.delta}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className={styles.metricEmpty}>비교할 첫 측정값을 준비하고 있어요.</p>
+                )}
+              </div>
+              {current.trend.length >= 2 ? (
+                <div className={styles.trend}>
+                  <p className={styles.sectionLabel}>최근 흐름</p>
+                  <svg
+                    className={styles.spark}
+                    viewBox="0 0 200 38"
+                    preserveAspectRatio="none"
+                    aria-hidden="true"
+                  >
+                    <path className={styles.sparkSoft} d="M0 21 L200 21" />
+                    <path d={sparkPath(current.trend)} />
+                  </svg>
+                </div>
+              ) : null}
             </div>
 
+            <div className={styles.signalMeta}>
+              <span><b>분석 기준</b>{current.evidenceNote}</span>
+              {currentSources ? <span><b>확인한 데이터</b>{currentSources}</span> : null}
+            </div>
             <div className={styles.acts}>
               <button type="button" className={styles.btn} onClick={() => onOpenSignal(current)}>
-                이 시그널 확인하기
+                시그널 상세 보기
               </button>
-              <button type="button" className={styles.more} onClick={openTalk}>
-                비슷한 걸 더 찾기
+              <button type="button" className={styles.ghost} onClick={() => loadMoreError ? onLoadMore?.() : deck.step(1)}>
+                {loadingMore ? "다음 시그널 불러오는 중…" : loadMoreError ? "다음 시그널 다시 불러오기" : "다음 시그널"}
               </button>
-              <button type="button" className={styles.ghost} onClick={() => deck.step(1)}>
-                넘기기
-              </button>
-              <span className={styles.hint}>{current.evidenceNote}</span>
             </div>
           </article>
-        ) : (
-          <article
-            key="last"
-            className={`${styles.card} ${styles.last}`}
-            style={deck.cardStyle}
-            data-drag={deck.dragging ? "1" : undefined}
-            data-from={deck.from ?? undefined}
-          >
-            <p className={styles.kicker}>
-              오늘 브리핑 끝
-              <span className={styles.count}>
-                {total} / {total}
-              </span>
-            </p>
-            <h2 className={styles.headline}>
-              오늘 잡은 건 여기까지예요. <b>더 찾아볼까요?</b>
-            </h2>
-            <p className={styles.body}>
-              말씀해 주시면 그 구간을 훑어서 시그널이 될 만한 것을 찾고, 바로 와쳐를 걸 수 있게
-              정리해 드립니다.
-            </p>
-            <button type="button" className={styles.openAsk} onClick={openTalk}>
-              <span className={styles.askIcon} aria-hidden="true">⌕</span>
-              <span className={styles.openAskText}>{briefing.askPlaceholder}</span>
-            </button>
-            <p className={styles.backlog}>
-              지난 브리핑에서 넘긴 것 {briefing.backlogCount}건 · 관찰 중인 실험{" "}
-              {briefing.watchingCount}건
-            </p>
-          </article>
-        )}
-      </div>
-
-      <p className={styles.swipeHint} data-off={deck.touched ? "1" : undefined}>
-        <i aria-hidden="true">‹</i> 좌우로 드래그해 넘겨보세요 <i aria-hidden="true">›</i>
-      </p>
-
-      <div className={styles.rest}>
-        {signals.map((signal, i) => (
-          <button
-            key={signal.id}
-            type="button"
-            className={styles.chip}
-            data-cur={deck.index === i ? "1" : undefined}
-            aria-current={deck.index === i}
-            onClick={() => deck.go(i)}
-          >
-            {i + 1} · {signal.chipLabel}
-          </button>
-        ))}
-        <button
-          type="button"
-          className={`${styles.chip} ${styles.chipAdd}`}
-          data-cur={deck.index === signals.length ? "1" : undefined}
-          aria-current={deck.index === signals.length}
-          onClick={() => deck.go(signals.length)}
-        >
-          ⊕ 더 찾기
-        </button>
-      </div>
-
-      {/* 지켜볼 것 요청 — 다음 브리핑에 반영된다 */}
-      {sheetOpen ? (
-        <div className={styles.sheet} ref={sheetRef}>
-          <p className={styles.sheetTitle}>무엇을 지켜볼까요 — 다음 브리핑부터 반영됩니다</p>
-          <AskRow
-            placeholder={briefing.askPlaceholder}
-            submitLabel="요청 추가"
-            value={requestText}
-            onChange={setRequestText}
-            onSubmit={submitRequest}
-            onCancel={() => setSheetOpen(false)}
-            autoFocus
-          />
-          <ul className={styles.suggestions}>
-            {briefing.suggestions.map((item) => (
-              <li key={item}>
-                <button type="button" onClick={() => setRequestText(item)}>
-                  {item}
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
-
-      {!sheetOpen && justRequested ? (
-        <p className={styles.requested} role="status">
-          <b>“{justRequested}”</b> 를 지켜보기로 했어요. 다음 브리핑부터 반영됩니다.
-        </p>
-      ) : null}
-
-      {/* 지금 더 찾기 — 화면을 넘기지 않고 대화가 이어붙는다 */}
-      {talkOpen ? (
-        <div className={styles.talk} ref={talkRef}>
-          <div className={styles.bubble}>
-            <span className={styles.avatar}>
-              <SignalMark size={12} />
-            </span>
-            <p>무엇을 지켜볼까요? 구간이나 상황을 말해 주시면 그 자리에 와쳐를 겁니다.</p>
           </div>
-          <AskRow
-            placeholder={briefing.askPlaceholder}
-            submitLabel="추적 시작"
-            value={askText}
-            onChange={setAskText}
-            onSubmit={submitAsk}
-            onCancel={() => setTalkOpen(false)}
-            autoFocus
-          />
-          <ul className={styles.suggestions} data-indent="1">
-            {briefing.suggestions.map((item) => (
-              <li key={item}>
-                <button type="button" onClick={() => setAskText(item)}>
-                  {item}
-                </button>
-              </li>
+
+          <p className={styles.swipeHint} data-off={deck.touched ? "1" : undefined}>
+            <i aria-hidden="true">‹</i> 좌우로 드래그해 넘겨보세요 <i aria-hidden="true">›</i>
+          </p>
+          </>
+          )}
+
+          <div className={styles.rest} aria-label="브리핑 목록">
+            {signals.map((signal, i) => (
+              <button
+                key={signal.id}
+                type="button"
+                className={styles.chip}
+                data-cur={!exploreOpen && deck.index === i ? "1" : undefined}
+                aria-current={!exploreOpen && deck.index === i ? "true" : undefined}
+                onClick={() => {
+                  setExploreOpen(false);
+                  deck.go(i);
+                }}
+              >
+                {i + 1} · {signal.chipLabel}
+              </button>
             ))}
-          </ul>
+            <button
+              type="button"
+              className={`${styles.chip} ${styles.chipAdd}`}
+              data-cur={exploreOpen ? "1" : undefined}
+              aria-current={exploreOpen ? "true" : undefined}
+              onClick={() => setExploreOpen(true)}
+            >
+              ＋ 새 시그널 찾기
+            </button>
+          </div>
+        </>
+      ) : (
+        <article className={styles.emptyBriefing} aria-label="브리핑 없음">
+          <div className={styles.emptyStatus}>
+            <span className={styles.emptyPulse} aria-hidden="true" />
+            <p>
+              <b>오늘 먼저 알려드릴 변화는 없어요.</b>
+              <span>브리핑을 기다리지 않고 직접 찾아볼 수 있어요.</span>
+            </p>
+          </div>
+          <AskScreen
+            mode="empty-briefing"
+            question={question}
+            onQuestionChange={onQuestionChange}
+            onSubmit={(conditions) => onAsk(question, conditions)}
+            notice={notice}
+            suggestedQuestions={suggestedQuestions}
+            sourceCount={sourceCount}
+            fixedPeriodLabel={fixedPeriodLabel}
+            conditionsLocked={conditionsLocked}
+            periodLocked={periodLocked}
+            sourceOptions={sourceOptions}
+            initialStartAt={initialStartAt}
+            initialEndAt={initialEndAt}
+          />
+        </article>
+      )}
+
+      {signals.length > 0 ? (
+        <div className={styles.foot}>
+          <span>
+            캐치 중 {briefing.watchingCount}건
+            {briefing.pastDates.length ? (
+              <>
+                {" · 최근 측정 "}
+                {briefing.pastDates.map((date) => (
+                  <span key={date} className={styles.mono}>{date}</span>
+                ))}
+              </>
+            ) : null}
+          </span>
         </div>
       ) : null}
-
-      <div className={styles.foot}>
-        <span>
-          관찰 중인 실험 {briefing.watchingCount}건 · 지난 브리핑{" "}
-          {briefing.pastDates.map((date) => (
-            <span key={date} className={styles.mono}>
-              {date}
-            </span>
-          ))}
-        </span>
-      </div>
     </div>
   );
 }

@@ -4,8 +4,9 @@ import { useEffect, useRef, useState } from "react";
 
 import type { SourceId } from "../../customer-intelligence/contracts";
 import { PLACEHOLDER_QUESTIONS, SOURCE_OPTIONS, SUGGESTIONS } from "../state/mock";
+import type { SourceOption } from "../state/types";
 
-import { ComposerMenu, PERIOD_CHOICES, REQUIRED_SOURCE, type PeriodChoice } from "./ComposerMenu";
+import { ComposerMenu, PERIOD_CHOICES, isRequiredSource, type PeriodChoice } from "./ComposerMenu";
 import { TypewriterPlaceholder } from "./TypewriterPlaceholder";
 import styles from "./ask.module.css";
 
@@ -34,14 +35,30 @@ function SignalFlow({ side }: { side: "left" | "right" }) {
   );
 }
 
+export interface AskConditions {
+  enabledSources: SourceId[];
+  startAt: string;
+  endAt: string;
+}
+
 interface AskScreenProps {
   question: string;
   onQuestionChange: (value: string) => void;
-  onSubmit: () => void;
+  onSubmit: (conditions: AskConditions) => void;
   /** unsupported_analysis 또는 실패로 되돌아왔을 때의 안내 문구. */
   notice: string | null;
   /** 되돌아왔을 때 백엔드가 준 대안 질문. 있으면 제안 카드를 대체한다. */
   suggestedQuestions: string[];
+  /** 브리핑이 비었을 때 스티치 카드 안에 같은 입력 경험을 넣는다. */
+  mode?: "standalone" | "empty-briefing" | "briefing-request";
+  /** 라이브 Run은 핸드오프의 고정 주간과 서버 등록 Source 전체를 사용한다. */
+  sourceCount?: number | null;
+  fixedPeriodLabel?: string;
+  conditionsLocked?: boolean;
+  periodLocked?: boolean;
+  sourceOptions?: readonly SourceOption[];
+  initialStartAt?: string;
+  initialEndAt?: string;
 }
 
 export function AskScreen({
@@ -50,13 +67,56 @@ export function AskScreen({
   onSubmit,
   notice,
   suggestedQuestions,
+  mode = "standalone",
+  sourceCount,
+  fixedPeriodLabel,
+  conditionsLocked = false,
+  periodLocked = false,
+  sourceOptions,
+  initialStartAt,
+  initialEndAt,
 }: AskScreenProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [typing, setTyping] = useState(false);
   const [sending, setSending] = useState(false);
-  const [sources, setSources] = useState<SourceId[]>(() => SOURCE_OPTIONS.map((item) => item.id));
-  const [period, setPeriod] = useState<PeriodChoice>(PERIOD_CHOICES[1]);
+  const displayedSources = sourceOptions ?? SOURCE_OPTIONS;
+  const [sources, setSources] = useState<SourceId[]>(() =>
+    displayedSources.map((item) => item.id),
+  );
+  const [period, setPeriod] = useState<PeriodChoice>(() =>
+    initialStartAt && initialEndAt
+      ? {
+          key: "api-default",
+          label: fixedPeriodLabel ?? `${initialStartAt} – ${initialEndAt}`,
+          startAt: initialStartAt,
+          endAt: initialEndAt,
+        }
+      : PERIOD_CHOICES[1],
+  );
   const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    if (!sourceOptions) return;
+    const available = new Set(sourceOptions.map((item) => item.id));
+    setSources((current) => {
+      const retained = current.filter((id) => available.has(id));
+      return retained.length ? retained : sourceOptions.map((item) => item.id);
+    });
+  }, [sourceOptions]);
+
+  useEffect(() => {
+    if (!initialStartAt || !initialEndAt) return;
+    setPeriod((current) =>
+      current.startAt === initialStartAt && current.endAt === initialEndAt
+        ? current
+        : {
+            key: "api-default",
+            label: fixedPeriodLabel ?? `${initialStartAt} – ${initialEndAt}`,
+            startAt: initialStartAt,
+            endAt: initialEndAt,
+          },
+    );
+  }, [fixedPeriodLabel, initialEndAt, initialStartAt]);
 
   useEffect(() => {
     const node = inputRef.current;
@@ -77,7 +137,7 @@ export function AskScreen({
   }, [question]);
 
   function toggleSource(id: SourceId) {
-    if (id === REQUIRED_SOURCE) return;
+    if (isRequiredSource(id)) return;
     setSources((prev) => (prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]));
   }
 
@@ -91,12 +151,20 @@ export function AskScreen({
     // 파형이 입력창으로 빨려 들어간 뒤에 화면을 넘긴다.
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (reduced) {
-      onSubmit();
+      onSubmit({
+        enabledSources: sources,
+        startAt: period.startAt,
+        endAt: period.endAt,
+      });
       return;
     }
     setTyping(false);
     setSending(true);
-    window.setTimeout(onSubmit, SEND_MS);
+    window.setTimeout(() => onSubmit({
+      enabledSources: sources,
+      startAt: period.startAt,
+      endAt: period.endAt,
+    }), SEND_MS);
   }
 
   const cards = suggestedQuestions.length
@@ -104,10 +172,20 @@ export function AskScreen({
     : SUGGESTIONS.map((item) => ({ ...item }));
 
   return (
-    <div className={styles.screen}>
+    <div className={styles.screen} data-mode={mode}>
       <div className={styles.center}>
-        <p className={styles.kicker}>고객은 말보다 먼저 신호를 보냅니다</p>
-        <h1 className={styles.title}>고객의 시그널을 찾아보세요</h1>
+        <p className={styles.kicker}>
+          {mode === "empty-briefing"
+            ? "아직 도착한 브리핑이 없어요"
+            : mode === "briefing-request"
+              ? "새로 지켜볼 변화를 찾아요"
+            : "고객은 말보다 먼저 신호를 보냅니다"}
+        </p>
+        <h1 className={styles.title}>
+          {mode === "empty-briefing" || mode === "briefing-request"
+            ? "지금 궁금한 고객의 신호를 찾아볼까요?"
+            : "고객의 시그널을 찾아보세요"}
+        </h1>
 
         {notice ? (
           <div className={styles.notice} role="status">
@@ -118,9 +196,9 @@ export function AskScreen({
         <div className={styles.composerWrap}>
           <div className={styles.tokens}>
             <span className={styles.token}>
-              데이터셋 {sources.length}
+              데이터셋 {sourceCount === null && !sources.length ? "확인 중" : sources.length}
             </span>
-            <span className={styles.token}>{period.label}</span>
+            <span className={styles.token}>{fixedPeriodLabel ?? period.label}</span>
           </div>
 
           <div
@@ -140,8 +218,9 @@ export function AskScreen({
               <button
                 type="button"
                 className={styles.plus}
-                aria-label="분석 조건 추가"
+                aria-label={conditionsLocked ? "분석 조건은 시연 기준으로 고정됨" : "분석 조건 추가"}
                 aria-expanded={menuOpen}
+                disabled={conditionsLocked}
                 onClick={() => setMenuOpen((prev) => !prev)}
               >
                 +
@@ -167,7 +246,7 @@ export function AskScreen({
                 <TypewriterPlaceholder phrases={PLACEHOLDER_QUESTIONS} paused={question.length > 0} />
               </div>
 
-              <button type="submit" className={styles.go} aria-label="시그널 캐치하기">
+              <button type="submit" className={styles.go} aria-label="고객 변화 찾기">
                 <svg width="18" height="18" viewBox="0 0 20 20" aria-hidden="true">
                   <circle cx="8.6" cy="8.6" r="6" fill="none" stroke="currentColor" strokeWidth="2" />
                   <path
@@ -180,13 +259,14 @@ export function AskScreen({
                 </svg>
               </button>
 
-              {menuOpen ? (
+              {menuOpen && !conditionsLocked ? (
                 <ComposerMenu
-                  sources={SOURCE_OPTIONS}
+                  sources={displayedSources}
                   selected={sources}
                   period={period}
                   onToggleSource={toggleSource}
                   onSelectPeriod={setPeriod}
+                  periodLocked={periodLocked}
                   onClose={() => setMenuOpen(false)}
                 />
               ) : null}

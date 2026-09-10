@@ -80,6 +80,7 @@ export default defineConfig({
     },
     {
       command: [
+        `E2E_FRONTEND_PORT=${shellQuote(frontendPort)}`,
         "make serve-frontend",
         `BACKEND_PORT=${shellQuote(backendPort)}`,
         `FRONTEND_PORT=${shellQuote(frontendPort)}`,

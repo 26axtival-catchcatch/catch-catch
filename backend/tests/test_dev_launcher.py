@@ -1,10 +1,70 @@
+import json
 import os
+import shlex
 import shutil
 import subprocess
+import sys
 from pathlib import Path
+
+import pytest
 
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
+
+
+@pytest.mark.parametrize(
+    ("target", "seed_path", "source_override"),
+    [
+        ("dev", "data/seeding/hackathon-2week", None),
+        ("dev-bedrock", "data/custom seed", None),
+        ("dev", "data/seeding/hackathon-2week", "data/custom sources"),
+    ],
+)
+def test_make_dev_seeds_before_launch_and_passes_source_directory(
+    tmp_path: Path, target: str, seed_path: str, source_override: str | None
+) -> None:
+    shutil.copyfile(REPOSITORY_ROOT / "Makefile", tmp_path / "Makefile")
+    (tmp_path / "backend").symlink_to(REPOSITORY_ROOT / "backend", target_is_directory=True)
+    (tmp_path / "scripts").mkdir()
+    # Replace only the long-running server launch; execute the real seed CLI.
+    (tmp_path / "scripts/dev.sh").write_text(
+        f"exec {shlex.quote(sys.executable)} - \"$1\" <<'PY'\n"
+        "import json, os, sys\n"
+        "from pathlib import Path\n"
+        "source_dir = Path(os.environ.get('ONBOARDED_SOURCES_DIR', 'missing'))\n"
+        "Path('launched.json').write_text(json.dumps({\n"
+        "    'mode': sys.argv[1], 'source_dir': str(source_dir),\n"
+        "    'seed_ready': Path(os.environ['EXPECTED_SEED_PATH'], 'manifest.json').is_file(),\n"
+        "    'sources': sorted(p.parent.name for p in source_dir.glob('*/spec.json')),\n"
+        "}))\n"
+        "PY\n",
+        encoding="utf-8",
+    )
+    environment = {k: v for k, v in os.environ.items() if k != "ONBOARDED_SOURCES_DIR"}
+    environment["EXPECTED_SEED_PATH"] = seed_path
+    if source_override is not None:
+        environment["ONBOARDED_SOURCES_DIR"] = source_override
+
+    subprocess.run(
+        ["make", target, f"HACKATHON_SEED_PATH={seed_path}"],
+        cwd=tmp_path, env=environment, check=True, capture_output=True, text=True,
+    )
+
+    launched = json.loads((tmp_path / "launched.json").read_text())
+    assert launched["seed_ready"] is True
+    assert launched["mode"] == "bedrock"
+    assert launched["source_dir"] == (source_override or f"{seed_path}/onboarded-sources")
+    if source_override is None:
+        assert set(launched["sources"]) == {
+            "hackathon_app_behavior",
+            "hackathon_billing_profile",
+            "hackathon_crm_campaign",
+            "hackathon_roaming_usage",
+            "hackathon_search_feedback",
+            "hackathon_search_history",
+            "hackathon_vas_subscription",
+            "hackathon_voc",
+        }
 
 
 def _normalized(path: Path) -> str:

@@ -1,0 +1,586 @@
+.scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: grid;
+  place-items: center;
+  padding: 1.25rem;
+  background: rgb(12 7 9 / 76%);
+  backdrop-filter: blur(10px);
+  animation: fade 180ms ease both;
+}
+
+.modal {
+  width: min(47rem, 100%);
+  max-height: min(49rem, calc(100vh - 2.5rem));
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid color-mix(in srgb, var(--signal) 28%, var(--line));
+  border-radius: 1.25rem;
+  background:
+    radial-gradient(circle at 72% -20%, rgb(255 46 152 / 17%), transparent 19rem),
+    var(--raise);
+  box-shadow: 0 30px 90px rgb(0 0 0 / 58%);
+  animation: appear 300ms var(--ease) both;
+}
+
+.head {
+  display: flex;
+  align-items: flex-start;
+  gap: 1.5rem;
+  padding: 1.6rem 1.75rem 1.15rem;
+}
+
+.head > div {
+  min-width: 0;
+}
+
+.eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0 0 0.45rem;
+  color: var(--signal-soft);
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.16em;
+}
+
+.eyebrow span {
+  width: 0.48rem;
+  height: 0.48rem;
+  border-radius: 50%;
+  background: var(--signal);
+  box-shadow: 0 0 0 5px var(--signal-wash);
+}
+
+.head h2,
+.done h2 {
+  margin: 0;
+  color: var(--chalk);
+  font-size: clamp(1.35rem, 4vw, 1.85rem);
+  font-weight: 600;
+  line-height: 1.35;
+  letter-spacing: -0.025em;
+}
+
+.head > div > p:last-child,
+.done > p:nth-of-type(2) {
+  margin: 0.55rem 0 0;
+  color: var(--fog);
+  font-size: 0.9rem;
+  line-height: 1.65;
+}
+
+.close {
+  flex: none;
+  margin-left: auto;
+  width: 2rem;
+  height: 2rem;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: var(--card);
+  color: var(--fog);
+  font-size: 0.72rem;
+}
+
+.close:hover {
+  border-color: var(--fog-dim);
+  color: var(--chalk);
+}
+
+.controlBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.72rem 1.75rem;
+  border-block: 1px solid var(--line-soft);
+  background: color-mix(in srgb, var(--card) 68%, transparent);
+  color: var(--fog-dim);
+  font-size: 0.76rem;
+}
+
+.controlBar label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--fog);
+  cursor: pointer;
+}
+
+.allChoice input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.controlHeart {
+  width: 1rem;
+  height: 1rem;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 0.3rem;
+  background: var(--card-2);
+  color: transparent;
+}
+
+.controlHeart svg {
+  fill: currentColor;
+}
+
+.allChoice input:checked + .controlHeart {
+  border-color: var(--signal);
+  background: var(--signal);
+  color: var(--u-white);
+}
+
+.allChoice input:focus-visible + .controlHeart {
+  outline: 2px solid var(--signal);
+  outline-offset: 3px;
+}
+
+.controlBar b {
+  color: var(--signal-soft);
+  font-weight: 500;
+}
+
+.body {
+  min-height: 11rem;
+  overflow-y: auto;
+  padding: 1rem 1.75rem 0.65rem;
+}
+
+.loading,
+.empty {
+  min-height: 11rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.7rem;
+  margin: 0;
+  color: var(--fog);
+  font-size: 0.86rem;
+}
+
+.loading i {
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid var(--line);
+  border-top-color: var(--signal);
+  border-radius: 50%;
+  animation: spin 700ms linear infinite;
+}
+
+.metricList {
+  list-style: none;
+  display: grid;
+  gap: 0.62rem;
+  margin: 0;
+  padding: 0;
+}
+
+.metricList li {
+  display: grid;
+  grid-template-columns: minmax(11rem, 1.25fr) minmax(5.5rem, 0.55fr) minmax(12.5rem, 1fr);
+  align-items: center;
+  gap: 0.8rem 1rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--card) 78%, transparent);
+  transition: border-color 160ms ease, background 160ms ease, opacity 160ms ease;
+}
+
+.metricList li[data-step="metric"] {
+  grid-template-columns: minmax(11rem, 1fr) auto;
+}
+
+.metricList li[data-selected="true"] {
+  border-color: color-mix(in srgb, var(--signal) 48%, var(--line));
+  background: linear-gradient(90deg, var(--signal-wash), var(--card) 32%);
+}
+
+.metricList li[data-selected="false"] {
+  opacity: 0.58;
+}
+
+.metricChoice {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.68rem;
+  cursor: pointer;
+}
+
+.metricChoice input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.checkmark {
+  flex: none;
+  width: 1.35rem;
+  height: 1.35rem;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 0.38rem;
+  background: var(--card-2);
+  color: transparent;
+  font-size: 0.72rem;
+  transition: 160ms ease;
+}
+
+.checkmark svg,
+.doneMark svg {
+  display: block;
+  fill: currentColor;
+}
+
+.metricChoice input:focus-visible + .checkmark {
+  outline: 2px solid var(--signal);
+  outline-offset: 3px;
+}
+
+.metricChoice input:checked + .checkmark {
+  border-color: var(--signal);
+  background: var(--signal);
+  color: var(--u-white);
+}
+
+.metricName {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  color: var(--chalk);
+  font-size: 0.85rem;
+  font-weight: 500;
+  line-height: 1.35;
+}
+
+.metricName small {
+  margin-top: 0.24rem;
+  overflow: hidden;
+  color: var(--fog-dim);
+  font-family: var(--font-mono);
+  font-size: 0.57rem;
+  font-weight: 400;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.current {
+  display: flex;
+  flex-direction: column;
+  gap: 0.05rem;
+}
+
+.current span {
+  color: var(--fog-dim);
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  letter-spacing: 0.08em;
+}
+
+.current strong {
+  color: var(--chalk);
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+.threshold {
+  min-width: 7.4rem;
+}
+
+.threshold label {
+  height: 2.35rem;
+  border: 1px solid var(--line);
+  border-radius: 0.55rem;
+  background: var(--card-2);
+}
+
+.threshold label {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  padding: 0 0.62rem;
+}
+
+.threshold input {
+  min-width: 0;
+  width: 100%;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--chalk);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.threshold em {
+  flex: none;
+  color: var(--fog-dim);
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-style: normal;
+}
+
+.threshold input:disabled {
+  cursor: not-allowed;
+}
+
+.ruleOperator {
+  color: var(--fog);
+  font-size: 0.72rem;
+  text-align: right;
+}
+
+.aiNote {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin: -0.18rem 0 0 2.05rem;
+  color: var(--fog-dim);
+  font-size: 0.68rem;
+  line-height: 1.45;
+}
+
+.aiNote b {
+  flex: none;
+  padding: 0.08rem 0.42rem;
+  border: 1px solid color-mix(in srgb, var(--signal) 30%, transparent);
+  border-radius: 100px;
+  background: var(--signal-wash);
+  color: var(--signal-soft);
+  font-family: var(--font-mono);
+  font-size: 0.57rem;
+  font-weight: 500;
+}
+
+.loadNote {
+  margin: 0.75rem 0 0;
+  padding: 0.55rem 0.7rem;
+  border-radius: 0.5rem;
+  background: var(--amber-wash);
+  color: var(--fog);
+  font-size: 0.7rem;
+  line-height: 1.5;
+}
+
+.foot {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 0.85rem 1rem;
+  padding: 1rem 1.75rem 1.25rem;
+  border-top: 1px solid var(--line-soft);
+  background: color-mix(in srgb, var(--raise) 94%, transparent);
+}
+
+.foot > div {
+  display: flex;
+  flex-direction: column;
+}
+
+.foot > .actions {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.foot > div strong {
+  color: var(--chalk);
+  font-size: 0.82rem;
+  font-weight: 500;
+}
+
+.foot > div span {
+  color: var(--fog-dim);
+  font-size: 0.67rem;
+}
+
+.submit {
+  min-height: 2.55rem;
+  border: 0;
+  border-radius: 0.65rem;
+  padding: 0.65rem 1rem;
+  background: var(--signal);
+  color: var(--u-white);
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  box-shadow: 0 7px 24px rgb(255 46 152 / 20%);
+}
+
+.back {
+  min-height: 2.55rem;
+  border: 1px solid var(--line);
+  border-radius: 0.65rem;
+  padding: 0.65rem 0.9rem;
+  background: var(--card);
+  color: var(--fog);
+  font: inherit;
+  font-size: 0.76rem;
+}
+
+.back:hover:not(:disabled) {
+  border-color: var(--fog-dim);
+  color: var(--chalk);
+}
+
+.submit:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
+.submit:disabled {
+  background: var(--card-2);
+  color: var(--fog-dim);
+  box-shadow: none;
+}
+
+.error {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--amber);
+  font-size: 0.72rem;
+}
+
+.persistenceNote {
+  grid-column: 1 / -1;
+  margin: -0.45rem 0 0;
+  color: var(--fog-dim);
+  font-size: 0.61rem;
+}
+
+.done {
+  position: relative;
+  min-height: 27rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 2rem;
+  text-align: center;
+}
+
+.done .close {
+  position: absolute;
+  top: 1.4rem;
+  right: 1.4rem;
+}
+
+.doneMark {
+  width: 4.5rem;
+  height: 4.5rem;
+  display: grid;
+  place-items: center;
+  margin-bottom: 1.3rem;
+  border: 1px solid var(--signal);
+  border-radius: 50%;
+  background: var(--signal-wash);
+  color: var(--signal);
+  font-size: 1.5rem;
+  box-shadow: 0 0 0 0.8rem rgb(255 46 152 / 5%);
+}
+
+.done .eyebrow {
+  margin-bottom: 0.6rem;
+}
+
+.done > p:nth-of-type(2) {
+  max-width: 29rem;
+}
+
+.done .submit {
+  margin-top: 1.5rem;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes fade {
+  from { opacity: 0; }
+}
+
+@keyframes appear {
+  from {
+    opacity: 0;
+    transform: translateY(0.75rem) scale(0.985);
+  }
+}
+
+@media (max-width: 43rem) {
+  .scrim {
+    place-items: end center;
+    padding: 0;
+  }
+
+  .modal {
+    max-height: 94vh;
+    border-radius: 1.25rem 1.25rem 0 0;
+  }
+
+  .head,
+  .body,
+  .foot {
+    padding-inline: 1.1rem;
+  }
+
+  .controlBar {
+    padding-inline: 1.1rem;
+  }
+
+  .metricList li {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .metricChoice {
+    grid-column: 1 / -1;
+  }
+
+  .threshold {
+    min-width: 8rem;
+  }
+
+  .aiNote {
+    margin-left: 0;
+  }
+
+  .foot {
+    grid-template-columns: 1fr;
+  }
+
+  .submit {
+    width: 100%;
+  }
+
+  .foot > .actions {
+    width: 100%;
+  }
+
+  .foot > .actions .back {
+    flex: 0 0 auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scrim,
+  .modal,
+  .loading i {
+    animation: none;
+  }
+}

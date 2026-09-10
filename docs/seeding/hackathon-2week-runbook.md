@@ -66,10 +66,22 @@ uv run --project backend python -m customer_signal.seeding.cli \
 
 ## 4. 시스템 실행
 
-해커톤 데모는 Gemini 실모드를 기준으로 실행합니다. 환경 파일을 shell에서 `source`하지
-않고 Backend 실행 명령에만 전달합니다.
+`make dev`는 해커톤 데이터를 시딩하고 8개 Source를 연결한 뒤 Bedrock 모드로
+Backend와 Frontend를 시작합니다. `make dev-bedrock`도 같은 동작입니다.
+환경 파일을 shell에서 `source`하지 않고 Backend 실행 명령에만 전달합니다.
 
 ```bash
+make dev
+```
+
+매번 `make seed-hackathon`으로 기존 생성물을 갱신합니다. 생성 경로를 바꾸려면
+`make dev HACKATHON_SEED_PATH=data/seeding/custom`을 사용합니다. Backend가
+별도 Source 폴더를 읽어야 하면 `ONBOARDED_SOURCES_DIR`를 명시합니다.
+
+Gemini 모드는 데이터를 먼저 시딩한 뒤 실행합니다.
+
+```bash
+make seed-hackathon
 ENV_FILE=.env \
 ONBOARDED_SOURCES_DIR=data/seeding/hackathon-2week/onboarded-sources \
   bash scripts/dev.sh gemini

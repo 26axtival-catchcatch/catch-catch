@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import asyncio
+
 from collections.abc import AsyncIterator, Callable, Sequence
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
@@ -23,6 +25,9 @@ from customer_signal.investigation.model import BedrockInvestigationModel, Gemin
 from customer_signal.investigation.runner import InvestigationRunner
 from customer_signal.signals.api import create_router as create_signal_router
 from customer_signal.signals.store import SignalStore
+from customer_signal.signals.service import SignalService
+from customer_signal.signals.scheduling import DailyScheduler, ScheduleStore
+from customer_signal.signals.alert_recommendations import create_recommender
 from customer_signal.analytics.executor import PrimitiveExecutor
 from customer_signal.analytics.models import CustomerJourneyResult, EvidenceResult
 from customer_signal.analytics.service import AnalyticsService
@@ -59,6 +64,7 @@ from customer_signal.runtime.artifact_store import (
 )
 from customer_signal.runtime.artifacts import ArtifactListResponse
 from customer_signal.runtime.document_renderer import render_document, render_markdown_bytes
+from customer_signal.runtime.events import RunEventEnvelope
 from customer_signal.runtime.wire_projection import restore_wire_events
 from customer_signal.runtime.run_store import (
     InvalidLastEventIdError,
@@ -251,6 +257,7 @@ def _default_dependencies(settings: Settings) -> ApiDependencies:
                 api_key=bedrock_key.get_secret_value(),
                 model=settings.bedrock_model,
                 investigator_model=settings.bedrock_investigator_model,
+                verifier_model=settings.bedrock_verifier_model,
                 region=settings.aws_region,
             ),
             data_factory=lambda request: InvestigationData.load(refresh_sources()[0], request),
@@ -302,7 +309,7 @@ _OPENAPI_TAGS = [
     {"name": "system", "description": "서비스 상태 확인"},
     {"name": "sources", "description": "분석에 사용할 수 있는 공개 Source 목록"},
     {"name": "runs", "description": "분석 Run 생성, 상태 조회, SSE 이벤트, 후속 조회"},
-    {"name": "signals", "description": "사용자 선택 시그널 등록과 기간별 정량 측정"},
+    {"name": "signals", "description": "시그널 등록, 일별 측정, 임계점 추천과 알림 이벤트 폴링"},
     {"name": "run-artifacts", "description": "완료된 Run Artifact 조회와 다운로드"},
 ]
 
@@ -317,15 +324,23 @@ def create_app(
     resolved = dependencies or _default_dependencies(resolved_settings)
     mcp_http_app = resolved.mcp_server.http_app(path="/")
 
+    signal_scheduler = None
+
     @asynccontextmanager
     async def api_lifespan(_app: FastAPI):
         if resolved.journal is not None:
             # The journal is the source of truth: rebuild replayable SSE
             # histories for restored Runs before serving traffic.
             await restore_wire_events(resolved.journal, resolved.store)
+        scheduler_task = None
+        if signal_scheduler is not None and resolved_settings.signal_scheduler_enabled:
+            scheduler_task = asyncio.create_task(signal_scheduler.run(), name="daily-signals")
         try:
             yield {}
         finally:
+            if scheduler_task is not None:
+                signal_scheduler.stop()
+                await scheduler_task
             await resolved.coordinator.close()
             journal_close = getattr(resolved.journal, "close", None)
             if journal_close is not None:
@@ -406,8 +421,15 @@ def create_app(
                 raise ValueError("source registry unavailable")
             return InvestigationData.load(registry, request)
 
+        signal_scheduler = DailyScheduler(
+            ScheduleStore(resolved.signal_store),
+            SignalService(store=resolved.signal_store, load_data=signal_data),
+            poll_seconds=resolved_settings.signal_scheduler_poll_seconds,
+        )
+        app.state.signal_scheduler = signal_scheduler
         app.include_router(create_signal_router(
             store=resolved.signal_store, is_completed=completed_signal_run, load_data=signal_data,
+            recommend=create_recommender(resolved_settings),
         ))
 
     @app.get("/health", tags=["system"], summary="서비스 상태 확인")
@@ -494,6 +516,8 @@ def create_app(
         response_class=EventSourceResponse,
         tags=["runs"],
         summary="Run 이벤트 SSE 스트림",
+        responses={200: {"model": RunEventEnvelope,
+                         "description": "SSE의 각 data JSON 계약. agent_activity는 역할 토폴로지와 모델/도구 진행을 전달하며 message_kind로 대화 설명·요약을 구분합니다."}},
     )
     async def stream_run_events(
         run_id: str,

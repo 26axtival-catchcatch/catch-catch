@@ -2,11 +2,16 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import type { AgentActivity } from "../../customer-intelligence/agent-activity";
+import type { AnyRunStreamEvent } from "../../customer-intelligence/contracts";
+
 import {
   CLARIFICATION,
   DEMO_QUESTION,
   DEGRADED_LIMITATIONS,
+  EVIDENCE,
   REPORT,
+  SOURCE_OPTIONS,
   STAGES,
   STAGE_TICKS,
   UNSUPPORTED_SUGGESTIONS,
@@ -14,11 +19,14 @@ import {
 import type {
   CatchReport,
   CatchSession,
+  EvidenceMap,
   RunOutcome,
   Stage,
   StageKey,
   StageTick,
+  SourceOption,
 } from "./types";
+import { useLiveCatchSession } from "./use-live-catch-session";
 
 /**
  * 데모 시연용 분기. `?clarify=1` 처럼 붙여 엣지케이스 화면을 그대로 재현한다.
@@ -41,8 +49,8 @@ export type ViewParam = "result" | "trace" | "action";
  */
 export type MainScreen = "ask" | "briefing";
 
-/** 지금의 기본 첫 화면. 브리핑으로 갈아끼울 때 이 값만 바꾼다. */
-const DEFAULT_MAIN: MainScreen = "ask";
+/** 일반 접속은 목업 시그널 없이 실제 API 질문을 받는 empty-briefing 화면이다. */
+const DEFAULT_MAIN: MainScreen = "briefing";
 
 const PAUSE_KEYS: PauseAt[] = ["goal", "plan", "analyze", "insight", "verify", "complete", "clarify"];
 
@@ -103,6 +111,8 @@ export interface DemoOptions {
   view: ViewParam | null;
   /** ask 단계에서 그릴 첫 화면. */
   main: MainScreen;
+  /** 브리핑 API가 시그널을 하나도 주지 않은 경우를 재현한다. */
+  briefingEmpty: boolean;
 }
 
 export function useDemoOptions(): DemoOptions {
@@ -113,6 +123,7 @@ export function useDemoOptions(): DemoOptions {
     burst: "heart",
     view: null,
     main: DEFAULT_MAIN,
+    briefingEmpty: true,
   }));
 
   useEffect(() => {
@@ -140,7 +151,9 @@ export function useDemoOptions(): DemoOptions {
       : params.get("main") === "ask"
         ? "ask"
         : DEFAULT_MAIN;
-    setOptions({ flags, pause, speed, burst, view, main });
+    // 기본은 실제 API용 빈 브리핑이다. 목업 카드는 명시적인 QA 옵션에서만 연다.
+    const briefingEmpty = params.get("briefing") !== "mock";
+    setOptions({ flags, pause, speed, burst, view, main, briefingEmpty });
   }, []);
 
   return options;
@@ -155,20 +168,44 @@ export interface CatchSessionController {
   tick: StageTick | null;
   /** 지나간 진행 문장까지 포함한 로그. 화면은 뒤에서 몇 줄만 보여준다. */
   log: (StageTick & { stage: StageKey })[];
-  start: (question: string, options?: { ignoreFlags?: boolean }) => void;
+  /** 실제 역할 실행과 그 아래 모델·도구 호출의 최신 공개 상태. */
+  activities: AgentActivity[];
+  /** Catching 토폴로지가 서버에서 받은 순서 그대로 사용하는 공개 SSE 이벤트. */
+  topologyEvents: AnyRunStreamEvent[];
+  start: (question: string, options?: CatchStartOptions) => void;
   /** 실패 화면에서 같은 질문으로 다시 실행한다. */
   retry: () => void;
   answerClarification: (answer: string) => void;
   restore: (view: ViewParam, question: string) => void;
+  /** 저장된 Run을 API에서 다시 불러와 공유 가능한 결과 경로를 복원한다. */
+  restoreRun: (runId: string, view?: ViewParam) => void;
   openTrace: () => void;
   closeTrace: () => void;
   /** 액션 상세로 이동. 어떤 액션인지는 셸이 따로 들고 있는다. */
   openAction: () => void;
   closeAction: () => void;
+  evidence: EvidenceMap;
+  evidenceLoadingId: string | null;
+  evidenceErrorId: string | null;
+  loadEvidence: (evidenceId: string) => void;
+  sourceCount: number | null;
+  periodLabel: string;
+  conditionsLocked: boolean;
+  periodLocked: boolean;
+  sourceOptions: readonly SourceOption[];
+  periodStartAt: string;
+  periodEndAt: string;
   reset: () => void;
 }
 
-export function useCatchSession({ flags, pause, speed, view }: DemoOptions): CatchSessionController {
+export interface CatchStartOptions {
+  ignoreFlags?: boolean;
+  enabledSources?: string[];
+  startAt?: string;
+  endAt?: string;
+}
+
+function useMockCatchSession({ flags, pause, speed, view }: DemoOptions): CatchSessionController {
   const [session, setSession] = useState<CatchSession>(IDLE_SESSION);
   const [bursting, setBursting] = useState(false);
   const [flatline, setFlatline] = useState(false);
@@ -348,7 +385,7 @@ export function useCatchSession({ flags, pause, speed, view }: DemoOptions): Cat
   );
 
   const start = useCallback(
-    (question: string, options?: { ignoreFlags?: boolean }) => {
+    (question: string, options?: CatchStartOptions) => {
       clearTimers();
       setBursting(false);
       setFlatline(false);
@@ -387,6 +424,11 @@ export function useCatchSession({ flags, pause, speed, view }: DemoOptions): Cat
       report: REPORT,
     });
   }, [clearTimers]);
+
+  const restoreRun = useCallback((runId: string, next: ViewParam = "result") => {
+    void runId;
+    restore(next, DEMO_QUESTION);
+  }, [restore]);
 
   useEffect(() => {
     if (pause || !view) return;
@@ -455,6 +497,10 @@ export function useCatchSession({ flags, pause, speed, view }: DemoOptions): Cat
     setSession(IDLE_SESSION);
   }, [clearTimers]);
 
+  const loadEvidence = useCallback((_evidenceId: string) => {
+    // Mock Evidence는 이미 메모리에 있으므로 별도 요청이 필요 없다.
+  }, []);
+
   return useMemo(
     () => ({
       session,
@@ -462,14 +508,28 @@ export function useCatchSession({ flags, pause, speed, view }: DemoOptions): Cat
       flatline,
       tick,
       log,
+      activities: [],
+      topologyEvents: [],
       start,
       retry,
       restore,
+      restoreRun,
       answerClarification,
       openTrace,
       closeTrace,
       openAction,
       closeAction,
+      evidence: EVIDENCE,
+      evidenceLoadingId: null,
+      evidenceErrorId: null,
+      loadEvidence,
+      sourceCount: SOURCE_OPTIONS.length,
+      periodLabel: "최근 14일",
+      conditionsLocked: false,
+      periodLocked: false,
+      sourceOptions: SOURCE_OPTIONS,
+      periodStartAt: "2026-08-05",
+      periodEndAt: "2026-08-19",
       reset,
     }),
     [
@@ -481,12 +541,30 @@ export function useCatchSession({ flags, pause, speed, view }: DemoOptions): Cat
       start,
       retry,
       restore,
+      restoreRun,
       answerClarification,
       openTrace,
       closeTrace,
       openAction,
       closeAction,
+      loadEvidence,
       reset,
     ],
   );
+}
+
+/**
+ * URL 시연 옵션은 기존 결정론적 Mock을 유지하고, 일반 사용자 흐름은 실제 Run API를 쓴다.
+ * 두 훅을 항상 같은 순서로 호출해 React의 Hook 규칙을 지킨다.
+ */
+export function useCatchSession(
+  options: DemoOptions,
+  initialRunId?: string,
+): CatchSessionController {
+  const mock = useMockCatchSession(options);
+  const live = useLiveCatchSession();
+  const usesMock = Boolean(
+    options.pause || options.flags.size || (options.view && !initialRunId),
+  );
+  return usesMock ? mock : live;
 }

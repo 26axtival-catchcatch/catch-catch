@@ -1,0 +1,58 @@
+.prose {
+  min-width: 0;
+  color: var(--chalk);
+  font-size: .875rem;
+  line-height: 1.85;
+  overflow-wrap: anywhere;
+  word-break: keep-all;
+}
+.prose > :first-child { margin-top: 0; }
+.prose > :last-child { margin-bottom: 0; }
+.prose p { margin: .7em 0; white-space: pre-line; }
+.prose :is(h3, h4, h5, h6) {
+  margin: 1.25em 0 .45em;
+  font-family: var(--font-body);
+  font-size: 1em;
+  font-weight: 600;
+  line-height: 1.6;
+  letter-spacing: 0;
+}
+.prose strong { font-weight: 600; }
+.prose :is(ul, ol) { margin: .6em 0; padding-left: 1.4em; }
+.prose li { padding-left: .15em; margin: .25em 0; }
+.prose li::marker { color: var(--fog); }
+.prose li > p { margin: .25em 0; }
+.prose blockquote {
+  margin: .8em 0;
+  padding: .1em 0 .1em 1em;
+  border-left: 2px solid var(--line);
+  color: var(--fog);
+}
+.prose blockquote p { margin: .2em 0; }
+.prose a { color: inherit; text-decoration: underline; text-underline-offset: .2em; text-decoration-color: var(--fog-dim); }
+.prose a:hover { text-decoration-color: currentColor; }
+.prose code { font-family: var(--font-mono); font-size: .87em; }
+.prose :not(pre) > code { padding: .12em .35em; border-radius: 3px; background: var(--card-2); box-decoration-break: clone; }
+.prose pre {
+  max-width: 100%;
+  margin: .8em 0;
+  padding: .85em 1em;
+  overflow-x: auto;
+  background: var(--ground);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-sm);
+  white-space: pre;
+  line-height: 1.7;
+  tab-size: 2;
+}
+.prose pre code { white-space: inherit; overflow-wrap: normal; word-break: normal; }
+.tableScroll { max-width: 100%; overflow-x: auto; margin: .9em 0; scrollbar-width: thin; }
+.prose .tableScroll table { width: 100%; min-width: 0; border-collapse: collapse; font-size: .88em; }
+.prose .tableScroll :is(th, td) { padding: .6em .85em; border: 0; border-bottom: 1px solid var(--line-soft); white-space: normal; vertical-align: top; text-align: left; }
+.prose .tableScroll th { font-weight: 500; color: var(--fog); background: none; }
+.prose hr { margin: 1.2em 0; border: 0; border-top: 1px solid var(--line-soft); }
+.prose input[type="checkbox"] { width: .9em; height: .9em; margin-right: .4em; accent-color: var(--fog); }
+.prose :global(.contains-task-list) { list-style: none; padding-left: 0; }
+.prose :global(.footnotes) { font-size: .8em; color: var(--fog); border-top: 1px solid var(--line-soft); margin-top: 1em; }
+.imageAlt { color: var(--fog); font-style: italic; }
+@media (max-width: 700px) { .prose { font-size: .82rem; } }

@@ -1,0 +1,112 @@
+/* Role colors identify the Catch team. They never imply verification or confidence. */
+.room {
+  --character-coordinator: var(--signal-soft);
+  --character-investigator: #b5adf1;
+  --character-verifier: #9bd5c4;
+  --character-reporter: #e9c896;
+  --agent-accent: var(--signal-soft);
+  display: grid;
+  grid-template-columns: 15.5rem minmax(0, 1fr);
+  height: clamp(28rem, calc(100dvh - 19rem), 46rem);
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--ground) 84%, transparent);
+}
+.room [data-role="coordinator"] { --agent-accent: var(--character-coordinator); }
+.room [data-role="investigator"] { --agent-accent: var(--character-investigator); }
+.room [data-role="verifier"] { --agent-accent: var(--character-verifier); }
+.room [data-role="reporter"] { --agent-accent: var(--character-reporter); }
+.sidebar { display: flex; flex-direction: column; min-width: 0; min-height: 0; border-right: 1px solid var(--line-soft); background: color-mix(in srgb, var(--card) 40%, transparent); }
+.sidebarHeader { display: flex; justify-content: space-between; align-items: center; gap: .5rem; padding: 1.4rem 1.15rem 1.1rem; color: var(--fog); font-size: .72rem; }
+.sidebarHeader > div { display: grid; gap: .2rem; }
+.teamKicker { font: 400 .58rem var(--font-mono); letter-spacing: .14em; color: var(--signal-soft); }
+.sidebarHeader strong { font-size: .82rem; font-weight: 500; color: var(--chalk); }
+.sidebarHeader b { font: 400 .68rem var(--font-mono); color: var(--fog-dim); }
+.participants { display: flex; flex-direction: column; gap: .25rem; overflow-y: auto; padding: 0 .6rem 1rem; }
+.participant { display: flex; align-items: center; gap: .65rem; width: 100%; padding: .8rem .6rem; border: 1px solid transparent; border-radius: var(--radius-sm); background: transparent; color: var(--fog); text-align: left; cursor: pointer; font: inherit; transition: background 160ms var(--ease), color 160ms var(--ease); }
+.participant:hover { background: color-mix(in srgb, var(--chalk) 4%, transparent); }
+.participant[aria-pressed="true"] { color: var(--chalk); background: color-mix(in srgb, var(--agent-accent) 9%, transparent); border-color: color-mix(in srgb, var(--agent-accent) 30%, transparent); }
+.participant:focus-visible, .viewport:focus-visible { outline-offset: -2px; }
+.avatar { position: relative; flex: none; display: grid; place-items: center; width: 2.8rem; height: 2.8rem; color: var(--agent-accent); }
+.avatar svg { display: block; width: 100%; height: 100%; }
+.avatar[data-active="true"]::after { content: ""; position: absolute; inset: -3px; border: 1px solid currentColor; border-radius: 50%; animation: listening 2.6s var(--ease) infinite; }
+.participantText { display: grid; gap: .18rem; min-width: 0; }
+.participantText strong { color: var(--agent-accent); font-size: .87rem; font-weight: 500; }
+.participantText small { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: .62rem; color: var(--fog); }
+.messageCount { margin-left: auto; font: 400 .66rem var(--font-mono); color: var(--fog); }
+.statusDot { flex: none; width: 5px; height: 5px; border-radius: 50%; margin-left: auto; background: var(--fog-dim); }
+.statusDot[data-status="started"][data-halted="false"] { background: var(--signal); }
+.statusDot[data-status="failed"], .statusDot[data-status="cancelled"] { background: var(--amber); }
+.sidebarNote { margin: auto 1.25rem 1.4rem; padding-top: 1.5rem; color: var(--fog); font-size: .72rem; line-height: 1.85; }
+.sidebarNote p { margin: .8rem 0 0; }
+.clueTrail { display: flex; align-items: center; width: 6rem; gap: .85rem; color: var(--signal-soft); }
+.clueTrail i { width: 5px; height: 5px; border: 1px solid currentColor; border-radius: 50%; }
+.clueTrail i:nth-child(2) { opacity: .5; }.clueTrail i:nth-child(3) { opacity: .75; }
+.clueTrail b { font-size: 1.25rem; font-weight: 400; }
+.thread { position: relative; display: flex; min-width: 0; min-height: 0; flex-direction: column; }
+.threadHeader { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: 1.35rem 1.8rem; border-bottom: 1px solid var(--line-soft); }
+.threadHeader h2 { margin: 0; color: var(--chalk); font-size: 1.15rem; font-weight: 600; letter-spacing: -.02em; }
+.threadHeader p { margin: .25rem 0 0; color: var(--fog); font-size: .74rem; line-height: 1.6; }
+.live { flex: none; display: flex; align-items: center; gap: .45rem; color: var(--fog); font-size: .67rem; }
+.live i { width: 5px; height: 5px; border-radius: 50%; background: var(--fog-dim); }
+.live[data-active="true"] { color: var(--signal-soft); }
+.live[data-active="true"] i { background: var(--signal); animation: breathe 2s var(--ease) infinite; }
+.viewport { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: var(--line) transparent; padding: 0 1.8rem 1.5rem; overflow-anchor: none; }
+.day { display: flex; align-items: center; gap: .85rem; margin: 1.3rem 0 1.6rem; color: var(--fog-dim); font-size: .62rem; }
+.day::after { content: ""; flex: 1; height: 1px; background: var(--line-soft); }
+.messageGroup { position: relative; display: flex; align-items: flex-start; gap: .75rem; margin: 1.3rem 0 0; }
+.messageGroup > .avatar { width: 3rem; height: 3rem; margin-top: .15rem; }
+.messageGroup::before { content: ""; position: absolute; left: 1.5rem; top: 3.6rem; bottom: -1rem; border-left: 1px dashed var(--line); }
+.viewport > div:last-child .messageGroup::before { display: none; }
+.groupBody { flex: 1; min-width: 0; padding: 1rem 1.1rem 1.1rem; border: 1px solid color-mix(in srgb, var(--agent-accent) 16%, var(--line-soft)); border-radius: 3px 14px 14px; background: color-mix(in srgb, var(--agent-accent) 3%, var(--card)); }
+.author { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; margin: 0 0 .7rem; color: var(--agent-accent); font-size: .87rem; font-weight: 600; }
+.roleLabel { font-weight: 400; font-size: .64rem; color: var(--fog); }
+.author small { color: var(--fog); font-size: .62rem; font-weight: 400; }
+.messages { display: grid; gap: .95rem; list-style: none; margin: 0; padding: 0; }
+.message { width: 100%; min-width: 0; max-width: 48rem; }
+.message + .message { padding-top: .95rem; border-top: 1px solid var(--line-soft); }
+.messageMeta { display: flex; flex-wrap: wrap; align-items: center; gap: .65rem; margin: 0 0 .45rem; font-size: .62rem; color: var(--fog); }
+.messageMeta time { font: 400 .6rem var(--font-mono); color: var(--fog-dim); }
+.message[data-kind="summary"] .messageMeta > span { font-weight: 500; color: var(--chalk); }
+.evidence { margin-top: .75rem; padding-top: .65rem; border-top: 1px dashed var(--line); color: var(--fog); font-size: .72rem; }
+.evidence summary { width: fit-content; cursor: pointer; }
+.evidence > div { margin-top: .6rem; color: var(--fog); font-size: .8rem; }
+.threadFooter { position: relative; display: flex; justify-content: space-between; gap: .6rem; padding: .85rem 1.8rem; color: var(--fog-dim); font-size: .63rem; border-top: 1px solid var(--line-soft); }
+.latest { position: absolute; right: 1.5rem; bottom: calc(100% + .8rem); padding: .6rem 1rem; border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--card-2); color: var(--chalk); font: inherit; font-size: .76rem; box-shadow: var(--shadow); cursor: pointer; }
+.latest:hover { border-color: var(--fog-dim); }
+.empty { display: flex; height: 100%; min-height: 13rem; flex-direction: column; align-items: center; justify-content: center; gap: .8rem; padding: 1.2rem 0; text-align: center; }
+.emptyMark { display: grid; place-items: center; width: 5rem; height: 5rem; margin-bottom: .3rem; color: var(--signal-soft); }
+.emptyMark svg { width: 100%; height: 100%; }
+.empty strong { color: var(--chalk); font-size: .9rem; font-weight: 500; }
+.empty p { max-width: 23rem; margin: 0; color: var(--fog); font-size: .77rem; line-height: 1.8; }
+.error { display: flex; justify-content: space-between; align-items: center; gap: .6rem; padding: .8rem 1.8rem; background: var(--amber-wash); color: var(--amber); font-size: .77rem; }
+.error button { flex: none; border: 0; background: transparent; color: inherit; cursor: pointer; font: inherit; text-decoration: underline; text-underline-offset: .2em; }
+@keyframes listening { 50% { opacity: .2; transform: scale(1.06); } }
+@keyframes breathe { 50% { opacity: .4; } }
+@media (max-width: 700px) {
+  .room { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); height: min(46rem, 80dvh); min-height: 32rem; border-radius: 12px; }
+  .sidebar { border-right: 0; border-bottom: 1px solid var(--line-soft); }
+  .sidebarHeader { padding: .85rem .9rem .45rem; font-size: .65rem; }
+  .participants { flex-direction: row; gap: .35rem; overflow-x: auto; padding: .2rem .7rem .8rem; scrollbar-width: thin; }
+  .participant { width: auto; flex: none; gap: .45rem; padding: .5rem .6rem; border: 1px solid var(--line-soft); }
+  .participant[aria-pressed="true"] { border-color: color-mix(in srgb, var(--agent-accent) 40%, transparent); }
+  .participantText strong { font-size: .71rem; }
+  .participantText small, .sidebarNote, .messageCount, .participant .statusDot { display: none; }
+  .participant .avatar { width: 1.8rem; height: 1.8rem; }
+  .threadHeader { padding: 1rem .9rem; gap: .5rem; align-items: flex-start; }
+  .threadHeader h2 { font-size: .95rem; }
+  .threadHeader p { font-size: .69rem; }
+  .live { font-size: .6rem; padding-top: .35rem; }
+  .viewport { padding-inline: .7rem; padding-bottom: 1.2rem; }
+  .day { margin: 1.1rem 0 1.25rem; }
+  .messageGroup { display: block; margin-top: 1.1rem; }
+  .messageGroup > .avatar { position: absolute; left: .7rem; top: .75rem; width: 2rem; height: 2rem; margin: 0; }
+  .messageGroup::before { display: none; }
+  .groupBody { padding: .8rem; border-radius: 10px; }
+  .author { min-height: 2rem; padding-left: 2.4rem; align-content: center; font-size: .8rem; }
+  .threadFooter { padding: .8rem .9rem; }
+  .error { padding: .7rem; }
+}
+@media (prefers-reduced-motion: reduce) { .live i, .avatar::after { animation: none !important; } .participant { transition: none; } }

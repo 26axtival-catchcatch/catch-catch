@@ -6,11 +6,23 @@ from collections.abc import Callable
 from typing import Literal
 from uuid import uuid4
 
-from fastapi import APIRouter, HTTPException, Response
+from fastapi import APIRouter, HTTPException, Query, Response
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, model_validator
 
+from customer_signal.observability.langfuse import LangfuseRunContext
+from customer_signal.signals.briefing import SignalBriefingList, briefing_card
 from customer_signal.signals.contracts import Measurement, Proposal, Signal, SignalDefinition
 from customer_signal.signals.service import MeasurementUnavailable, SignalService
+from customer_signal.signals.comparison import (
+    MeasurementComparison, compare_measurements, comparison_limitations,
+)
+from customer_signal.signals.schedule_contracts import DailyResults, DailySchedule, ScheduleUpdate
+from customer_signal.signals.scheduling import ScheduleBusy, ScheduleStore
+from customer_signal.signals.alert_api import create_alert_router
+from customer_signal.signals.alert_recommendations import fixture_recommendations
+from customer_signal.signals.fast_forward import (
+    FastForwardConflict, FastForwardRequest, FastForwardResult, FastForwardService,
+)
 
 
 class RequestModel(BaseModel):
@@ -67,21 +79,7 @@ def history_response(items: list[Measurement]) -> MeasurementHistory:
         if previous is None or item.status == "success" or previous.status != "success":
             latest[key] = item
     windows = sorted(latest.values(), key=lambda m: (m.start_at, m.end_at))
-    reasons = []
-    if len(windows) < 2:
-        reasons.append("비교할 관측 기간이 두 개 이상 필요합니다.")
-    if any(m.status != "success" for m in windows):
-        reasons.append("측정 불가 기간이 포함되어 있습니다. 0건으로 해석하지 마세요.")
-    if len({(m.end_at - m.start_at).total_seconds() for m in windows}) > 1:
-        reasons.append("관측 기간의 길이가 다릅니다.")
-    if len({m.definition_fingerprint for m in windows}) > 1:
-        reasons.append("지표 정의가 다릅니다.")
-    if len({tuple(m.source_ids) for m in windows}) > 1:
-        reasons.append("측정 Source 범위가 다릅니다.")
-    if len({str(sorted(getattr(m, "source_versions", {}).items())) for m in windows}) > 1:
-        reasons.append("Source 매핑 또는 스키마 버전이 다릅니다.")
-    if any(a.end_at > b.start_at for a, b in zip(windows, windows[1:])):
-        reasons.append("관측 기간이 겹칩니다.")
+    reasons = comparison_limitations(windows)
     return MeasurementHistory(
         items=items,
         latest_by_window=windows,
@@ -90,9 +88,16 @@ def history_response(items: list[Measurement]) -> MeasurementHistory:
     )
 
 
-def create_router(*, store, is_completed: Callable[[str], bool], load_data: Callable) -> APIRouter:
+def create_router(
+    *, store, is_completed: Callable[[str], bool], load_data: Callable,
+    recommend: Callable = fixture_recommendations,
+) -> APIRouter:
     router = APIRouter(tags=["signals"])
-    service = SignalService(store=store, load_data=load_data)
+    service = SignalService(store=store, load_data=load_data, recommend=recommend)
+    schedules = ScheduleStore(store)
+    fast_forward_service = FastForwardService(service)
+    # Alert router declares the shared tag itself; avoid duplicate inherited tags.
+    alert_router = create_alert_router(service=service)
 
     def signal_or_404(signal_id):
         try:
@@ -163,6 +168,9 @@ def create_router(*, store, is_completed: Callable[[str], bool], load_data: Call
                 ) from None
         proposal = proposal_or_404(request.proposal_id)
         require_completed(proposal.run_id)
+        response.headers["X-Langfuse-Trace-Id"] = LangfuseRunContext(
+            proposal.run_id, "generic", "", tuple(proposal.definition.source_ids)
+        ).trace_id
         try:
             return service.register_proposal(proposal, trace_run_id=trace_run_id)
         except ValueError:
@@ -172,6 +180,37 @@ def create_router(*, store, is_completed: Callable[[str], bool], load_data: Call
     def signals() -> SignalList:
         return SignalList(items=store.list_signals())
 
+    @router.get("/api/signals/briefing", summary="메인 브리핑의 시그널 카드 목록과 지표 조회")
+    def briefing(
+        status: Literal["active", "paused", "archived", "all"] = Query(
+            default="active", description="추적 상태 필터, all은 모든 상태",
+        ),
+        limit: int = Query(default=20, ge=1, le=100, description="페이지당 시그널 수"),
+        offset: int = Query(default=0, ge=0, description="등록 역순 목록에서 건너뛸 시그널 수"),
+    ) -> SignalBriefingList:
+        total, rows = store.list_briefing_data(
+            status=None if status == "all" else status, limit=limit, offset=offset,
+        )
+        next_offset = offset + len(rows)
+        return SignalBriefingList(
+            items=[briefing_card(signal, measurements) for signal, measurements in rows],
+            total=total,
+            limit=limit,
+            offset=offset,
+            next_offset=next_offset if next_offset < total else None,
+        )
+
+    @router.post("/api/signals/fast-forward", summary="등록 시그널을 다음 일자로 빨리감기 분석")
+    def fast_forward(request: FastForwardRequest) -> FastForwardResult:
+        try:
+            return fast_forward_service.run(request)
+        except KeyError:
+            raise HTTPException(404, "시그널을 찾을 수 없습니다.") from None
+        except FastForwardConflict as error:
+            raise HTTPException(409, str(error)) from None
+        except ScheduleBusy:
+            raise HTTPException(409, "측정 실행 중입니다. 같은 request_id로 재시도할 수 있습니다.") from None
+
     @router.get("/api/signals/{signal_id}", summary="등록된 시그널 정의 조회")
     def detail(signal_id: str) -> Signal:
         return signal_or_404(signal_id)
@@ -179,7 +218,11 @@ def create_router(*, store, is_completed: Callable[[str], bool], load_data: Call
     @router.patch("/api/signals/{signal_id}", summary="시그널 추적 상태 변경")
     def update(signal_id: str, request: UpdateSignal) -> Signal:
         signal_or_404(signal_id)
-        return store.set_status(signal_id, request.status)
+        try:
+            with schedules.lock(signal_id):
+                return store.set_status(signal_id, request.status)
+        except ScheduleBusy:
+            raise HTTPException(409, "측정 실행 중에는 추적 상태를 변경할 수 없습니다.") from None
 
     @router.post(
         "/api/signals/{signal_id}/measurements", summary="고정 시그널 정의로 지정 기간 재측정"
@@ -188,9 +231,14 @@ def create_router(*, store, is_completed: Callable[[str], bool], load_data: Call
         signal = signal_or_404(signal_id)
         trace_run_id = str(uuid4())
         response.headers["X-Langfuse-Trace-Id"] = trace_run_id.replace("-", "")
-        return service.measure(
-            signal, start_at=request.start_at, end_at=request.end_at, trace_run_id=trace_run_id
-        )
+        try:
+            with schedules.lock(signal_id):
+                return service.measure(
+                    signal, start_at=request.start_at, end_at=request.end_at,
+                    trace_run_id=trace_run_id,
+                )
+        except ScheduleBusy:
+            raise HTTPException(409, "측정 실행 중입니다. 잠시 후 재시도할 수 있습니다.") from None
 
     @router.get(
         "/api/signals/{signal_id}/measurements", summary="시그널 측정 이력과 기간별 최신 값 조회"
@@ -199,4 +247,49 @@ def create_router(*, store, is_completed: Callable[[str], bool], load_data: Call
         signal_or_404(signal_id)
         return history_response(store.list_measurements(signal_id))
 
-    return router
+    @router.get("/api/signals/{signal_id}/schedule", summary="시그널 일별 자동 측정 일정 조회")
+    def schedule(signal_id: str) -> DailySchedule:
+        signal_or_404(signal_id)
+        return schedules.get(signal_id)
+
+    @router.put("/api/signals/{signal_id}/schedule", summary="시그널 일별 자동 측정 일정 설정")
+    def update_schedule(signal_id: str, request: ScheduleUpdate) -> DailySchedule:
+        signal_or_404(signal_id)
+        try:
+            return schedules.update(signal_id, **request.model_dump())
+        except ScheduleBusy:
+            raise HTTPException(409, "측정 실행 중에는 일정을 변경할 수 없습니다.") from None
+
+    @router.get("/api/signals/{signal_id}/daily-results", summary="시그널 일별 자동 실행과 측정 누적 조회")
+    def daily_results(
+        signal_id: str,
+        limit: int = Query(default=30, ge=1, le=100),
+        before: AwareDatetime | None = None,
+    ) -> DailyResults:
+        signal_or_404(signal_id)
+        return schedules.results(signal_id, limit=limit, before=before)
+
+    @router.get("/api/signals/{signal_id}/comparison", summary="시그널 두 기간의 지표 변화 비교")
+    def comparison(
+        signal_id: str,
+        baseline_measurement_id: str | None = None,
+        target_measurement_id: str | None = None,
+    ) -> MeasurementComparison:
+        signal_or_404(signal_id)
+        if (baseline_measurement_id is None) != (target_measurement_id is None):
+            raise HTTPException(422, "기준과 비교 측정 ID를 함께 지정하세요.")
+        if baseline_measurement_id is not None:
+            items = {m.measurement_id: m for m in store.list_measurements(signal_id)}
+            if baseline_measurement_id not in items or target_measurement_id not in items:
+                raise HTTPException(404, "이 시그널에 속한 측정값을 찾을 수 없습니다.")
+            baseline, target = items[baseline_measurement_id], items[target_measurement_id]
+        else:
+            results = schedules.results(signal_id, limit=2).items
+            target = results[0].measurement if results else None
+            baseline = results[1].measurement if len(results) > 1 else None
+        return compare_measurements(baseline, target)
+
+    combined = APIRouter()
+    combined.include_router(router)
+    combined.include_router(alert_router)
+    return combined

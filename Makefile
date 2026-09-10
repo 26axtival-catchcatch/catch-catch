@@ -10,17 +10,36 @@ FRONTEND_PORT := 3000
 API_BASE_URL := http://$(BACKEND_HOST):$(BACKEND_PORT)
 ARTIFACT_DIRECTORY := data/run-artifacts
 HACKATHON_SEED_PATH := data/seeding/hackathon-2week
+ONBOARDED_SOURCES_DIR ?= $(HACKATHON_SEED_PATH)/onboarded-sources
 
 .DEFAULT_GOAL := help
+COMPOSE_FLAGS ?=
+.PHONY: compose-init compose-up compose-verify compose-ps compose-down
+
+compose-init:
+	python3 scripts/compose.py init
+
+compose-up:
+	python3 scripts/compose.py up $(COMPOSE_FLAGS)
+
+compose-verify:
+	python3 scripts/compose.py verify
+
+compose-ps:
+	python3 scripts/compose.py ps
+
+compose-down:
+	python3 scripts/compose.py down
+
 .PHONY: help setup seed seed-hackathon dev dev-auto dev-fixture dev-gemini dev-bedrock serve-backend-fixture serve-frontend test e2e e2e-generic e2e-legacy
 
 help:
 	@echo "make setup        의존성과 Playwright Chromium 설치"
 	@echo "make seed         seed=$(SEED) 합성 DuckDB 생성"
 	@echo "make seed-hackathon  개선 전후 2주 테이블형 합성 데이터 생성"
-	@echo "make dev          Bedrock 실행: investigator Sonnet 4.6, 나머지 Opus 4.6 (기본)"
+	@echo "make dev          해커톤 시딩 후 Bedrock 실행: investigator Sonnet 4.6, 나머지 Opus 4.6 (기본)"
 	@echo "make dev-auto     API Key 유무로 모드를 고르는 auto 모드로 실행"
-	@echo "make dev-bedrock  Bedrock 전용 모드로 실행"
+	@echo "make dev-bedrock  해커톤 시딩 후 Bedrock 전용 모드로 실행"
 	@echo "make dev-fixture  결정론적 fixture 모드로 실행"
 	@echo "make dev-gemini   Gemini 전용 모드로 실행"
 	@echo "make test         Backend/Frontend 전체 자동 검증"
@@ -41,8 +60,7 @@ seed-hackathon:
 	uv run --project backend python -m customer_signal.seeding.cli \
 		--output "$(HACKATHON_SEED_PATH)" --seed 20260831 --force
 
-dev:
-	bash scripts/dev.sh bedrock
+dev: dev-bedrock
 
 dev-auto:
 	bash scripts/dev.sh auto
@@ -53,8 +71,8 @@ dev-fixture:
 dev-gemini:
 	bash scripts/dev.sh gemini
 
-dev-bedrock:
-	bash scripts/dev.sh bedrock
+dev-bedrock: seed-hackathon
+	ONBOARDED_SOURCES_DIR="$(ONBOARDED_SOURCES_DIR)" bash scripts/dev.sh bedrock
 
 serve-backend-fixture: seed
 	@set -Eeuo pipefail; \

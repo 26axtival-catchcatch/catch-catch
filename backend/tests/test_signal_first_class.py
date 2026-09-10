@@ -112,7 +112,7 @@ def test_registration_and_remeasurement_emit_signal_identity(registry, monkeypat
     def observe(**kwargs):
         span = dict(kwargs)
         spans.append(span)
-        yield SimpleNamespace(update=lambda **values: span.update(values))
+        yield SimpleNamespace(id=f"span-{len(spans)}", update=lambda **values: span.update(values))
 
     monkeypatch.setattr(service, "signal_observation", observe)
     signal_id = client.post("/api/signals", json=direct_payload()).json()["signal_id"]
@@ -177,7 +177,7 @@ def test_same_investigator_task_keeps_two_distinct_verified_patterns(tmp_path, m
     def observe(**kwargs):
         span = dict(kwargs)
         spans.append(span)
-        yield SimpleNamespace(update=lambda **values: span.update(values))
+        yield SimpleNamespace(id=f"span-{len(spans)}", update=lambda **values: span.update(values))
 
     monkeypatch.setattr(workbench, "signal_observation", observe, raising=False)
     store = SignalStore(tmp_path / "signals.sqlite3")
@@ -228,6 +228,8 @@ def test_same_investigator_task_keeps_two_distinct_verified_patterns(tmp_path, m
         assert all(p.task_id == "task-shared" for p in proposals)
         assert store.list_signals() == []
         assert len({store.register(p.proposal_id).signal_id for p in proposals}) == 2
+        assert spans[0]["operation"] == "collection"
+        spans = spans[1:]
         assert {s["candidate_id"] for s in spans} == {"close", "done"}
         assert all(s["task_id"] == "task-shared" for s in spans)
         assert {s["proposal_id"] for s in spans} == {p.proposal_id for p in proposals}
@@ -235,7 +237,7 @@ def test_same_investigator_task_keeps_two_distinct_verified_patterns(tmp_path, m
         data.close()
 
 
-def test_each_idempotent_attempt_returns_its_own_trace_header(registry):
+def test_direct_attempts_have_new_traces_and_proposal_registration_uses_analysis_trace(registry):
     store, client = registry
     created = client.post("/api/signals", json=direct_payload())
     trace_id = created.headers.get("X-Langfuse-Trace-Id")
@@ -245,7 +247,16 @@ def test_each_idempotent_attempt_returns_its_own_trace_header(registry):
     assert retried.headers["X-Langfuse-Trace-Id"] != trace_id
     assert store.list_measurements(signal_id)[0].trace_id == trace_id
     registered = client.post("/api/signals", json={"proposal_id": "done"})
-    assert len(registered.headers["X-Langfuse-Trace-Id"]) == 32
+    from customer_signal.observability.langfuse import LangfuseRunContext
+
+    assert (
+        registered.headers["X-Langfuse-Trace-Id"]
+        == LangfuseRunContext("done", "generic", "", ("app",)).trace_id
+    )
+    retried_proposal = client.post("/api/signals", json={"proposal_id": "done"})
+    assert (
+        retried_proposal.headers["X-Langfuse-Trace-Id"] == registered.headers["X-Langfuse-Trace-Id"]
+    )
     measured = client.post(
         f"/api/signals/{signal_id}/measurements",
         json={"start_at": "2026-09-02T00:00:00Z", "end_at": "2026-09-03T00:00:00Z"},

@@ -174,7 +174,7 @@ export function JourneyFlow({ report, onOpenEvidence }: JourneyFlowProps) {
                         }}
                       >
                         <span className={styles.dot} />
-                        <span className={styles.nodeLabel}>{node.action}</span>
+                        <span className={styles.nodeLabel}>{node.text}</span>
                       </button>
                     </div>
                   );

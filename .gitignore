@@ -12,6 +12,7 @@ __pycache__/
 data/run-artifacts/
 node_modules/
 .next/
+.next-e2e*/
 frontend/AGENTS.md
 frontend/CLAUDE.md
 coverage/
@@ -20,3 +21,5 @@ dist/
 backend/data/run-artifacts/
 data/investigation-demo-sources/
 data/live-validation/
+.local/compose/
+.playwright-mcp/

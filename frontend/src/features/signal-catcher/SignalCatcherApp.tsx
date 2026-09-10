@@ -1,16 +1,25 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { ActionScreen } from "./action/ActionScreen";
 import { ExperimentMenu } from "./action/ExperimentMenu";
+import { SignalAlertInbox } from "./alerts/SignalAlertInbox";
+import { useSignalAlerts } from "./alerts/use-signal-alerts";
+import { SignalFastForward } from "./alerts/SignalFastForward";
 import { AskScreen } from "./ask/AskScreen";
 import { BriefingScreen } from "./briefing/BriefingScreen";
 import { DEMO_BRIEFING } from "./briefing/briefing-mock";
+import { useSignalBriefing } from "./briefing/use-signal-briefing";
 import { SignalMark } from "./brand/Brand";
 import { CatchingScreen } from "./catching/CatchingScreen";
 import { ResultScreen } from "./result/ResultScreen";
-import { useCatchSession, useDemoOptions } from "./state/use-catch-session";
+import { SignalDetailModal } from "./signals/SignalDetailModal";
+import {
+  type ViewParam,
+  useCatchSession,
+  useDemoOptions,
+} from "./state/use-catch-session";
 import { ACTION_PLANS } from "./state/action-mock";
 import { DEMO_QUESTION } from "./state/mock";
 import { useExperiments } from "./state/use-experiments";
@@ -27,7 +36,7 @@ const FONT_HREF =
  * 한 페이지를 유지한 채 history 만 동기화한다.
  * 새로고침, 뒤로가기, 링크 공유가 모두 살아난다.
  */
-function syncUrl(phase: string, push: boolean) {
+function syncDemoUrl(phase: string, push: boolean) {
   if (typeof window === "undefined") return;
   const url = new URL(window.location.href);
   if (phase === "result" || phase === "trace" || phase === "action") {
@@ -40,19 +49,93 @@ function syncUrl(phase: string, push: boolean) {
   else window.history.replaceState({ phase }, "", next);
 }
 
-export function SignalCatcherApp() {
+function runPath(runId: string, view: ViewParam = "result"): string {
+  const path = `/runs/${encodeURIComponent(runId)}`;
+  return view === "result" ? path : `${path}?view=${view}`;
+}
+
+function runIdFromPath(pathname: string): string | null {
+  const matched = /^\/runs\/([^/]+)\/?$/.exec(pathname);
+  if (!matched) return null;
+  try {
+    return decodeURIComponent(matched[1]);
+  } catch {
+    return null;
+  }
+}
+
+function viewFromUrl(url: URL): ViewParam {
+  const view = url.searchParams.get("view");
+  return view === "trace" || view === "action" ? view : "result";
+}
+
+function syncRunUrl(phase: string, runId: string | null, push: boolean) {
+  if (typeof window === "undefined") return;
+  const next = phase === "result" || phase === "trace" || phase === "action"
+    ? runId
+      ? runPath(runId, phase)
+      : "/"
+    : "/";
+  if (next === `${window.location.pathname}${window.location.search}`) return;
+  if (push) window.history.pushState({ phase, runId }, "", next);
+  else window.history.replaceState({ phase, runId }, "", next);
+}
+
+interface SignalCatcherAppProps {
+  initialRunId?: string;
+  initialView?: ViewParam;
+}
+
+export function SignalCatcherApp({
+  initialRunId,
+  initialView = "result",
+}: SignalCatcherAppProps = {}) {
   const options = useDemoOptions();
-  const controller = useCatchSession(options);
-  const { session } = controller;
+  const controller = useCatchSession(options, initialRunId);
+  const { session, reset, restore, restoreRun } = controller;
+  const usesDemo = Boolean(
+    options.pause || options.flags.size || (options.view && !initialRunId),
+  );
 
   const experiments = useExperiments();
+  const liveBriefing = useSignalBriefing();
+  const signalAlerts = useSignalAlerts();
   const [question, setQuestion] = useState("");
-  /** 브리핑 화면에서 이번 세션에 새로 건 와쳐 요청. 백엔드가 붙으면 서버로 보낸다. */
-  const [watchRequests, setWatchRequests] = useState<string[]>([]);
+  const [selectedSignalId, setSelectedSignalId] = useState<string | null>(null);
+  const [signalRevision, setSignalRevision] = useState(0);
+  useEffect(() => {
+    const signalId = new URL(window.location.href).searchParams.get("signal");
+    if (signalId) setSelectedSignalId(signalId);
+    const open = (event: MessageEvent) => {
+      if (event.data?.type === "catchcatch:open-signal" && typeof event.data.signalId === "string") {
+        setSelectedSignalId(event.data.signalId);
+        setSignalRevision((current) => current + 1);
+      }
+    };
+    navigator.serviceWorker?.addEventListener("message", open);
+    return () => navigator.serviceWorker?.removeEventListener("message", open);
+  }, []);
+  const sourceLabels = useMemo(
+    () => Object.fromEntries(controller.sourceOptions.map((source) => [source.id, source.label])),
+    [controller.sourceOptions],
+  );
+  const closeSignal = useCallback(() => {
+    setSelectedSignalId(null);
+    const url = new URL(window.location.href);
+    if (url.searchParams.has("signal")) {
+      url.searchParams.delete("signal");
+      window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}`);
+    }
+  }, []);
   const [actionId, setActionId] = useState<string>("search_keyword");
   /** 리포트에서 "이어지는 액션"으로 넘어왔을 때 결과 화면이 안내할 카드. */
   const [highlightActionId, setHighlightActionId] = useState<string | null>(null);
   const lastPhase = useRef(session.phase);
+
+  useEffect(() => {
+    if (!initialRunId || usesDemo) return;
+    restoreRun(initialRunId, initialView);
+  }, [initialRunId, initialView, restoreRun, usesDemo]);
 
   // 로딩(catching)은 되돌아갈 지점이 아니라서 기록에 남기지 않는다.
   useEffect(() => {
@@ -60,8 +143,9 @@ export function SignalCatcherApp() {
     if (lastPhase.current === session.phase) return;
     lastPhase.current = session.phase;
     if (session.phase === "catching") return;
-    syncUrl(session.phase, true);
-  }, [session.phase, options.pause]);
+    if (usesDemo) syncDemoUrl(session.phase, true);
+    else syncRunUrl(session.phase, session.report?.runId ?? null, true);
+  }, [session.phase, session.report?.runId, options.pause, usesDemo]);
 
   /*
    * 화면이 바뀌면 스크롤을 처음으로 되돌린다.
@@ -75,16 +159,29 @@ export function SignalCatcherApp() {
   useEffect(() => {
     if (options.pause) return;
     function onPop() {
-      const view = new URL(window.location.href).searchParams.get("view");
-      if (view === "result" || view === "trace" || view === "action") {
-        controller.restore(view, session.question || DEMO_QUESTION);
-      } else {
-        controller.reset();
+      const url = new URL(window.location.href);
+      if (usesDemo) {
+        const view = url.searchParams.get("view");
+        if (view === "result" || view === "trace" || view === "action") {
+          restore(view, session.question || DEMO_QUESTION);
+          return;
+        }
+        reset();
+        return;
       }
+
+      const runId = runIdFromPath(url.pathname);
+      if (!runId) {
+        reset();
+        return;
+      }
+      const view = viewFromUrl(url);
+      if (session.report?.runId === runId) restore(view, session.question);
+      else restoreRun(runId, view);
     }
     window.addEventListener("popstate", onPop);
     return () => window.removeEventListener("popstate", onPop);
-  }, [controller, session.question, options.pause]);
+  }, [restore, restoreRun, reset, session.question, session.report?.runId, options.pause, usesDemo]);
 
   // 자동 진입이나 새로고침 복원으로 들어와도 입력창에 질문이 남아 있어야 한다.
   useEffect(() => {
@@ -116,6 +213,22 @@ export function SignalCatcherApp() {
           </span>
         </button>
         <span className={styles.barSpacer} />
+        {!usesDemo ? <SignalFastForward
+          disabled={session.phase === "catching"}
+          beforeRun={signalAlerts.refresh}
+          onCompleted={() => {
+            liveBriefing.refresh();
+            setSignalRevision((current) => current + 1);
+            void signalAlerts.refresh().catch(() => undefined);
+          }}
+        /> : null}
+        <SignalAlertInbox
+          events={signalAlerts.events}
+          error={signalAlerts.error}
+          notificationError={signalAlerts.notificationError}
+          onOpenSignal={setSelectedSignalId}
+          onClear={signalAlerts.clear}
+        />
         <ExperimentMenu
           experiments={experiments.experiments}
           onOpen={(id) => {
@@ -123,10 +236,6 @@ export function SignalCatcherApp() {
             openAction();
           }}
         />
-        <span className={styles.barNote}>
-          <em className={styles.barBadge}>PROTOTYPE</em>
-          by 네박자
-        </span>
       </header>
 
       <main className={styles.stage}>
@@ -134,30 +243,55 @@ export function SignalCatcherApp() {
           <div key="ask" className={styles.enter}>
             {options.main === "briefing" ? (
               <BriefingScreen
-                briefing={{
-                  ...DEMO_BRIEFING,
-                  requestCount: DEMO_BRIEFING.requestCount + watchRequests.length,
-                }}
-                onOpenSignal={(signal) => {
-                  const asked = `${signal.name} 시그널을 확인해줘`;
+                briefing={options.briefingEmpty
+                  ? liveBriefing.briefing ?? { ...DEMO_BRIEFING, signals: [], total: 0, requestCount: 0 }
+                  : DEMO_BRIEFING}
+                loading={options.briefingEmpty && liveBriefing.loading}
+                loadingMore={options.briefingEmpty && liveBriefing.loadingMore}
+                loadMoreError={options.briefingEmpty ? liveBriefing.loadMoreError : null}
+                error={options.briefingEmpty ? liveBriefing.error : null}
+                onRetry={liveBriefing.refresh}
+                onLoadMore={liveBriefing.loadMore}
+                question={question}
+                onQuestionChange={setQuestion}
+                notice={session.failureReason}
+                suggestedQuestions={session.suggestedQuestions}
+                sourceCount={controller.sourceCount}
+                fixedPeriodLabel={controller.periodLabel}
+                conditionsLocked={controller.conditionsLocked}
+                periodLocked={controller.periodLocked}
+                sourceOptions={controller.sourceOptions}
+                initialStartAt={controller.periodStartAt}
+                initialEndAt={controller.periodEndAt}
+                sourceLabels={sourceLabels}
+                onOpenSignal={(signal) => setSelectedSignalId(signal.id)}
+                onAsk={(asked, conditions) => {
                   setQuestion(asked);
-                  controller.start(asked);
+                  controller.start(asked, {
+                    enabledSources: conditions.enabledSources,
+                    startAt: conditions.startAt,
+                    endAt: conditions.endAt,
+                  });
                 }}
-                onAsk={(asked) => {
-                  setQuestion(asked);
-                  controller.start(asked);
-                }}
-                onRequestWatch={(request) =>
-                  setWatchRequests((list) => [...list, request])
-                }
               />
             ) : (
               <AskScreen
                 question={question}
                 onQuestionChange={setQuestion}
-                onSubmit={() => controller.start(question)}
+                onSubmit={(conditions) => controller.start(question, {
+                  enabledSources: conditions.enabledSources,
+                  startAt: conditions.startAt,
+                  endAt: conditions.endAt,
+                })}
                 notice={session.failureReason}
                 suggestedQuestions={session.suggestedQuestions}
+                sourceCount={controller.sourceCount}
+                fixedPeriodLabel={controller.periodLabel}
+                conditionsLocked={controller.conditionsLocked}
+                periodLocked={controller.periodLocked}
+                sourceOptions={controller.sourceOptions}
+                initialStartAt={controller.periodStartAt}
+                initialEndAt={controller.periodEndAt}
               />
             )}
           </div>
@@ -172,6 +306,8 @@ export function SignalCatcherApp() {
               burstMark={options.burst}
               speed={options.speed}
               log={controller.log}
+              activities={controller.activities}
+              topologyEvents={controller.topologyEvents}
               onAnswerClarification={controller.answerClarification}
               onRetry={controller.retry}
               onGiveUp={restart}
@@ -194,6 +330,14 @@ export function SignalCatcherApp() {
               highlightActionId={highlightActionId}
               onHighlightSeen={() => setHighlightActionId(null)}
               applied={experiments.experiments}
+              evidence={controller.evidence}
+              evidenceLoadingId={controller.evidenceLoadingId}
+              evidenceErrorId={controller.evidenceErrorId}
+              onLoadEvidence={controller.loadEvidence}
+              onGoHome={() => {
+                liveBriefing.refresh();
+                restart();
+              }}
             />
           </div>
         ) : null}
@@ -231,14 +375,26 @@ export function SignalCatcherApp() {
             <TraceScreen
               report={session.report}
               question={session.question}
+              topologyEvents={controller.topologyEvents}
               onBack={controller.closeTrace}
             />
           </div>
         ) : null}
       </main>
 
+      <footer className={styles.signature}>by 네박자</footer>
+
       {/* 드로어와 모달이 붙는 자리. 전환 래퍼의 transform 밖이어야 한다. */}
       <div id={OVERLAY_ID} />
+      {selectedSignalId ? (
+        <SignalDetailModal
+          key={`${selectedSignalId}:${signalRevision}`}
+          signalId={selectedSignalId}
+          sourceLabels={sourceLabels}
+          onClose={closeSignal}
+          onChanged={liveBriefing.refresh}
+        />
+      ) : null}
     </div>
   );
 }

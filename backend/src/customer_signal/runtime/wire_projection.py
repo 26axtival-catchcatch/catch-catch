@@ -66,6 +66,8 @@ def wire_events_for(event: CanonicalRunEvent) -> list[WireEvent]:
         body = {
             key: item for key, item in payload.items() if key not in _ACTIVITY_MARKER_KEYS
         }
+        if activity == "agent_activity":
+            return [("agent_activity", body)]
         if activity == "step" and phase == "started":
             return [("step_started", body)]
         if activity == "step" and phase == "completed":

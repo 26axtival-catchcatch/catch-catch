@@ -18,6 +18,9 @@ from customer_signal.signals.contracts import (
     SignalStatus,
 )
 from customer_signal.signals.measurement import definition_fingerprint
+from customer_signal.signals.contracts import now
+from customer_signal.signals.scheduling import ensure_schedule, initialize_schedules
+from customer_signal.signals.alerts import evaluate_measurement, initialize_alerts
 
 
 def _measurement_json(measurement: Measurement) -> str:
@@ -66,6 +69,9 @@ class SignalStore:
                 CREATE INDEX IF NOT EXISTS proposals_by_run ON signal_proposals(run_id);
                 CREATE INDEX IF NOT EXISTS measurements_by_signal ON signal_measurements(signal_id);
             """)
+
+            initialize_schedules(db, now())
+            initialize_alerts(db)
 
     @staticmethod
     def _migrate_nullable_proposal(db):
@@ -179,6 +185,7 @@ class SignalStore:
                 (proposal_id, signal.signal_id),
             )
             persisted = self._insert_measurement(db, signal.signal_id, proposal.measurement)
+            ensure_schedule(db, signal.signal_id)
             return signal, persisted
 
     def register_definition(
@@ -234,6 +241,7 @@ class SignalStore:
                     (signal.signal_id, fingerprint, None, signal.model_dump_json()),
                 )
             persisted = self._insert_measurement(db, signal.signal_id, measurement)
+            ensure_schedule(db, signal.signal_id)
             return signal, persisted
 
     def list_signals(self) -> list[Signal]:
@@ -246,6 +254,35 @@ class SignalStore:
     def get_signal(self, signal_id: str) -> Signal:
         with self._connection() as db:
             return self._read(db, "signals", "signal_id", signal_id, Signal)
+
+    def list_briefing_data(
+        self, *, status: SignalStatus | None, limit: int, offset: int,
+    ) -> tuple[int, list[tuple[Signal, list[Measurement]]]]:
+        """Read the count, page and its histories from one SQLite snapshot, without N+1 reads."""
+        with self._connection() as db:
+            db.execute("BEGIN")
+            predicate = "WHERE json_extract(payload, '$.status') = ?" if status else ""
+            params = (status,) if status else ()
+            total = db.execute(f"SELECT count(*) FROM signals {predicate}", params).fetchone()[0]
+            if offset >= total:
+                return total, []
+            signals = [
+                Signal.model_validate_json(row[0])
+                for row in db.execute(
+                    f"SELECT payload FROM signals {predicate} ORDER BY rowid DESC LIMIT ? OFFSET ?",
+                    (*params, limit, offset),
+                )
+            ]
+            histories: dict[str, list[Measurement]] = {s.signal_id: [] for s in signals}
+            if histories:
+                placeholders = ",".join("?" for _ in histories)
+                for signal_id, payload in db.execute(
+                    "SELECT signal_id, payload FROM signal_measurements "
+                    f"WHERE signal_id IN ({placeholders}) ORDER BY rowid",
+                    tuple(histories),
+                ):
+                    histories[signal_id].append(Measurement.model_validate_json(payload))
+            return total, [(signal, histories[signal.signal_id]) for signal in signals]
 
     def set_status(self, signal_id: str, status: SignalStatus) -> Signal:
         with self._connection() as db:
@@ -281,7 +318,9 @@ class SignalStore:
             raise ValueError("measurement_id already belongs to a different measurement")
         return Measurement.model_validate_json(row[0])
 
-    def add_measurement(self, signal_id: str, measurement: Measurement) -> Measurement:
+    def add_measurement(
+        self, signal_id: str, measurement: Measurement, *, evaluate_alerts: bool = True,
+    ) -> Measurement:
         with self._connection() as db:
             db.execute("BEGIN IMMEDIATE")
             signal = self._read(db, "signals", "signal_id", signal_id, Signal)
@@ -291,7 +330,10 @@ class SignalStore:
                 measurement.source_ids
             ):
                 raise ValueError("measurement does not match the registered definition")
-            return self._insert_measurement(db, signal_id, measurement)
+            persisted = self._insert_measurement(db, signal_id, measurement)
+            if evaluate_alerts:
+                evaluate_measurement(db, signal, persisted)
+            return persisted
 
     def list_measurements(self, signal_id: str) -> list[Measurement]:
         with self._connection() as db:

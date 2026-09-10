@@ -18,6 +18,8 @@ export const DEMO_BRIEFING: Briefing = {
     "요금제 변경 후 7일 안에 되돌린 고객",
     "상담 뒤에도 같은 문의를 반복한 고객",
   ],
+  total: 2,
+  nextOffset: null,
   signals: [
     {
       id: "roaming_decision_delay",
@@ -34,6 +36,9 @@ export const DEMO_BRIEFING: Briefing = {
       ],
       trend: [0.12, 0.18, 0.32, 0.48, 0.7, 0.92],
       evidenceNote: "근거 3개 소스 · 로밍 / 상담 / VOC",
+      sourceIds: [],
+      periodLabel: "9월 1일 – 9월 7일",
+      limitation: null,
       fromRequest: false,
     },
     {
@@ -52,6 +57,9 @@ export const DEMO_BRIEFING: Briefing = {
       ],
       trend: [0.1, 0.24, 0.2, 0.5, 0.66, 0.88],
       evidenceNote: "근거 2개 소스 · 결제 / 상담",
+      sourceIds: [],
+      periodLabel: "9월 1일 – 9월 7일",
+      limitation: null,
       fromRequest: true,
     },
   ],

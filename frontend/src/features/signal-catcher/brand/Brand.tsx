@@ -9,6 +9,12 @@ interface SignalMarkProps {
   title?: string;
 }
 
+interface HeartMarkProps {
+  size?: number;
+  className?: string;
+  title?: string;
+}
+
 /** 돋보기 렌즈 안에 시그널 파형이 들어간 서비스 마크. */
 export function SignalMark({ size = 26, title }: SignalMarkProps) {
   return (
@@ -106,6 +112,23 @@ export function SignalProgress({ stages, activeDurationMs, halted }: SignalProgr
 
 const HEART_PATH =
   "M50 86C24 68 8 52 8 34.5 8 21.5 18 12 30 12c8 0 15 4.4 20 12 5-7.6 12-12 20-12 12 0 22 9.5 22 22.5C92 52 76 68 50 86Z";
+
+/** 체크 대신 쓰는 캐치캐치 고유 하트 심볼. */
+export function HeartMark({ size = 18, className, title }: HeartMarkProps) {
+  return (
+    <svg
+      className={className}
+      width={size}
+      height={size}
+      viewBox="0 0 100 100"
+      role={title ? "img" : "presentation"}
+      aria-label={title}
+      aria-hidden={title ? undefined : true}
+    >
+      <path d={HEART_PATH} />
+    </svg>
+  );
+}
 
 /** 시그널을 찾은 순간의 심쿵 연출. 마젠타가 한 번 화면을 덮고 마크가 번지며 사라진다. */
 export function HeartBurst({ mark = "heart" }: { mark?: "heart" | "lens" }) {

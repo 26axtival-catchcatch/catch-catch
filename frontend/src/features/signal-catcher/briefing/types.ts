@@ -1,16 +1,15 @@
 /**
  * 브리핑(메인) 화면이 그리는 값.
- * 지금은 briefing-mock.ts 가 채우고, 나중에 백엔드 브리핑 API 로 갈아끼운다.
- * 그래서 ReactNode 를 담지 않고 전부 직렬화되는 값으로만 둔다.
+ * 실제 브리핑 API와 데모 fixture가 함께 채우므로 ReactNode 없이 직렬화되는 값만 둔다.
  */
 
 /** 카드 안 지표 한 줄. */
 export interface BriefingMetric {
   label: string;
   value: string;
-  /** "5.7%p" 처럼 부호 없는 변화폭. 화살표는 direction 이 붙인다. */
+  /** "5.7%p" 또는 비교 기간이 없을 때 "첫 측정". */
   delta: string;
-  direction: "up" | "down";
+  direction: "up" | "down" | "flat";
 }
 
 export interface BriefingSignal {
@@ -28,6 +27,9 @@ export interface BriefingSignal {
   trend: number[];
   /** "근거 3개 소스 · 로밍 / 상담 / VOC" */
   evidenceNote: string;
+  sourceIds: string[];
+  periodLabel: string | null;
+  limitation: string | null;
   /** 사용자가 걸어 둔 요청으로 잡힌 시그널. 카드에 배지가 붙는다. */
   fromRequest: boolean;
   /** 아래 칩에 쓰는 짧은 이름. */
@@ -40,6 +42,8 @@ export interface Briefing {
   /** 리드 문장. headline 과 같은 `*강조*` 규칙을 쓴다. */
   lede: string;
   signals: BriefingSignal[];
+  total: number;
+  nextOffset: number | null;
   /** 이번 브리핑에 반영된 내 요청 수. 0이면 배지를 숨긴다. */
   requestCount: number;
   /** 관찰 중인 실험 수. */
