@@ -1,3 +1,4 @@
+import { decodeAgentActivity } from "./agent-activity";
 import type {
   AgentMode,
   AnalysisScope,
@@ -146,6 +147,7 @@ const TOOL_NAMES = [
   "get_evidence",
 ] as const satisfies readonly ToolName[];
 const RUN_EVENT_TYPES = [
+  "agent_activity",
   "run_started",
   "goal_created",
   "clarification_required",
@@ -553,6 +555,8 @@ function decodeEvent(
     const payload = expectRecord(envelope.payload, "event.data.payload");
 
     switch (type) {
+      case "agent_activity":
+        return { id: parsed.id, type, data: decodeAgentActivity(payload) };
       case "run_started":
         return {
           id: parsed.id,

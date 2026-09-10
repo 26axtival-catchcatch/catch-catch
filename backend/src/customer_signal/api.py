@@ -59,6 +59,7 @@ from customer_signal.runtime.artifact_store import (
 )
 from customer_signal.runtime.artifacts import ArtifactListResponse
 from customer_signal.runtime.document_renderer import render_document, render_markdown_bytes
+from customer_signal.runtime.events import RunEventEnvelope
 from customer_signal.runtime.wire_projection import restore_wire_events
 from customer_signal.runtime.run_store import (
     InvalidLastEventIdError,
@@ -494,6 +495,8 @@ def create_app(
         response_class=EventSourceResponse,
         tags=["runs"],
         summary="Run 이벤트 SSE 스트림",
+        responses={200: {"model": RunEventEnvelope,
+                         "description": "SSE의 각 data JSON 계약. agent_activity는 역할 토폴로지와 실제 모델/도구 진행을 전달합니다."}},
     )
     async def stream_run_events(
         run_id: str,

@@ -1,3 +1,4 @@
+import type { AgentActivity } from "./agent-activity";
 export type SourceId = string;
 export type AgentMode = "fixture" | "gemini" | "bedrock";
 export type RunStatus =
@@ -502,6 +503,7 @@ export interface EvidenceResult {
 }
 
 export type RunEventType =
+  | "agent_activity"
   | "run_started"
   | "goal_created"
   | "clarification_required"
@@ -571,6 +573,7 @@ export type RunStreamEvent =
 
 /** Generic planner/executor events retained by the analysis workspace. */
 export type GenericRunStreamEvent =
+  | { id: number; type: "agent_activity"; data: AgentActivity }
   | { id: number; type: "run_started"; data: { status: RunStatus } }
   | { id: number; type: "goal_created"; data: { goal: AnalysisGoal } }
   | {

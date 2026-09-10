@@ -155,6 +155,7 @@ function inputDate(timestamp: string): string {
 
 function isGenericEvent(event: AnyRunStreamEvent): boolean {
   return (
+    event.type === "agent_activity" ||
     event.type === "run_started" ||
     event.type === "goal_created" ||
     event.type === "clarification_required" ||

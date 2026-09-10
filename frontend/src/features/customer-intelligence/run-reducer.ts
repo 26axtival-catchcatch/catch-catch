@@ -390,6 +390,7 @@ function reduceEvent(state: RunState, event: AnyRunStreamEvent): RunState {
         status: next.fallbackReason ? "degraded" : "completed",
         phase: next.fallbackReason ? "degraded" : "completed",
       };
+    case "agent_activity":
     case "plan":
     case "tool_started":
     case "tool_completed":
