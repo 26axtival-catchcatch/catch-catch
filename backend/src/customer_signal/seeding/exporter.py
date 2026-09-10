@@ -35,6 +35,7 @@ _TABLE_SOURCE_IDS = {
     "L1DA_GA_REP_CHNL_BEHV_L": "hackathon_app_behavior",
     "L0UR_SEARCH_HISTORY": "hackathon_search_history",
     "L0UR_FEEDBACK": "hackathon_search_feedback",
+    "L1CM_CRM_MSG_SEND_H": "hackathon_crm_campaign",
     "L1RA_VOC_STT_DTL_H": "hackathon_voc",
     "L2ZI_MBL_VAS_ENTR_INFO_DALY_H": "hackathon_vas_subscription",
     "L1BAT_CUST_BLNG_AND_BNFT_SUM": "hackathon_billing_profile",
@@ -162,6 +163,52 @@ def _source_specs() -> dict[str, SourceMappingSpec]:
                     semantic_type="text",
                     description="합성 피드백 사유",
                 )
+            },
+            status="approved",
+        ),
+        "L1CM_CRM_MSG_SEND_H": SourceMappingSpec(
+            source_id="hackathon_crm_campaign",
+            label="해커톤 CRM 캠페인 발송",
+            description="구글 원 부가서비스 기능 변경 안내를 발송한 합성 CRM 이력",
+            timestamp_column="SEND_DTTM",
+            timezone="Asia/Seoul",
+            event_type=FieldRule(const="crm_message"),
+            action=FieldRule(const="send_campaign_message"),
+            topic=FieldRule(column="TARGET_PROD_NM"),
+            outcome=FieldRule(column="SEND_RESULT_CD"),
+            text=FieldRule(column="MESSAGE_CNTN"),
+            identity=_identity(),
+            dimensions={
+                "campaign_id": DimensionSpec(
+                    column="CAMPAIGN_ID",
+                    semantic_type="identifier",
+                    description="CRM 캠페인 식별자",
+                ),
+                "campaign_name": DimensionSpec(
+                    column="CAMPAIGN_NM",
+                    semantic_type="category",
+                    description="CRM 캠페인명",
+                ),
+                "channel": DimensionSpec(
+                    column="CHANNEL_CD",
+                    semantic_type="category",
+                    description="메시지 발송 채널",
+                ),
+                "target_segment": DimensionSpec(
+                    column="TARGET_SEGMENT_NM",
+                    semantic_type="category",
+                    description="캠페인 대상 고객군",
+                ),
+                "target_product_code": DimensionSpec(
+                    column="TARGET_PROD_CD",
+                    semantic_type="category",
+                    description="캠페인 대상 부가서비스 상품 코드",
+                ),
+                "feature": DimensionSpec(
+                    column="FEATURE_NM",
+                    semantic_type="category",
+                    description="안내한 신규 기능",
+                ),
             },
             status="approved",
         ),
@@ -350,7 +397,7 @@ def _write_registry(root: Path, csv_paths: dict[str, Path]) -> None:
         shutil.copy2(csv_paths[table_name], directory / "data.csv")
     adapters = load_onboarded_adapters(registry)
     if {adapter.describe().source_id for adapter in adapters} != set(_TABLE_SOURCE_IDS.values()):
-        raise ValueError("exported onboarding registry did not load all seven sources")
+        raise ValueError("exported onboarding registry did not load all eight sources")
 
 
 def _manifest(
@@ -359,7 +406,7 @@ def _manifest(
     checksums: dict[str, str],
 ) -> dict[str, object]:
     return {
-        "schema_version": 2,
+        "schema_version": 3,
         "seed": bundle.config.seed,
         "period": {
             "start": bundle.config.start_date.isoformat(),
@@ -380,6 +427,9 @@ def _manifest(
             "payment_voc_customers": 74,
             "vas_customers_absent_from_search_and_voc": 160,
             "vas_unreachable_absent_from_search_and_voc": 16,
+            "vas_google_one_crm_recipients": 240,
+            "vas_google_one_change_search_customers": 160,
+            "vas_nonrecipient_search_customers": 20,
             "roaming_customers": 140,
             "roaming_browse_exit_agent_signup_customers": 56,
             "roaming_agent_signup_customers": 70,
@@ -388,6 +438,7 @@ def _manifest(
         "exploration_cases": {
             "limited_sources": ["hackathon_search_history", "hackathon_voc"],
             "vas_expanded_sources": ["hackathon_app_behavior", "hackathon_vas_subscription"],
+            "vas_context_source": "hackathon_crm_campaign",
             "roaming_expanded_sources": ["hackathon_app_behavior", "hackathon_roaming_usage"],
             "roaming_snapshot_semantics": "month_to_date_as_of_departure_day_load",
         },
