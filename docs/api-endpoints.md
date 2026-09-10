@@ -119,7 +119,10 @@ FastAPI OpenAPI 스키마에 포함되지 않으므로 Swagger UI 에 나타나�
 관측 기간 길이·정의·Source 범위/버전이 다르거나 기간이 겹치면 비교 불가 사유를 반환합니다.
 자세한 연결 순서와 수치 해석은 [시그널 FE 인계](signal-fe-handoff.md)를 참고합니다.
 
-등록·재측정의 성공 응답 헤더 `X-Langfuse-Trace-Id`는 **이번 API 호출**의 trace ID입니다.
+등록·재측정 성공 응답 헤더 `X-Langfuse-Trace-Id`는 해당 작업을 기록한 trace ID입니다.
+후보 선택 등록은 **원래 분석 trace**, 직접 등록·수동 재측정은 **이번 API 작업 trace**를 반환합니다.
+새 `Proposal.trace_id`, `Proposal.observation_id`로 분석 trace와 개별 패턴 span을 연결합니다.
+후보 선택 등록 span은 해당 패턴 span의 자식이며 별도의 발화 trace를 생성하지 않습니다.
 CORS에서도 이 헤더를 읽을 수 있습니다. 중복 요청이 기존 측정을 재사용하면
 본문의 `measurement.trace_id`는 최초 저장 당시 trace를 유지하므로 두 ID는 다를 수 있습니다.
 Langfuse MCP로는 `fetch_observations(type="SPAN", name="customer_signal.signal", age=180)`으로
