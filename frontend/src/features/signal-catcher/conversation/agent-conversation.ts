@@ -1,11 +1,11 @@
 import type { AgentActivity } from "../../customer-intelligence/agent-activity";
 
 export const AGENT_ROLES = {
-  coordinator: { label: "조율 에이전트", description: "질문을 이해하고 역할을 나눠요", mark: "◎" },
-  investigator: { label: "조사 에이전트", description: "데이터에서 단서를 찾아요", mark: "⌕" },
-  verifier: { label: "검증 에이전트", description: "근거를 독립적으로 확인해요", mark: "✓" },
-  reporter: { label: "정리 에이전트", description: "확인한 내용을 결론으로 모아요", mark: "≡" },
-} satisfies Record<AgentActivity["role"], { label: string; description: string; mark: string }>;
+  coordinator: { label: "조율 에이전트", nickname: "길잡이", description: "질문을 읽고, 함께 찾을 방향을 잡아요" },
+  investigator: { label: "조사 에이전트", nickname: "탐정", description: "고객이 남긴 단서를 하나씩 따라가요" },
+  verifier: { label: "검증 에이전트", nickname: "체커", description: "찾은 단서가 맞는지 근거로 다시 확인해요" },
+  reporter: { label: "정리 에이전트", nickname: "기록가", description: "찾은 것과 아직 모르는 것을 정리해요" },
+} satisfies Record<AgentActivity["role"], { label: string; nickname: string; description: string }>;
 
 export const ACTIVITY_STATUS = {
   queued: "대기", started: "진행 중", completed: "완료", failed: "실패", cancelled: "중단",
@@ -15,6 +15,7 @@ export interface ConversationAgent {
   id: string;
   role: AgentActivity["role"];
   label: string;
+  nickname: string;
   roundIndex: number;
   status: AgentActivity["status"];
   messageCount: number;
@@ -78,6 +79,7 @@ export function buildConversation(activities: readonly AgentActivity[]) {
     } else {
       byId.set(agentId, {
         id: agentId, role: activity.role, label: AGENT_ROLES[activity.role].label,
+        nickname: AGENT_ROLES[activity.role].nickname,
         roundIndex: activity.round_index, status: activity.status, messageCount: 0,
         latestText: "",
       });
@@ -99,7 +101,10 @@ export function buildConversation(activities: readonly AgentActivity[]) {
   for (const agent of agents) {
     const index = (roleIndexes.get(agent.role) ?? 0) + 1;
     roleIndexes.set(agent.role, index);
-    if (agents.filter(item => item.role === agent.role).length > 1) agent.label += ` ${index}`;
+    if (agents.filter(item => item.role === agent.role).length > 1) {
+      agent.label += ` ${index}`;
+      agent.nickname += ` ${index}`;
+    }
   }
   return { agents, messages };
 }

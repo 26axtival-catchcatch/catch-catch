@@ -18,12 +18,12 @@ const events: AnyRunStreamEvent[] = [{ id: 1, type: "agent_activity", data: acti
 
 it("switches between conversation and topology while retaining the selected agent", () => {
   render(<AgentWorkspace events={events} completed />);
-  fireEvent.click(screen.getByRole("button", { name: /검증 에이전트 완료/ }));
-  expect(screen.getByRole("heading", { name: "검증 에이전트" })).toBeVisible();
+  fireEvent.click(screen.getByRole("button", { name: /체커.*검증 에이전트.*완료/ }));
+  expect(screen.getByRole("heading", { name: "체커의 단서 노트" })).toBeVisible();
   fireEvent.click(screen.getByRole("button", { name: "토폴로지" }));
   expect(screen.getByText("실행 그래프")).toBeVisible();
   fireEvent.click(screen.getByRole("button", { name: "에이전트 대화" }));
-  expect(screen.getByRole("heading", { name: "검증 에이전트" })).toBeVisible();
+  expect(screen.getByRole("heading", { name: "체커의 단서 노트" })).toBeVisible();
 });
 
 it("keeps the messages available when an analysis fails", () => {

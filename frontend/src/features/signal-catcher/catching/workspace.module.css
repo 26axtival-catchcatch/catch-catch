@@ -1,14 +1,12 @@
 .container { width: 100%; min-width: 0; }
 .toolbar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1.1rem 0; }
-.switch { display: inline-flex; flex: none; gap: .2rem; padding: .25rem; border: 1px solid var(--line); border-radius: 9px; background: color-mix(in srgb, var(--card) 60%, transparent); }
-.switch button { display: flex; gap: .4rem; align-items: center; padding: .5rem .85rem; border: 1px solid transparent; border-radius: 6px; background: transparent; color: var(--fog-dim); font: inherit; font-size: .75rem; cursor: pointer; }
-.switch button[aria-pressed="true"] { background: var(--card-2); color: var(--chalk); border-color: var(--line); box-shadow: 0 1px 4px #0002; }
-.switch button[aria-pressed="true"] span { color: var(--signal-soft); }
+.switch { display: inline-flex; flex: none; gap: 1.2rem; }
+.switch button { display: flex; gap: .45rem; align-items: center; padding: .65rem 0; border: 0; border-bottom: 2px solid transparent; background: transparent; color: var(--fog-dim); font: inherit; font-size: .8rem; cursor: pointer; }
+.switch button[aria-pressed="true"] { color: var(--chalk); border-bottom-color: var(--chalk); }
 .switch button:hover { color: var(--chalk); }
-.switch button:focus-visible, .notice button:focus-visible { outline: 2px solid var(--signal); outline-offset: 2px; }
-.hint { margin: 0; font-size: .68rem; color: var(--fog-dim); }
-.notice { color: var(--fog); font-size: .8rem; }
-.notice button { color: var(--signal-soft); background: transparent; border: 0; font: inherit; cursor: pointer; text-decoration: underline; }
+.hint { margin: 0; font-size: .71rem; color: var(--fog); }
+.notice { color: var(--amber); font-size: .8rem; }
+.notice button { color: inherit; background: transparent; border: 0; font: inherit; cursor: pointer; text-decoration: underline; }
 .topology { grid-template-columns: minmax(14rem, .78fr) minmax(0, 1.42fr); }
 @media (max-width: 900px) { .topology { grid-template-columns: minmax(0, 1fr); } }
-@media (max-width: 700px) { .hint { display: none; } .toolbar { padding: .9rem 0; } }
+@media (max-width: 700px) { .hint { display: none; } .toolbar { padding: .75rem 0; } }

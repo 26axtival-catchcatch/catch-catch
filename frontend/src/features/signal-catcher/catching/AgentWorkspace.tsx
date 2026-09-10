@@ -34,11 +34,11 @@ export function AgentWorkspace({ events, halted = false, completed = false, spee
     <div className={viewStyles.toolbar}>
       <div className={viewStyles.switch} role="group" aria-label="분석 과정 보기 방식">
         <button type="button" aria-pressed={view === "conversation"} aria-controls={`${id}-content`}
-          onClick={() => setView("conversation")}><span aria-hidden="true">☷</span>에이전트 대화</button>
+          onClick={() => setView("conversation")}>에이전트 대화</button>
         <button type="button" aria-pressed={view === "topology"} aria-controls={`${id}-content`}
-          onClick={() => setView("topology")}><span aria-hidden="true">⌘</span>토폴로지</button>
+          onClick={() => setView("topology")}>토폴로지</button>
       </div>
-      <p className={viewStyles.hint}>{completed ? "분석이 남긴 기록을 다시 살펴보세요" : "에이전트의 협업 과정을 따라가 보세요"}</p>
+      <p className={viewStyles.hint}>{completed ? "캐치까지 이어진 대화를 살펴보세요" : "함께 단서를 찾고 있어요"}</p>
     </div>
     <div id={`${id}-content`}>
       <div hidden={view !== "conversation"}>

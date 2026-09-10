@@ -32,6 +32,7 @@ describe("agent conversation projection", () => {
     ]);
     expect(result.messages.at(-1)?.agentId).toBe("agent-a");
     expect(result.agents.map(a => a.label)).toEqual(["조사 에이전트 1", "조사 에이전트 2"]);
+    expect(result.agents.map(a => a.nickname)).toEqual(["탐정 1", "탐정 2"]);
   });
 
   it("keeps agent presence and lifecycle while hiding routine execution logs", () => {
@@ -92,6 +93,59 @@ describe("agent conversation projection", () => {
 });
 
 describe("AgentConversation", () => {
+  it("identifies the character's real role and preserves uncertainty without inventing a verdict", () => {
+    const text = "**아직 확인하지 못했습니다.** 추가 근거가 필요합니다.";
+    const event = activity({ role: "verifier", message_text: text });
+    render(<AgentConversation completed activities={[event]} />);
+    fireEvent.click(screen.getByRole("button", { name: /체커.*검증 에이전트/ }));
+    const timeline = within(screen.getByRole("region", { name: "에이전트 메시지" }));
+    expect(timeline.getByText("체커")).toBeVisible();
+    expect(timeline.getByText("검증 에이전트")).toBeVisible();
+    expect(timeline.getByText("아직 확인하지 못했습니다.")).toBeVisible();
+    expect(timeline.queryByText("검증 통과")).not.toBeInTheDocument();
+    expect(event.message_text).toBe(text);
+  });
+
+  it("renders public Markdown and disclosed rationale as readable semantic content", () => {
+    render(<AgentConversation completed activities={[activity({
+      message_text: "### 확인한 시그널\n\n**검색 고객** 280명\n\n- 로밍 검색\n- 상담 기록\n\n> 독립적으로 확인했습니다.\n\n| 기준 | 수치 |\n| --- | --- |\n| 고객 | 280 |\n\n`검색어` 기준입니다.\n\n```text\n검색 280건\n```",
+      details: { candidates: [], decisions: [], limitations: ["**범위**: 검색 기록만 확인했습니다."] },
+    })]} />);
+    const timeline = within(screen.getByRole("region", { name: "에이전트 메시지" }));
+    expect(timeline.getByRole("heading", { name: "확인한 시그널" })).toBeInTheDocument();
+    expect(timeline.getByText("검색 고객").tagName).toBe("STRONG");
+    expect(timeline.getByText("로밍 검색").tagName).toBe("LI");
+    expect(timeline.getByRole("cell", { name: "280" })).toBeInTheDocument();
+    expect(timeline.getByText("검색어").tagName).toBe("CODE");
+    expect(timeline.getByRole("region", { name: "코드" })).toHaveAttribute("tabindex", "0");
+    fireEvent.click(timeline.getByText("판단 근거 보기"));
+    expect(timeline.getByText("범위").tagName).toBe("STRONG");
+  });
+
+  it("keeps model HTML and unsafe URLs inert without fetching Markdown images", () => {
+    render(<AgentConversation completed activities={[activity({ message_text:
+      '[근거](https://example.com/evidence) · [실행](javascript:alert%281%29)\n\n![외부 그림](https://example.com/tracker.png)\n\n<script>alert(1)</script>\n\n<img src="/track" onerror="alert(1)">',
+    })]} />);
+    const timeline = screen.getByRole("region", { name: "에이전트 메시지" });
+    expect(within(timeline).getByRole("link", { name: "근거" })).toHaveAttribute("rel", "noopener noreferrer");
+    expect(within(timeline).queryByRole("link", { name: "실행" })).not.toBeInTheDocument();
+    expect(timeline.querySelector("script, img")).toBeNull();
+    expect(within(timeline).getByText("외부 그림")).toBeInTheDocument();
+  });
+
+  it("keeps footnote links and their accessible descriptions local to each message", () => {
+    const text = "확인한 수치[^1]\n\n[^1]: 검색 이력 기준";
+    render(<AgentConversation completed activities={[activity({ message_text: text }),
+      activity({ node_id: "another-agent", message_text: text })]} />);
+    const timeline = screen.getByRole("region", { name: "에이전트 메시지" });
+    const references = within(timeline).getAllByRole("link", { name: "1" });
+    expect(new Set(references.map(link => link.getAttribute("href"))).size).toBe(2);
+    for (const link of references) {
+      expect(document.getElementById(link.getAttribute("href")!.slice(1))).toBeInTheDocument();
+      expect(document.getElementById(link.getAttribute("aria-describedby")!)).toHaveTextContent("주석");
+    }
+  });
+
   it("filters an individual agent including its model commentary", () => {
     render(<AgentConversation activities={[activity(), model, agentB, tool]} />);
     const timeline = screen.getByRole("region", { name: "에이전트 메시지" });
