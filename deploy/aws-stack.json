@@ -116,6 +116,13 @@
             "ToPort": 3290,
             "CidrIp": "0.0.0.0/0",
             "Description": "Temporary demo endpoint"
+          },
+          {
+            "IpProtocol": "tcp",
+            "FromPort": 443,
+            "ToPort": 443,
+            "CidrIp": "0.0.0.0/0",
+            "Description": "HTTPS application and API"
           }
         ]
       }

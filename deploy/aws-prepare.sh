@@ -16,7 +16,7 @@ request = urllib.request.Request('http://169.254.169.254/latest/meta-data/public
 ip = urllib.request.urlopen(request).read().decode()
 password = boto3.client('ssm', region_name='us-east-1').get_parameter(Name='/catch-catch-hackathon/langfuse-admin-password', WithDecryption=True)['Parameter']['Value']
 settings = read_env(LOCAL / 'stack.env')
-settings.update({'APP_PORT':'80', 'APP_URL':f'http://{ip}', 'LANGFUSE_URL':f'http://{ip}:3210', 'MINIO_URL':f'http://{ip}:3290', 'LANGFUSE_USER_EMAIL':'4bit@catchcatch.local', 'LANGFUSE_USER_PASSWORD':password})
+settings.update({'APP_PORT':'80', 'PUBLIC_IP':ip, 'APP_URL':f'https://{ip}', 'LANGFUSE_URL':f'http://{ip}:3210', 'MINIO_URL':f'http://{ip}:3290', 'LANGFUSE_USER_EMAIL':'4bit@catchcatch.local', 'LANGFUSE_USER_PASSWORD':password})
 write_private(LOCAL / 'stack.env', settings)
 backend = read_env(LOCAL / 'backend.env')
 backend.update({'AGENT_MODE':'bedrock', 'AWS_REGION':'us-east-1', 'BEDROCK_MODEL':'us.anthropic.claude-opus-4-6-v1', 'BEDROCK_INVESTIGATOR_MODEL':'us.anthropic.claude-sonnet-4-6', 'LANGFUSE_TRACING_ENVIRONMENT':'aws-hackathon', 'LANGSMITH_TRACING':'false'})

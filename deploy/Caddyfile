@@ -1,0 +1,36 @@
+{
+    default_sni {$PUBLIC_IP}
+    servers {
+        protocols h1 h2
+    }
+}
+
+(app_routes) {
+    request_body {
+        max_size 20971520
+    }
+    handle_path /backend/* {
+        reverse_proxy backend:8000 {
+            flush_interval -1
+            header_down X-Accel-Buffering no
+        }
+    }
+    handle {
+        reverse_proxy frontend:3000
+    }
+}
+
+https://{$PUBLIC_IP} {
+    tls {
+        issuer acme https://acme-v02.api.letsencrypt.org/directory {
+            profile shortlived
+            disable_tlsalpn_challenge
+        }
+    }
+    import app_routes
+}
+
+# Internal Docker health checks; port 8080 is not published.
+http://:8080 {
+    import app_routes
+}
