@@ -106,7 +106,7 @@ export function BriefingScreen({
   // 훅은 빈 브리핑에서도 같은 순서로 호출하되, 실제 덱은 렌더링하지 않는다.
   const deck = useSwipeDeck(Math.max(signals.length, 1));
 
-  const [exploreOpen, setExploreOpen] = useState(false);
+  const [exploreOpen, setExploreOpen] = useState(() => Boolean(question.trim()));
   const selectedSignalRef = useRef<string | null>(null);
   const signalIdsRef = useRef("");
 

@@ -128,7 +128,151 @@ function streamEvents(): AnyRunStreamEvent[] {
   ];
 }
 
+const intakeAccepted = {
+  run_id: "run-intake", status_url: "/api/runs/run-intake", events_url: "/api/runs/run-intake/events",
+};
+const intakeSnapshot: RunSnapshot = {
+  run_id: "run-intake", status: "running",
+  request: { question: "분석해 줘", start_at: LIVE_START_AT, end_at: LIVE_END_AT, enabled_sources: ["hackathon_voc"] },
+  created_at: "2026-09-11T00:00:00Z", updated_at: "2026-09-11T00:00:00Z",
+  agent_mode: "bedrock", report: null, error: null, plan_history: [], facts: [],
+};
+
+function intakeClient(events: AnyRunStreamEvent[] = []): SignalCatcherClient {
+  return {
+    listSources: vi.fn(async () => apiSources), createRun: vi.fn(async () => intakeAccepted),
+    getRun: vi.fn(async () => intakeSnapshot),
+    async *streamRunEvents() { for (const event of events) yield event; },
+    submitClarification: vi.fn(async () => intakeAccepted), getJourney: vi.fn(), getEvidence: vi.fn(),
+  };
+}
+
+function clarificationEvent(id: number): AnyRunStreamEvent {
+  return { id, type: "clarification_required", data: {
+    kind: "clarification", clarification_id: `clarify-${id}`, question: `${id}번째 확인 질문`,
+  } };
+}
+
 describe("useLiveCatchSession", () => {
+  it.each(["input_out_of_scope", "input_unsafe", "intake_failed"])(
+    "retains the %s error through the terminal event and dismisses clarification",
+    async (code) => {
+      const client = intakeClient([
+        clarificationEvent(1),
+        { id: 2, type: "error", data: {
+          code, message: "질문을 확인하지 못했어요.",
+          ...(code === "intake_failed" ? {} : { suggested_questions: ["로밍 요금제 탐색 중 이탈한 고객을 찾아 주세요."] }),
+        } },
+        { id: 3, type: "done", data: { status: "failed" } },
+      ]);
+      const { result } = renderHook(() => useLiveCatchSession(client));
+      act(() => result.current.start("분석해 줘"));
+      await waitFor(() => expect(result.current.topologyEvents.at(-1)?.type).toBe("done"));
+      expect(result.current.session).toMatchObject({
+        phase: "catching", outcome: "failed", failureCode: code,
+        failureReason: "질문을 확인하지 못했어요.", clarification: null,
+      });
+    },
+  );
+
+  it("preserves a newer clarification that arrives before the answer response", async () => {
+    let nextPrompt!: () => void;
+    const nextPromptReady = new Promise<void>((resolve) => { nextPrompt = resolve; });
+    let completeSubmission!: () => void;
+    const submissionReady = new Promise<void>((resolve) => { completeSubmission = resolve; });
+    const client = intakeClient();
+    client.streamRunEvents = async function* (_runId, options) {
+      yield clarificationEvent(1);
+      await nextPromptReady;
+      yield clarificationEvent(2);
+      await new Promise<void>((resolve) => options?.signal?.addEventListener("abort", () => resolve(), { once: true }));
+    };
+    client.submitClarification = vi.fn(async () => {
+      await submissionReady;
+      return intakeAccepted;
+    });
+    const { result, unmount } = renderHook(() => useLiveCatchSession(client));
+    act(() => result.current.start("분석해 줘"));
+    await waitFor(() => expect(result.current.session.clarification?.clarificationId).toBe("clarify-1"));
+    act(() => result.current.answerClarification("미가입 고객"));
+    act(() => nextPrompt());
+    await waitFor(() => expect(result.current.session.clarification?.clarificationId).toBe("clarify-2"));
+    await act(async () => completeSubmission());
+    expect(result.current.session.clarification?.clarificationId).toBe("clarify-2");
+    expect(client.submitClarification).toHaveBeenCalledWith("run-intake", "미가입 고객", expect.any(AbortSignal));
+    expect(client.createRun).toHaveBeenCalledOnce();
+    unmount();
+  });
+
+  it("resumes each clarification on the same run from its latest event cursor", async () => {
+    const client = intakeClient();
+    const cursors: Array<number | undefined> = [];
+    client.streamRunEvents = async function* (_runId, options) {
+      cursors.push(options?.lastEventId);
+      if (cursors.length < 3) yield clarificationEvent(cursors.length);
+      else yield { id: 3, type: "goal_created", data: { goal } };
+    };
+    const { result } = renderHook(() => useLiveCatchSession(client));
+    act(() => result.current.start("분석해 줘"));
+    await waitFor(() => expect(result.current.session.clarification?.clarificationId).toBe("clarify-1"));
+    act(() => result.current.answerClarification("미가입 고객"));
+    await waitFor(() => expect(result.current.session.clarification?.clarificationId).toBe("clarify-2"));
+    act(() => result.current.answerClarification("검색 후 이탈 행동"));
+    await waitFor(() => expect(result.current.session.activeStage).toBe("plan"));
+    expect(result.current.session.clarification).toBeNull();
+    expect(cursors).toEqual([0, 1, 2]);
+    expect(client.createRun).toHaveBeenCalledOnce();
+    expect(client.submitClarification).toHaveBeenCalledTimes(2);
+  });
+
+  it("resumes once when the answer is accepted before the old clarification stream ends", async () => {
+    let finishOldStream!: () => void;
+    const oldStreamFinished = new Promise<void>((resolve) => { finishOldStream = resolve; });
+    const cursors: Array<number | undefined> = [];
+    const client = intakeClient();
+    client.streamRunEvents = async function* (_runId, options) {
+      cursors.push(options?.lastEventId);
+      if (cursors.length === 1) {
+        yield clarificationEvent(1);
+        await oldStreamFinished;
+      } else yield clarificationEvent(2);
+    };
+    const { result } = renderHook(() => useLiveCatchSession(client));
+    act(() => result.current.start("분석해 줘"));
+    await waitFor(() => expect(result.current.session.clarification?.clarificationId).toBe("clarify-1"));
+
+    await act(async () => result.current.answerClarification("미가입 고객"));
+    expect(result.current.session.clarification).toBeNull();
+    expect(cursors).toEqual([0]);
+
+    await act(async () => finishOldStream());
+    await waitFor(() => expect(result.current.session.clarification?.clarificationId).toBe("clarify-2"));
+    expect(cursors).toEqual([0, 1]);
+    expect(client.createRun).toHaveBeenCalledOnce();
+    expect(client.submitClarification).toHaveBeenCalledOnce();
+  });
+
+  it("does not resubscribe when the existing stream advances after the answer", async () => {
+    let continueStream!: () => void;
+    const continuationReady = new Promise<void>((resolve) => { continueStream = resolve; });
+    const cursors: Array<number | undefined> = [];
+    const client = intakeClient();
+    client.streamRunEvents = async function* (_runId, options) {
+      cursors.push(options?.lastEventId);
+      yield clarificationEvent(1);
+      await continuationReady;
+      yield { id: 2, type: "goal_created", data: { goal } };
+    };
+    const { result } = renderHook(() => useLiveCatchSession(client));
+    act(() => result.current.start("분석해 줘"));
+    await waitFor(() => expect(result.current.session.clarification?.clarificationId).toBe("clarify-1"));
+    await act(async () => result.current.answerClarification("미가입 고객"));
+    await act(async () => continueStream());
+    await waitFor(() => expect(result.current.session.activeStage).toBe("plan"));
+    expect(cursors).toEqual([0]);
+    expect(result.current.session.clarification).toBeNull();
+  });
+
   it("refreshes sources, creates the fixed Bedrock run, consumes SSE, and loads details", async () => {
     const calls: string[] = [];
     let statusCalls = 0;

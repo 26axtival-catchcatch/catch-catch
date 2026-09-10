@@ -12,7 +12,10 @@ from time import monotonic
 from uuid import uuid4
 
 from customer_signal.agent.contracts import AnalysisEvent, GenericRunnerOutcome
-from customer_signal.domain.analysis import PublicRunError
+from customer_signal.domain.analysis import ClarificationRequired, PublicRunError
+from customer_signal.investigation.intake import (
+    BLOCK_MESSAGES, INTAKE_SUGGESTIONS, IntakeDecision,
+)
 from customer_signal.investigation.activity import ActivityStream, ActivityDetails, role_details
 from customer_signal.investigation.contracts import (
     Coordination,
@@ -68,6 +71,42 @@ class InvestigationRunner:
         self.signal_store = signal_store
 
     async def run(self, request, *, emit):
+        # No Goal, Plan, snapshot or SQL work can precede this fail-closed gate.
+        try:
+            decision = IntakeDecision.model_validate(await self.model.classify_input(request))
+        except Exception:
+            error = PublicRunError(
+                code="intake_failed",
+                message="질문을 확인하지 못했어요. 잠시 후 다시 시도해 주세요.",
+            )
+            await emit(AnalysisEvent(type="error", payload=error.model_dump(mode="json")))
+            return GenericRunnerOutcome(
+                status="failed", error=error,
+                agent_mode=self.agent_mode, model=self.model.model_name,
+            )
+        if decision.action == "clarify":
+            clarification = ClarificationRequired(
+                clarification_id=f"clarification-{uuid4()}", question=decision.question.strip(),
+            )
+            await emit(AnalysisEvent(
+                type="clarification_required", payload=clarification.model_dump(mode="json"),
+            ))
+            return GenericRunnerOutcome(
+                status="awaiting_clarification", clarification=clarification,
+                agent_mode=self.agent_mode, model=self.model.model_name,
+            )
+        if decision.action == "block":
+            error = PublicRunError(
+                code="input_unsafe" if decision.reason == "unsafe" else "input_out_of_scope",
+                message=BLOCK_MESSAGES[decision.reason],
+                suggested_questions=INTAKE_SUGGESTIONS,
+            )
+            await emit(AnalysisEvent(type="error", payload=error.model_dump(mode="json")))
+            return GenericRunnerOutcome(
+                status="failed", error=error,
+                agent_mode=self.agent_mode, model=self.model.model_name,
+            )
+        request = request.model_copy(update={"question": decision.analysis_question.strip()})
         run_id = current_run_id() or str(uuid4())
         started = monotonic()
         activity = ActivityStream(emit)

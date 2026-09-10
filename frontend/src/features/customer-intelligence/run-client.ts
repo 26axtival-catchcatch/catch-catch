@@ -984,6 +984,7 @@ export class RunClient {
       const decoder = new TextDecoder();
       const reader = response.body.getReader();
       let terminal = false;
+      let awaitingClarification = false;
       let protocolFailure: unknown;
 
       try {
@@ -1008,6 +1009,7 @@ export class RunClient {
             }
             const event = decodeEvent(parsed, runId);
             cursor = event.id;
+            awaitingClarification = event.type === "clarification_required";
             yield event;
             if (event.type === "done") {
               terminal = true;
@@ -1016,6 +1018,9 @@ export class RunClient {
           }
 
           if (done) {
+            // 답변 대기 중인 Run은 done 없이 연결을 닫는다. 답변 후 호출자가
+            // 마지막 clarification cursor에서 구독을 재개한다.
+            if (awaitingClarification) return;
             break;
           }
         }

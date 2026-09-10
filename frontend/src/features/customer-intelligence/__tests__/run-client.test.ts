@@ -640,6 +640,51 @@ describe("RunClient", () => {
     expect(calls).toBe(1);
   });
 
+  it("ends normally while awaiting clarification and resumes from that event after an answer", async () => {
+    const cursors: Array<string | null> = [];
+    const answers: unknown[] = [];
+    const fetchImpl: typeof fetch = vi.fn(async (_input, init) => {
+      if (init?.method === "POST") {
+        answers.push(JSON.parse(String(init.body)));
+        return Response.json({ run_id: "run-1", status_url: "/api/runs/run-1", events_url: "/api/runs/run-1/events" });
+      }
+      const cursor = new Headers(init?.headers).get("Last-Event-ID");
+      cursors.push(cursor);
+      if (cursor === "1") return responseStream([
+        frame("run-1", 2, "clarification_required", { clarification_id: "clarify-2", question: "어떤 행동을 확인할까요?" }),
+      ]);
+      if (cursor === "2") return responseStream([
+        frame("run-1", 3, "goal_created", { goal: genericGoal }),
+        frame("run-1", 4, "done", { status: "completed" }),
+      ]);
+      return responseStream([
+        frame("run-1", 1, "clarification_required", { clarification_id: "clarify-1", question: "어떤 고객인가요?" }),
+      ]);
+    });
+    const client = new RunClient({ apiBaseUrl: "http://api.test", fetchImpl });
+
+    await expect(consume(client)).resolves.toMatchObject([{ id: 1, type: "clarification_required" }]);
+    await client.submitClarification("run-1", "미가입 고객");
+    const second = [];
+    for await (const event of client.streamRunEvents("run-1", { lastEventId: 1 })) second.push(event);
+    expect(second).toMatchObject([{ id: 2, type: "clarification_required" }]);
+    await client.submitClarification("run-1", "검색 후 이탈 행동");
+    const resumed = [];
+    for await (const event of client.streamRunEvents("run-1", { lastEventId: 2 })) resumed.push(event);
+    expect(resumed.map((event) => event.type)).toEqual(["goal_created", "done"]);
+    expect(cursors).toEqual([null, "1", "2"]);
+    expect(answers).toEqual([{ answer: "미가입 고객" }, { answer: "검색 후 이탈 행동" }]);
+  });
+
+  it("still rejects early EOF after an answered clarification has resumed analysis", async () => {
+    const fetchImpl: typeof fetch = async () => responseStream([
+      frame("run-1", 1, "clarification_required", { clarification_id: "clarify-1", question: "어떤 고객인가요?" }),
+      frame("run-1", 2, "goal_created", { goal: genericGoal }),
+    ]);
+    const client = new RunClient({ apiBaseUrl: "http://api.test", fetchImpl, maxReconnectAttempts: 0 });
+    await expect(consume(client)).rejects.toMatchObject({ code: "stream_ended" });
+  });
+
   it("reports a typed protocol error when a stream ends before done", async () => {
     const fetchImpl: typeof fetch = async () => responseStream([]);
     const client = new RunClient({

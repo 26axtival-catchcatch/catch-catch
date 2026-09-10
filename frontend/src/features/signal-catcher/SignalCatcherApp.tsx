@@ -198,6 +198,11 @@ export function SignalCatcherApp({
     setQuestion("");
   }
 
+  function editQuestion() {
+    controller.reset();
+    setQuestion(session.question);
+  }
+
   return (
     <div className={styles.app}>
       <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -213,7 +218,8 @@ export function SignalCatcherApp({
           </span>
         </button>
         <span className={styles.barSpacer} />
-        {!usesDemo ? <SignalFastForward
+        {/* 시연용 조작은 기능을 유지한 채 화면에서만 숨긴다. */}
+        {!usesDemo ? <div style={{ display: "none" }}><SignalFastForward
           disabled={session.phase === "catching"}
           beforeRun={signalAlerts.refresh}
           onCompleted={() => {
@@ -221,7 +227,7 @@ export function SignalCatcherApp({
             setSignalRevision((current) => current + 1);
             void signalAlerts.refresh().catch(() => undefined);
           }}
-        /> : null}
+        /></div> : null}
         <SignalAlertInbox
           events={signalAlerts.events}
           error={signalAlerts.error}
@@ -310,7 +316,7 @@ export function SignalCatcherApp({
               topologyEvents={controller.topologyEvents}
               onAnswerClarification={controller.answerClarification}
               onRetry={controller.retry}
-              onGiveUp={restart}
+              onGiveUp={editQuestion}
             />
           </div>
         ) : null}

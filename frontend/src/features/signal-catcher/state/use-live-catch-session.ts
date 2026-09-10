@@ -59,6 +59,7 @@ function idleSession(): CatchSession {
     outcome: null,
     report: null,
     failureReason: null,
+    failureCode: null,
     suggestedQuestions: [],
   };
 }
@@ -169,6 +170,7 @@ export function useLiveCatchSession(providedClient?: SignalCatcherClient): Catch
   const versionRef = useRef(0);
   const abortRef = useRef<AbortController | null>(null);
   const streamActiveRef = useRef(false);
+  const streamFinishedRef = useRef<Promise<void> | null>(null);
   const runIdRef = useRef<string | null>(null);
   const lastEventIdRef = useRef(0);
   const plansRef = useRef<AnalysisPlan[]>([]);
@@ -223,11 +225,13 @@ export function useLiveCatchSession(providedClient?: SignalCatcherClient): Catch
   const fail = useCallback((error: RunError) => {
     setTick(null);
     setFlatline(true);
-    if (error.suggested_questions?.length) {
+    const inputBlocked = error.code === "input_out_of_scope" || error.code === "input_unsafe";
+    if (error.suggested_questions?.length && !inputBlocked) {
       setSession((current) => ({
         ...idleSession(),
         question: current.question,
         failureReason: error.message,
+        failureCode: error.code,
         suggestedQuestions: error.suggested_questions ?? [],
       }));
       return;
@@ -235,7 +239,9 @@ export function useLiveCatchSession(providedClient?: SignalCatcherClient): Catch
     setSession((current) => ({
       ...current,
       outcome: "failed",
+      clarification: null,
       failureReason: error.message,
+      failureCode: error.code,
     }));
   }, []);
 
@@ -351,6 +357,10 @@ export function useLiveCatchSession(providedClient?: SignalCatcherClient): Catch
       answeredClarificationThrough = 0,
     ) => {
       streamActiveRef.current = true;
+      let finishStream!: () => void;
+      const streamFinished = new Promise<void>((resolve) => { finishStream = resolve; });
+      streamFinishedRef.current = streamFinished;
+      let receivedError = false;
       try {
         for await (const event of client.streamRunEvents(runId, {
           signal: controller.signal,
@@ -516,11 +526,14 @@ export function useLiveCatchSession(providedClient?: SignalCatcherClient): Catch
               ));
               break;
             case "error":
+              receivedError = true;
               fail(event.data);
               break;
             case "done":
               if (event.data.status === "failed") {
-                fail({ code: "run_failed", message: "분석을 완료하지 못했어요." });
+                if (!receivedError) {
+                  fail({ code: "run_failed", message: "분석을 완료하지 못했어요." });
+                }
               } else {
                 await settle(runId, event.data.status, version, controller);
               }
@@ -548,7 +561,11 @@ export function useLiveCatchSession(providedClient?: SignalCatcherClient): Catch
         }
         fail(publicError(error));
       } finally {
-        streamActiveRef.current = false;
+        if (streamFinishedRef.current === streamFinished) {
+          streamActiveRef.current = false;
+          streamFinishedRef.current = null;
+        }
+        finishStream();
       }
     },
     [advance, appendTick, appendTopologyEvent, client, fail, settle],
@@ -663,14 +680,25 @@ export function useLiveCatchSession(providedClient?: SignalCatcherClient): Catch
     (answer: string) => {
       const runId = runIdRef.current;
       const controller = abortRef.current;
-      if (!runId || !controller || controller.signal.aborted) return;
+      const clarificationId = session.clarification?.clarificationId;
+      if (!runId || !controller || controller.signal.aborted || !clarificationId) return;
       const version = versionRef.current;
-      void client.submitClarification(runId, answer, controller.signal).then(() => {
+      const answeredEventId = lastEventIdRef.current;
+      void client.submitClarification(runId, answer, controller.signal).then(async () => {
         if (
           !mountedRef.current || controller.signal.aborted ||
           versionRef.current !== version
         ) return;
-        setSession((current) => ({ ...current, clarification: null }));
+        setSession((current) => current.clarification?.clarificationId === clarificationId
+          ? { ...current, clarification: null }
+          : current);
+        // 답변 응답이 기존 SSE의 EOF보다 빠를 수 있다. 기존 구독을 먼저
+        // 마치고, 이미 새 이벤트가 왔다면 재구독하지 않는다.
+        if (streamActiveRef.current) await streamFinishedRef.current;
+        if (
+          !mountedRef.current || controller.signal.aborted ||
+          versionRef.current !== version || lastEventIdRef.current !== answeredEventId
+        ) return;
         if (!streamActiveRef.current) {
           void consumeStream(runId, controller, version, lastEventIdRef.current);
         }
@@ -678,7 +706,7 @@ export function useLiveCatchSession(providedClient?: SignalCatcherClient): Catch
         if (!controller.signal.aborted && !isAbort(error)) fail(publicError(error));
       });
     },
-    [client, consumeStream, fail],
+    [client, consumeStream, fail, session.clarification?.clarificationId],
   );
 
   const restore = useCallback((view: ViewParam) => {
