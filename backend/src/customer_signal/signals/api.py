@@ -6,17 +6,11 @@ from collections.abc import Callable
 from typing import Literal
 from uuid import uuid4
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Response
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, model_validator
 
-from customer_signal.agent.contracts import RunRequest
-from customer_signal.observability.langfuse import (
-    public_observation,
-    bind_langfuse_run,
-    LangfuseRunContext,
-)
-from customer_signal.signals.contracts import Measurement, Proposal, Signal
-from customer_signal.signals.measurement import measure_definition, unavailable_measurement
+from customer_signal.signals.contracts import Measurement, Proposal, Signal, SignalDefinition
+from customer_signal.signals.service import MeasurementUnavailable, SignalService
 
 
 class RequestModel(BaseModel):
@@ -40,6 +34,14 @@ class MeasurementRequest(RequestModel):
         if self.start_at >= self.end_at:
             raise ValueError("start_at must precede exclusive end_at")
         return self
+
+
+class RegisterDefinedSignal(MeasurementRequest):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    title: str = Field(min_length=1, max_length=500)
+    description: str = Field(min_length=1, max_length=10000)
+    definition: SignalDefinition
 
 
 class ProposalList(BaseModel):
@@ -90,6 +92,7 @@ def history_response(items: list[Measurement]) -> MeasurementHistory:
 
 def create_router(*, store, is_completed: Callable[[str], bool], load_data: Callable) -> APIRouter:
     router = APIRouter(tags=["signals"])
+    service = SignalService(store=store, load_data=load_data)
 
     def signal_or_404(signal_id):
         try:
@@ -122,12 +125,46 @@ def create_router(*, store, is_completed: Callable[[str], bool], load_data: Call
             raise HTTPException(404, "이 분석에 속한 후보가 아닙니다.")
         return proposal
 
-    @router.post("/api/signals", summary="선택한 후보를 추적 시그널로 등록")
-    def register(request: RegisterSignal) -> Signal:
+    @router.get("/api/signal-proposals", summary="완료된 분석의 전체 시그널 후보 목록 조회")
+    def all_proposals(run_id: str | None = None) -> ProposalList:
+        if run_id is not None:
+            require_completed(run_id)
+        return ProposalList(
+            items=[
+                proposal
+                for proposal in store.list_proposals(run_id)
+                if is_completed(proposal.run_id)
+            ]
+        )
+
+    @router.get("/api/signal-proposals/{proposal_id}", summary="시그널 후보 상세 조회")
+    def global_proposal_detail(proposal_id: str) -> Proposal:
+        proposal = proposal_or_404(proposal_id)
+        require_completed(proposal.run_id)
+        return proposal
+
+    @router.post("/api/signals", summary="선택한 후보 또는 직접 정의한 시그널 등록")
+    def register(request: RegisterSignal | RegisterDefinedSignal, response: Response) -> Signal:
+        trace_run_id = str(uuid4())
+        response.headers["X-Langfuse-Trace-Id"] = trace_run_id.replace("-", "")
+        if isinstance(request, RegisterDefinedSignal):
+            try:
+                return service.register_definition(
+                    title=request.title,
+                    description=request.description,
+                    definition=request.definition,
+                    start_at=request.start_at,
+                    end_at=request.end_at,
+                    trace_run_id=trace_run_id,
+                )
+            except MeasurementUnavailable:
+                raise HTTPException(
+                    422, "시그널 정의를 측정할 수 없어 등록하지 않았습니다."
+                ) from None
         proposal = proposal_or_404(request.proposal_id)
         require_completed(proposal.run_id)
         try:
-            return store.register(request.proposal_id)
+            return service.register_proposal(proposal, trace_run_id=trace_run_id)
         except ValueError:
             raise HTTPException(409, "검증된 측정값이 있는 후보만 등록할 수 있습니다.") from None
 
@@ -147,46 +184,13 @@ def create_router(*, store, is_completed: Callable[[str], bool], load_data: Call
     @router.post(
         "/api/signals/{signal_id}/measurements", summary="고정 시그널 정의로 지정 기간 재측정"
     )
-    def measure(signal_id: str, request: MeasurementRequest) -> Measurement:
+    def measure(signal_id: str, request: MeasurementRequest, response: Response) -> Measurement:
         signal = signal_or_404(signal_id)
-        run_request = RunRequest(
-            question=signal.title,
-            start_at=request.start_at,
-            end_at=request.end_at,
-            enabled_sources=signal.definition.source_ids,
+        trace_run_id = str(uuid4())
+        response.headers["X-Langfuse-Trace-Id"] = trace_run_id.replace("-", "")
+        return service.measure(
+            signal, start_at=request.start_at, end_at=request.end_at, trace_run_id=trace_run_id
         )
-        data = None
-        trace = LangfuseRunContext(
-            run_id=str(uuid4()),
-            run_kind="generic",
-            question=f"시그널 재측정: {signal.title}",
-            source_ids=tuple(signal.definition.source_ids),
-        )
-        with (
-            bind_langfuse_run(trace),
-            public_observation(
-                name="customer_signal.signal_measurement",
-                stage="measurement",
-                input={"signal_id": signal_id, **request.model_dump(mode="json")},
-            ) as observation,
-        ):
-            try:
-                data = load_data(run_request)
-                result = measure_definition(data, signal.definition)
-            except Exception:
-                result = unavailable_measurement(
-                    signal.definition,
-                    request.start_at,
-                    request.end_at,
-                    "필수 Source 또는 관측 데이터를 불러오지 못했습니다.",
-                )
-            finally:
-                if data is not None:
-                    data.close()
-            result = result.model_copy(update={"trace_id": trace.trace_id})
-            persisted = store.add_measurement(signal_id, result)
-            observation.update(output=persisted.model_dump(mode="json"))
-            return persisted
 
     @router.get(
         "/api/signals/{signal_id}/measurements", summary="시그널 측정 이력과 기간별 최신 값 조회"

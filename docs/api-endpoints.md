@@ -48,10 +48,13 @@ Backend 를 실행하면 FastAPI 가 다음 경로를 자동으로 제공합니�
 `auto`는 유효한 Bedrock 토큰 → Gemini 키 → fixture 순서로 선택합니다.
 `mode=bedrock`은 `AWS_BEARER_TOKEN_BEDROCK`, `AWS_REGION`(기본 `us-east-1`),
 `BEDROCK_MODEL`(기본 `us.anthropic.claude-opus-4-6-v1`)로 Converse API를 호출합니다.
+investigator는 `BEDROCK_INVESTIGATOR_MODEL`(기본 `us.anthropic.claude-sonnet-4-6`)을
+사용하며, coordinator, verifier, reporter는 `BEDROCK_MODEL`을 사용합니다.
 `mode=gemini`와 `mode=bedrock`은 총괄, 가설별 조사, 독립 검증과 보고 역할을 실행합니다.
 Bedrock 호출 실패 시 다른 모델이나 fixture로 자동 전환하지 않습니다.
 상태 응답과 SSE의 `agent_mode`에 `bedrock`이 표시되며, 저장 Artifact의
-`versions.model_version`에 실제 Bedrock 모델 ID, `versions.agent_mode`에 실행 provider를 기록합니다.
+`versions.model_version`에 기본 Bedrock 모델 ID, `versions.agent_mode`에 실행 provider를 기록합니다.
+역할별 호출 모델은 관측 metadata의 `model`에 기록합니다.
 기존 Artifact는 새 필드 없이도 읽을 수 있습니다. 요청 필드와
 SSE, `customer_signal` 보고서 스키마는 유지합니다. 진행 중 실행은 선택한 공간의
 스냅샷을 사용하며, 추가된 데이터는 같은 질문과 기간으로 새 Run을 생성해 분석합니다.
@@ -90,13 +93,16 @@ FastAPI OpenAPI 스키마에 포함되지 않으므로 Swagger UI 에 나타나�
 ## signals
 
 시그널은 사용자가 선택해 등록한 고정 패턴 정의입니다. 기존 보고서의 일회성 `AnalysisSignal`과 구분합니다.
-에이전트의 지표 계산·후보 제안은 등록 행위가 아닙니다. 완료된 분석의 독립 검증 후보만 등록할 수 있습니다.
+에이전트의 지표 계산·후보 제안은 등록 행위가 아닙니다. 완료된 분석의 독립 검증 후보를 선택하거나,
+사용자가 정의와 기간을 직접 보내 서버 측정 후 등록합니다. 하나의 조사 태스크는 여러 패턴 후보를 가질 수 있습니다.
 
 | Method | 경로 | 설명 | 응답 |
 | --- | --- | --- | --- |
+| GET | `/api/signal-proposals` | 완료 분석의 후보 모아보기, 선택적 `run_id` 필터 | `ProposalList` |
+| GET | `/api/signal-proposals/{proposal_id}` | 분석 경로 없이 후보 상세 조회 | `Proposal` |
 | GET | `/api/runs/{run_id}/signal-proposals` | 완료된 분석의 등록 가능 후보 | `ProposalList` |
 | GET | `/api/runs/{run_id}/signal-proposals/{proposal_id}` | 후보 정의·최초 측정·근거 | `Proposal` |
-| POST | `/api/signals` | `proposal_id`로 사용자 선택 등록, 재시도 시 같은 ID | `Signal` |
+| POST | `/api/signals` | `proposal_id` 선택 등록 또는 `title`, `description`, `definition`, `start_at`, `end_at` 직접 등록 | `Signal` |
 | GET | `/api/signals` | 등록된 시그널 목록 | `SignalList` |
 | GET | `/api/signals/{signal_id}` | 고정 정의와 상태 조회 | `Signal` |
 | PATCH | `/api/signals/{signal_id}` | `status`: active/paused/archived | `Signal` |
@@ -104,9 +110,26 @@ FastAPI OpenAPI 스키마에 포함되지 않으므로 Swagger UI 에 나타나�
 | GET | `/api/signals/{signal_id}/measurements` | 전체 이력·기간별 최신 성공 값·비교 가능 여부 | `MeasurementHistory` |
 
 등록과 재측정은 HTTP 200을 반환합니다. 없는 시그널/후보는 404, 완료되지 않은 Run의 후보 조회·등록은 409,
-잘못된 요청은 422입니다. 측정 데이터가 부족하거나 SQL이 실패하면 HTTP 200의 `status=unavailable`로 이력을
+잘못된 요청은 422입니다. 직접 등록 시 최초 측정이 불가능해도 422이며 등록을 저장하지 않습니다.
+직접 등록의 출처는 `origin=user_defined`, `proposal_id=null`입니다. 기존 등록은 `origin=analysis`입니다.
+같은 정의를 재등록하면 기존 ID와 출처를 유지합니다. 수동 재측정 데이터가 부족하거나 SQL이 실패하면 HTTP 200의 `status=unavailable`로 이력을
 남깁니다. `values[].value=null`을 0으로 표시하면 안 됩니다. `reason`에는 공개 가능한 실패 사유만 포함합니다.
 같은 정의/관측 기간/데이터 스냅샷의 재측정은 기존 측정 ID를 반환합니다. 데이터가 변경되면 새 측정으로 보존합니다.
 `latest_by_window`는 기간별 최신 성공 값을 우선하며, 실패 이력은 `items`에 남습니다.
 관측 기간 길이·정의·Source 범위/버전이 다르거나 기간이 겹치면 비교 불가 사유를 반환합니다.
 자세한 연결 순서와 수치 해석은 [시그널 FE 인계](signal-fe-handoff.md)를 참고합니다.
+
+등록·재측정의 성공 응답 헤더 `X-Langfuse-Trace-Id`는 **이번 API 호출**의 trace ID입니다.
+CORS에서도 이 헤더를 읽을 수 있습니다. 중복 요청이 기존 측정을 재사용하면
+본문의 `measurement.trace_id`는 최초 저장 당시 trace를 유지하므로 두 ID는 다를 수 있습니다.
+Langfuse MCP로는 `fetch_observations(type="SPAN", name="customer_signal.signal", age=180)`으로
+시그널 기록만 조회합니다. 특정 호출은 `trace_id`를 추가하고, 반환 metadata의 `signal_id`로 이력을 연결합니다.
+현재 `langfuse_local` MCP의 기본 키는 Backend와 다른 프로젝트를 가리킵니다.
+아래 명령은 MCP 설정 파일을 바꾸지 않고, 선택한 Backend 환경의 프로젝트 키를 해당 MCP 프로세스에 전달합니다.
+키 원문은 출력하거나 문서에 기록하지 않습니다.
+
+```sh
+env -u LANGFUSE_SECRET_KEY -u LANGFUSE_PUBLIC_KEY -u LANGFUSE_BASE_URL \
+  uv run --env-file .env --project backend python scripts/verify-signal-spans-mcp.py \
+  --backend-credentials --trace-id <ID>
+```

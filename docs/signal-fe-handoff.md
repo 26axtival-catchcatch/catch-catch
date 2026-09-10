@@ -6,7 +6,7 @@
 이번에 추가된 API만 호출하면 됩니다. FE 화면과 정기 실행은 이번 Backend 구현 범위에 포함하지 않습니다.
 
 1. 기존 방식으로 분석하고 `status=completed`를 확인합니다.
-2. `GET /api/runs/{run_id}/signal-proposals`의 `items`를 조회합니다.
+2. `GET /api/signal-proposals?run_id={run_id}`의 `items`를 조회합니다. 기존 `GET /api/runs/{run_id}/signal-proposals`도 지원합니다.
 3. 후보의 `title`, `description`, `limitations`, `definition`, `measurement.values`를 보여줍니다.
 4. 사용자가 선택한 후보마다 `POST /api/signals`를 호출합니다.
 5. `GET /api/signals`로 등록 목록을, 상세와 측정 이력 API로 추적 정보를 조회합니다.
@@ -15,9 +15,44 @@
 {"proposal_id": "후보 조회에서 받은 ID"}
 ```
 
+한 조사 태스크에서 발견한 서로 다른 패턴을 여러 후보로 제안할 수 있습니다. 각 후보는 고유 `proposal_id`,
+`candidate_id`, 자체 `definition`과 측정값을 갖습니다. `task_id`는 발견한 조사 태스크를 나타내는 출처이며
+등록 단위가 아닙니다. 이전에 저장된 후보의 `task_id`는 null일 수 있습니다. 사용자가 선택한 후보마다 등록합니다.
+후보를 제안하거나 독립 검증하는 것만으로 추적 시그널이 자동 등록되지는 않습니다.
+
+분석 ID 없이 `GET /api/signal-proposals`로 완료된 분석의 후보를 모아 조회하고,
+`GET /api/signal-proposals/{proposal_id}`로 하나를 가져올 수 있습니다.
+
 등록 응답의 `signal_id`를 이후 모든 추적 조회에 사용합니다. 같은 후보를 반복 등록하면 같은 ID입니다.
 정확히 같은 정의를 다른 분석에서 다시 선택해도 기존 시그널을 재사용하고 새 기간의 최초 측정값을 보존합니다.
 이름만 비슷한 후보는 자동으로 합치지 않습니다. 등록 시 정의 버전은 1이며, 뒤의 분석이 덮어쓰지 않습니다.
+
+## 정의를 직접 등록
+
+분석 Run이나 후보 ID 없이도 `POST /api/signals`에 이름·정의·최초 측정 기간을 전달할 수 있습니다.
+예를 들어 다음 요청은 반복 검색이라는 관측 패턴을 등록합니다. 이것만으로 고객이 헤맸다는 판정은 아닙니다.
+
+```json
+{
+  "title": "부가서비스 반복 검색",
+  "description": "부가서비스를 찾으며 반복 검색한 고객 비율",
+  "start_at": "2026-09-04T00:00:00+09:00",
+  "end_at": "2026-09-11T00:00:00+09:00",
+  "definition": {
+    "source_ids": ["hackathon_search_history"],
+    "cohort_sql": "SELECT DISTINCT customer_id FROM hackathon_search_history WHERE topic = '부가서비스 조회/해지' AND dim_query_type = 'repeat'",
+    "denominator_sql": "SELECT DISTINCT customer_id FROM hackathon_search_history WHERE topic = '부가서비스 조회/해지'",
+    "population_description": "부가서비스 조회/해지 검색 고객",
+    "normal_comparison": "반복하지 않은 검색 고객과 비교. 정상 탐색 여부를 별도로 판정하지 않음",
+    "metrics": []
+  }
+}
+```
+
+서버가 해당 Source와 기간에서 SQL을 실행한 후 성공한 측정만 등록합니다. 클라이언트가 계산한 숫자는 받지 않습니다.
+측정할 수 없는 정의는 HTTP 422이며 시그널을 생성하지 않습니다. 직접 등록은 사용자 요청에 의한 등록이며
+독립 조사 에이전트의 의미 검증을 거쳤다는 뜻은 아닙니다. `origin=user_defined`, `proposal_id=null`로 구분합니다.
+동일 정의가 이미 등록되어 있으면 기존 시그널과 출처를 유지하고 해당 기간 측정을 연결합니다.
 
 ## 지표와 측정값
 
@@ -73,7 +108,38 @@ DB는 기본 `data/run-artifacts/signals.sqlite3`이며 서버 재시작 후에�
 기존 완료 Run에는 새 후보를 소급 생성하지 않습니다. 새 코드로 수행한 실제 조사에서 지표 제안·검증을 통과해야 후보가 생깁니다.
 Fixture 모드는 기존 보고서 동작을 유지하며 자동 시그널 제안은 실제 Bedrock/Gemini 조사 모드에서 수행합니다.
 
+## Langfuse에서 시그널 찾기
+
+관측 이름은 `customer_signal.signal`, 유형은 `SPAN`입니다. 도구 이름을 일일이 찾아 열 필요 없이
+Observations에서 해당 이름으로 필터링합니다. metadata의 `entity_type=signal`도 같은 용도로 사용할 수 있습니다.
+관측/metadata 필터 기능은 [Langfuse 공식 안내](https://langfuse.com/docs/observability/features/metadata)를 참고합니다.
+설치 버전에 따라 메뉴 이름은 다를 수 있으며, Trace 상세에서도 같은 이름의 span을 찾을 수 있습니다.
+
+- `operation`: 후보 확정, 등록 또는 재측정 작업 구분
+- `proposal_id`, `candidate_id`, `task_id`: 등록 전 발견 패턴과 조사 출처
+- `signal_id`: 등록 이후 개별 시그널의 등록·재측정 연결
+- `measurement_id`: 저장된 수치와 측정 이력 연결
+
+span의 Input에서 정의·기간을, Output에서 식별자·측정 수치를 확인합니다.
+기존 분석 trace에는 새 span을 소급 추가하지 않습니다. 적용 후 후보 확정·등록·재측정부터 생성됩니다.
+이 span은 실행 관측이며 시계열 데이터의 원장은 시그널 DB와 측정 이력 API입니다.
+
 ## 후속 로드맵
 
 등록·측정 경로를 정기 실행에 연결하고 정기 리포트를 작성한 다음, 이력 API를 이용해 변화 추이 화면을 구현합니다.
 시그널 정의 편집과 버전 교체, 유사 시그널 병합, 지표별 알림 기준은 별도 설계 대상입니다.
+
+등록·재측정의 성공 응답 헤더 `X-Langfuse-Trace-Id`는 **이번 API 호출**의 trace ID입니다.
+CORS에서도 이 헤더를 읽을 수 있습니다. 중복 요청이 기존 측정을 재사용하면
+본문의 `measurement.trace_id`는 최초 저장 당시 trace를 유지하므로 두 ID는 다를 수 있습니다.
+Langfuse MCP로는 `fetch_observations(type="SPAN", name="customer_signal.signal", age=180)`으로
+시그널 기록만 조회합니다. 특정 호출은 `trace_id`를 추가하고, 반환 metadata의 `signal_id`로 이력을 연결합니다.
+현재 `langfuse_local` MCP의 기본 키는 Backend와 다른 프로젝트를 가리킵니다.
+아래 명령은 MCP 설정 파일을 바꾸지 않고, 선택한 Backend 환경의 프로젝트 키를 해당 MCP 프로세스에 전달합니다.
+키 원문은 출력하거나 문서에 기록하지 않습니다.
+
+```sh
+env -u LANGFUSE_SECRET_KEY -u LANGFUSE_PUBLIC_KEY -u LANGFUSE_BASE_URL \
+  uv run --env-file .env --project backend python scripts/verify-signal-spans-mcp.py \
+  --backend-credentials --trace-id <ID>
+```

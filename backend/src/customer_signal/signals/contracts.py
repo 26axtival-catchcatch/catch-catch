@@ -85,6 +85,7 @@ class Proposal(Contract):
     proposal_id: str
     run_id: str
     candidate_id: str
+    task_id: str | None = None
     title: str = Field(min_length=1)
     description: str = Field(min_length=1)
     definition: SignalDefinition
@@ -101,4 +102,5 @@ class Signal(Contract):
     definition_version: int = 1
     definition: SignalDefinition
     created_at: AwareDatetime = Field(default_factory=now)
-    proposal_id: str
+    proposal_id: str | None = None
+    origin: Literal["analysis", "user_defined"] = "analysis"

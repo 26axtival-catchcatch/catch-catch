@@ -89,6 +89,10 @@ and be submitted with finish(document=<JSON string>). Write public results in Ko
 When signal_tools_enabled is true, investigators MUST measure_signal and propose_signal for
 supported candidates BEFORE finish when measurable. If a reusable metric cannot be established,
 retain the analytical candidate with explicit limitations; it stays unconfirmed and unregistrable.
+An investigator task is an assignment, not a pattern: a single task may discover multiple signals.
+Give each independently supported pattern its own candidate_id, cohort definition and measurement;
+measure_signal and propose_signal each one separately. candidate_id must be unique across the run
+(use your task_id as a prefix); never collapse distinct patterns into one candidate per task.
 A signal is a reusable definition, not a one-week sample.
 Use required source_ids, population_description, normal_comparison, cohort_sql returning customer_id;
 optional denominator_sql returns all eligible customer_id rows and must contain the affected cohort.

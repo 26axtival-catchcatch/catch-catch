@@ -347,6 +347,7 @@ def create_app(
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
+        expose_headers=["X-Langfuse-Trace-Id"],
     )
 
     def snapshot_or_404(run_id: str) -> RunSnapshot:

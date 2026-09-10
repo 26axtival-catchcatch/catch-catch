@@ -8,7 +8,7 @@ from uuid import NAMESPACE_URL, uuid5
 from pydantic import BaseModel, ConfigDict, Field
 
 from customer_signal.investigation.data import query_owner
-from customer_signal.observability.langfuse import current_run_id
+from customer_signal.observability.langfuse import current_run_id, signal_observation
 from customer_signal.signals.contracts import Proposal, SignalDefinition
 from customer_signal.signals.measurement import definition_fingerprint, measure_definition
 
@@ -111,6 +111,7 @@ class SignalWorkbench:
                 ),
                 run_id=self.run_id,
                 candidate_id=candidate.candidate_id,
+                task_id=self.data.queries.get(candidate.cohort_query_id, {}).get("owner"),
                 title=candidate.title,
                 description=f"{candidate.intent}\n{candidate.behavior_evidence}\n{candidate.resolution}",
                 definition=self.proposals[candidate.candidate_id],
@@ -118,5 +119,22 @@ class SignalWorkbench:
                 created_at=datetime.now(timezone.utc),
                 limitations=candidate.limitations,
             )
-            saved.append(self.store.save_proposal(proposal))
+            with signal_observation(
+                operation="proposal",
+                proposal_id=proposal.proposal_id,
+                candidate_id=proposal.candidate_id,
+                task_id=proposal.task_id,
+                input={
+                    "run_id": self.run_id,
+                    "definition": proposal.definition.model_dump(mode="json"),
+                },
+            ) as observation:
+                saved.append(self.store.save_proposal(proposal))
+                observation.update(
+                    output={
+                        "proposal_id": proposal.proposal_id,
+                        "measurement_id": measurement.measurement_id,
+                        "measurement": measurement.model_dump(mode="json"),
+                    }
+                )
         return saved

@@ -180,6 +180,29 @@ class _SafeObservation:
             return
 
 
+@dataclass(slots=True)
+class _SignalObservation(_SafeObservation):
+    metadata: dict[str, Any]
+
+    def update(self, *, output: Any) -> None:
+        # Registration allocates its durable ID inside the span. Keep that ID
+        # searchable as metadata as soon as the operation returns it.
+        if isinstance(output, dict):
+            for key in ("signal_id", "proposal_id", "candidate_id", "measurement_id"):
+                if isinstance(output.get(key), str):
+                    self.metadata[key] = output[key]
+            measurement = output.get("measurement")
+            if isinstance(measurement, dict) and isinstance(measurement.get("measurement_id"), str):
+                self.metadata["measurement_id"] = measurement["measurement_id"]
+        try:
+            self.observation.update(
+                output=sanitize_trace_value(output),
+                metadata=sanitize_trace_value(self.metadata),
+            )
+        except Exception:
+            return
+
+
 def update_langfuse_workflow(*, output: Any) -> None:
     """Attach a public terminal summary to the current workflow observation."""
 
@@ -280,6 +303,70 @@ def public_observation(
     try:
         yield _SafeObservation(observation)
     finally:
+        _end_observation(observation)
+
+
+@contextmanager
+def signal_observation(
+    *,
+    operation: str,
+    input: dict[str, Any],
+    signal_id: str | None = None,
+    proposal_id: str | None = None,
+    candidate_id: str | None = None,
+    task_id: str | None = None,
+) -> Iterator[_NoOpObservation | _SafeObservation]:
+    """Group one pattern's lifecycle under a searchable, public Signal span."""
+
+    context = _CURRENT_RUN.get()
+    client = _get_client()
+    if context is None or client is None:
+        yield _NoOpObservation()
+        return
+
+    metadata = {
+        "entity_type": "signal",
+        "operation": operation,
+        "provider": "server",
+        "stage": "signal",
+        "run_id": context.run_id,
+        "run_kind": context.run_kind,
+        "langfuse_session_id": context.run_id,
+        "langfuse_tags": ["customer-signal", "signal", operation],
+        **{
+            key: value
+            for key, value in {
+                "signal_id": signal_id,
+                "proposal_id": proposal_id,
+                "candidate_id": candidate_id,
+                "task_id": task_id,
+                "source_run_id": input.get("source_run_id"),
+            }.items()
+            if value is not None
+        },
+    }
+    try:
+        observation = client.start_observation(
+            name="customer_signal.signal",
+            as_type="span",
+            trace_context=_trace_context(context),
+            input=sanitize_trace_value(input),
+            metadata=sanitize_trace_value(metadata),
+        )
+    except Exception:
+        yield _NoOpObservation()
+        return
+
+    run_token = _CURRENT_RUN.set(replace(context, parent_observation_id=observation.id))
+    try:
+        yield _SignalObservation(observation, metadata)
+    except BaseException as error:
+        _update_observation(
+            observation, output={"status": "failed", "error_type": type(error).__name__}
+        )
+        raise
+    finally:
+        _CURRENT_RUN.reset(run_token)
         _end_observation(observation)
 
 
