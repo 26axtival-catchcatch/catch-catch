@@ -1,0 +1,455 @@
+﻿table,source_id,ordinal,original_field,logical_name,original_type,csv_field,csv_reader_type,status,duckdb_fields,duckdb_types,conversion,original_line
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,1,CZ_LNK_KEY,CSZ_연결키,INT64,CZ_LNK_KEY,str / None,CSV만 유지,,,"CSV 물리명 유지, Source 매핑 없음",6
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,2,P_YYYYMMDD,기준일(파티션키),DATE,P_YYYYMMDD,str / None,CSV만 유지,,,"CSV 물리명 유지, Source 매핑 없음",8
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,3,GA_LNK_KEY,GA연결키,INT64,GA_LNK_KEY,str / None,CSV만 유지,,,"CSV 물리명 유지, Source 매핑 없음",10
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,4,BASE_DT,기준일자,STRING,BASE_DT,str / None,CSV만 유지,,,"CSV 물리명 유지, Source 매핑 없음",12
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,5,CLT_ID,클라이언트ID,STRING,CLT_ID,str / None,CSV만 유지,,,"CSV 물리명 유지, Source 매핑 없음",14
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,6,DMNS_CLT_ID,디멘젼클라이언트ID,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,18
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,7,SESN_ID,세션ID,STRING,SESN_ID,str / None,분석 필드 변환,dim_session_id,VARCHAR,"dim_session_id: 공통 이벤트 dimensions.session_id에서 평탄화; 문자열 유지, 제외 패턴 일치 값은 미노출",24
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,8,PTPN_SESN_YN,참여세션여부,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,32
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,9,PTPN_SESN_TM,참여세션시간,NUMERIC,PTPN_SESN_TM,str / None,CSV만 유지,,,"CSV 물리명 유지, Source 매핑 없음",36
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,10,PTPN_SESN_EVET_YN,참여세션이벤트여부,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,40
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,11,VSTR_ID,방문자ID,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,44
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,12,CUST_NO,고객번호,STRING,CUST_NO,str / None,분석 필드 변환,customer_id,VARCHAR,customer_id: 문자열 고객키의 SHA-256 앞 24자리 + customer_ 접두사,46
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,13,ENTR_NO,가입번호,STRING,ENTR_NO,str / None,CSV만 유지,,,"CSV 물리명 유지, Source 매핑 없음",48
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,14,DCRM_EVET_ENTR_NO,DCRM이벤트가입번호,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,50
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,15,BUY_ENTR_NO,구매가입번호,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,52
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,16,PROD_NO,상품번호,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,54
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,17,SVC_CD,서비스코드,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,56
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,18,SVC_NM,서비스명,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,58
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,19,PP_CD,요금제코드,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,60
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,20,PP_NM,요금제명,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,62
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,21,YY10_AGLV_ID,10년연령대ID,INT64,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,64
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,22,YY5_AGLV_ID,5년연령대ID,INTEGER,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,68
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,23,SEX_DIVS_CD,성별구분코드,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,76
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,24,SEX_DIVS_NM,성별구분명,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,78
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,25,CNVG_YN,결합여부,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,80
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,26,OCEM_YN,임직원여부,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,84
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,27,ORCO_OCMP_DIVS_NM,자사타사구분명,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,88
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,28,LOG_DTTM,로그일시,STRING,LOG_DTTM,str / None,CSV만 유지,,,"CSV 물리명 유지, Source 매핑 없음; occurred_at에는 BQ_LOAD_DTTM 사용",102
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,29,CLT_BASE_VSIT_TMSC,클라이언트기준방문횟수,INT64,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,104
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,30,SESN_STAY_TM,세션체류시간,INT64,SESN_STAY_TM,str / None,분석 필드 변환,measure_session_stay_seconds,DOUBLE,measure_session_stay_seconds: 정수 파싱 후 DOUBLE; 단위 seconds,110
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,31,LGIN_STUS_CD,로그인상태코드,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,114
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,32,TRM_KD_NM,단말유형명,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,116
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,33,TRM_MDL_CD,단말모델코드,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,120
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,34,TRM_MDL_NM,단말모델명,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,124
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,35,TRM_MANF_NM,단말제조사명,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,126
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,36,OS_NM,운영체제명,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,128
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,37,OS_VER_NM,운영체제버전명,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,130
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,38,WEB_APP_DIVS_NM,웹APP구분명,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,132
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,39,SITE_DIVS_NM,사이트구분명,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,136
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,40,SITE_DETL_DIVS_NM,사이트상세구분명,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,140
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,41,NOW_WEB_PAGE_HOST_ADDR,현재웹페이지호스트주소,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,144
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,42,NOW_WEB_PAGE_URL_ADDR,현재웹페이지URL주소,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,146
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,43,WEB_PAGE_DOC_TIT_NM,웹페이지문서제목명,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,150
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,44,BFR_WEB_PAGE_URL_ADDR,이전웹페이지URL주소,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,152
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,45,STEM_ID,스트림ID,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,156
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,46,EVET_NM,이벤트명,STRING,EVET_NM,str / None,분석 필드 변환,event_type,VARCHAR,event_type: 문자열 변환,160
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,47,EVET_ACT_NM,이벤트액션명,STRING,EVET_ACT_NM,str / None,분석 필드 변환,action,VARCHAR,action: 문자열 변환,162
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,48,EVET_ACT_CATG_NM,이벤트액션카테고리명,STRING,EVET_ACT_CATG_NM,str / None,분석 필드 변환,topic,VARCHAR,topic: 문자열 변환; 제외 패턴 일치 값은 unknown,164
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,49,EVET_ACT_LABE_NM,이벤트액션라벨명,STRING,EVET_ACT_LABE_NM,str / None,분석 필드 변환,outcome,VARCHAR,outcome: 문자열 변환; 제외 패턴 일치 값은 unknown,166
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,50,PAGE_STAY_TM,페이지체류시간,INT64,PAGE_STAY_TM,str / None,분석 필드 변환,measure_page_stay_seconds,DOUBLE,measure_page_stay_seconds: 정수 파싱 후 DOUBLE; 단위 seconds,168
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,51,LINK_PAGE_INS_OUTS_DIVS_NM,링크페이지내부외부구분명,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,172
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,52,LINK_URL_ADDR,링크URL주소,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,176
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,53,REP_CHNL_MENU_NM,대표채널메뉴명,STRING,REP_CHNL_MENU_NM,str / None,분석 필드 변환,text; dim_menu,VARCHAR; VARCHAR,"text: 문자열 변환; dim_menu: 공통 이벤트 dimensions.menu에서 평탄화; 문자열 유지, 제외 패턴 일치 값은 미노출",178
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,54,REP_CHNL_MENU_LVL1_NM,대표채널메뉴1레벨명,STRING,REP_CHNL_MENU_LVL1_NM,str / None,CSV만 유지,,,"CSV 물리명 유지, Source 매핑 없음",180
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,55,REP_CHNL_MENU_LVL2_NM,대표채널메뉴2레벨명,STRING,REP_CHNL_MENU_LVL2_NM,str / None,CSV만 유지,,,"CSV 물리명 유지, Source 매핑 없음",182
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,56,REP_CHNL_MENU_LVL3_NM,대표채널메뉴3레벨명,STRING,REP_CHNL_MENU_LVL3_NM,str / None,CSV만 유지,,,"CSV 물리명 유지, Source 매핑 없음",184
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,57,REP_CHNL_MENU_LVL4_NM,대표채널메뉴4레벨명,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,186
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,58,REP_CHNL_MENU_LVL5_NM,대표채널메뉴5레벨명,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,188
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,59,REP_CHNL_MENU_LVL6_NM,대표채널메뉴6레벨명,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,190
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,60,REP_CHNL_MENU_LVL7_NM,대표채널메뉴7레벨명,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,192
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,61,REP_CHNL_MENU_LVL8_NM,대표채널메뉴8레벨명,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,194
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,62,REP_CHNL_MENU_LVL9_NM,대표채널메뉴9레벨명,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,196
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,63,REP_CHNL_MENU_LVL10_NM,대표채널메뉴10레벨명,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,198
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,64,INFW_DOMN_URL_ADDR,유입도메인URL주소,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,200
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,65,INFW_DOMN_HOST_ADDR,유입도메인호스트주소,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,202
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,66,INFW_DOMN_ENGN_NM,유입도메인엔진명,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,208
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,67,INFW_DOMN_CATG_NM,유입도메인카테고리명,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,210
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,68,INFW_SHWD_CNTN,유입검색어내용,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,216
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,69,INFW_CMPN_NM,유입캠페인명,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,222
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,70,INFW_CMPN_AD_CNTN,유입캠페인광고내용,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,228
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,71,LGIN_MTHD_NM,로그인방법명,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,234
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,72,SRCH_KD_NM,검색유형명,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,238
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,73,BUY_ACT_DIVS_NM,구매액션구분명,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,240
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,74,STLM_OPON_CNTN,결제옵션내용,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,244
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,75,STLM_STEP_CNTN,결제스텝내용,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,246
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,76,STLM_KD_NM,결제유형명,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,248
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,77,BUY_ID,구매ID,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,250
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,78,BUY_AMT,구매금액,INT64,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,256
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,79,PROD_PCNT,상품개수,INT64,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,258
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,80,EVET_TIT_NM,이벤트제목명,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,260
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,81,EVET_CLSS_NM,이벤트분류명,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,262
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,82,GOAL_BEHV_FFIL_YN,목표행동수행여부,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,264
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,83,GA_CNC_NATN_NM,GA접속국가명,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,268
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,84,GA_CNC_AREA_NM,GA접속지역명,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,270
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,85,GA_CCW_NM,GA시군구명,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,272
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,86,ABTEST_ID,전시구좌 마케팅 인벤토리유형명,STRING,ABTEST_ID,str / None,분석 필터 제외,,,공통 이벤트 dimensions.abtest_id에서 평탄화; 분석 노출 필터로 컬럼 제거,274
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,87,SCRN_ID,스크린ID,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,276
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,88,ABTEST_SECT_ID,AB테스트섹션ID,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,280
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,89,ABTEST_FCTR_ID,AB테스트요소ID,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,284
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,90,ABTEST_VAR_ID,AB테스트변수ID,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,288
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,91,EXSC_EXCO_NM,전시구좌전시코너명,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,292
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,92,EXSC_EXHI_ORD,전시구좌전시순서,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,294
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,93,EXSC_GRP_ID,전시구좌그룹ID,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,296
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,94,EXSC_MDUL_NM,전시구좌모듈명,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,298
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,95,EXSC_MDUL_ID,전시구좌모듈ID,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,300
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,96,EXSC_CNTS_NM,전시구좌컨텐츠명,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,302
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,97,EXSC_CNTS_EXHI_ORD,전시구좌컨텐츠전시순서,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,304
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,98,EXSC_BTN_NM,전시구좌버튼명,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,306
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,99,EXSC_NM,전시구좌명,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,308
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,100,EXSC_CMPN_ID,전시구좌캠페인ID,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,310
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,101,EXSC_CMPN_NM,전시구좌캠페인명,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,312
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,102,EXSC_SGMT_KD_NM,전시구좌세그먼트유형명,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,314
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,103,EXSC_SGMT_ID,전시구좌세그먼트ID,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,316
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,104,EXSC_SGMT_NM,전시구좌세그먼트명,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,318
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,105,EXSC_EXCO_GRP_ID,전시구좌전시코너그룹ID,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,320
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,106,PMTN_EVET_ID,프로모션이벤트ID,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,322
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,107,PMTN_EVET_TERM,프로모션이벤트기간,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,324
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,108,JNCO_ID,제휴사ID,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,326
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,109,JNCO_NM,제휴사명,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,328
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,110,JNCO_IDKD_NM,제휴사업종명,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,330
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,111,CPN_ID,쿠폰ID,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,332
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,112,CPN_NM,쿠폰명,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,334
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,113,NOW_PP_NM,현재요금제명,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,336
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,114,CHOC_PP_NM,선택요금제명,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,338
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,115,RCMD_PP_NM,추천요금제명,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,340
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,116,PMM_PP_DATA_USAG,전월요금제데이터사용량,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,342
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,117,BQ_LOAD_DTTM,BQ적재일시,DATETIME,BQ_LOAD_DTTM,str / None,분석 필드 변환,occurred_at,TIMESTAMP,"occurred_at: Asia/Seoul로 해석 후 UTC 변환, timezone 정보 제거",344
+L1DA_GA_REP_CHNL_BEHV_L,hackathon_app_behavior,118,BQ_LOAD_USER_ID,BQ적재사용자ID,STRING,BQ_LOAD_USER_ID,str / None,CSV만 유지,,,"CSV 물리명 유지, Source 매핑 없음",346
+L0UR_SEARCH_HISTORY,hackathon_search_history,1,CZ_LNK_KEY,CSZ 연결키,INTEGER,CZ_LNK_KEY,str / None,분석 필드 변환,customer_id,VARCHAR,customer_id: 문자열 고객키의 SHA-256 앞 24자리 + customer_ 접두사,5
+L0UR_SEARCH_HISTORY,hackathon_search_history,2,P_YYYYMMDD,기준일(파티션키),DATE,P_YYYYMMDD,str / None,CSV만 유지,,,"CSV 물리명 유지, Source 매핑 없음",7
+L0UR_SEARCH_HISTORY,hackathon_search_history,3,ID,테이블 PK,INTEGER,ID,str / None,CSV만 유지,,,"CSV 물리명 유지, Source 매핑 없음; event_id 생성에 사용하지 않음",9
+L0UR_SEARCH_HISTORY,hackathon_search_history,4,THREAD_ID,검색 스레드 ID,STRING,THREAD_ID,str / None,CSV만 유지,,,"CSV 물리명 유지, Source 매핑 없음; event_id 생성에 사용하지 않음",11
+L0UR_SEARCH_HISTORY,hackathon_search_history,5,RUN_ID,검색 실행 ID,STRING,RUN_ID,str / None,CSV만 유지,,,"CSV 물리명 유지, Source 매핑 없음; event_id 생성에 사용하지 않음",13
+L0UR_SEARCH_HISTORY,hackathon_search_history,6,SEARCH_QUERY,사용자가 입력한 검색 쿼리,STRING,SEARCH_QUERY,str / None,분석 필드 변환,text,VARCHAR,text: 문자열 변환,15
+L0UR_SEARCH_HISTORY,hackathon_search_history,7,SEARCH_RESULT,AI검색 응답 결과,STRING,SEARCH_RESULT,str / None,CSV만 유지,,,"CSV 물리명 유지, Source 매핑 없음",17
+L0UR_SEARCH_HISTORY,hackathon_search_history,8,CREATED_AT,검색 이력 생성 일시,DATETIME,CREATED_AT,str / None,분석 필드 변환,occurred_at,TIMESTAMP,"occurred_at: Asia/Seoul로 해석 후 UTC 변환, timezone 정보 제거",19
+L0UR_SEARCH_HISTORY,hackathon_search_history,9,STATUS,검색 이력 상태,STRING,STATUS,str / None,분석 필드 변환,outcome,VARCHAR,outcome: 문자열 변환; 제외 패턴 일치 값은 unknown,21
+L0UR_SEARCH_HISTORY,hackathon_search_history,10,FIRST_RESPONSE_LATENCY_MS,최초 응답까지 소요된 시간,FLOAT,FIRST_RESPONSE_LATENCY_MS,str / None,분석 필드 변환,measure_latency_ms,DOUBLE,measure_latency_ms: 실수 파싱 후 DOUBLE; 단위 milliseconds,23
+L0UR_SEARCH_HISTORY,hackathon_search_history,11,MODIFIED_AT,검색 이력 수정 일시,DATETIME,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,25
+L0UR_SEARCH_HISTORY,hackathon_search_history,12,WAS_CACHE_HIT,응답 캐시 적중 여부,BOOLEAN,WAS_CACHE_HIT,str / None,CSV만 유지,,,"CSV 물리명 유지, Source 매핑 없음",27
+L0UR_SEARCH_HISTORY,hackathon_search_history,13,SEARCH_QUERY_TYPE,검색 쿼리 타입,STRING,SEARCH_QUERY_TYPE,str / None,분석 필드 변환,action; dim_query_type,VARCHAR; VARCHAR,"action: 문자열 변환; initial → search, repeat → repeat_search; dim_query_type: 공통 이벤트 dimensions.query_type에서 평탄화; 문자열 유지, 제외 패턴 일치 값은 미노출",29
+L0UR_SEARCH_HISTORY,hackathon_search_history,14,REWRITE_SEARCH_QUERY,재검색 쿼리,STRING,REWRITE_SEARCH_QUERY,str / None,분석 필드 변환,topic,VARCHAR,topic: 문자열 변환; 제외 패턴 일치 값은 unknown,31
+L0UR_SEARCH_HISTORY,hackathon_search_history,15,WAS_CACHE_HIT_REWRITE_SEARCH_QUERY,캐시 검색 쿼리,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,33
+L0UR_SEARCH_HISTORY,hackathon_search_history,16,SEARCH_RESULT_REFERENCE_DOCUMENTS,검색 결과 참고,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,35
+L0UR_SEARCH_HISTORY,hackathon_search_history,17,SEARCH_RESULT_REFERENCE_TEMPLATE_NAME,참조 템플릿명,STRING,SEARCH_RESULT_REFERENCE_TEMPLATE_NAME,str / None,분석 필드 변환,dim_template,VARCHAR,"dim_template: 공통 이벤트 dimensions.template에서 평탄화; 문자열 유지, 제외 패턴 일치 값은 미노출",37
+L0UR_SEARCH_HISTORY,hackathon_search_history,18,IS_FALLBACK_SEARCH_RESULT,대체 검색 결과,STRING,IS_FALLBACK_SEARCH_RESULT,str / None,CSV만 유지,,,"CSV 물리명 유지, Source 매핑 없음",39
+L0UR_SEARCH_HISTORY,hackathon_search_history,19,BQ_LOAD_DTTM,BQ적재일시,DATETIME,BQ_LOAD_DTTM,str / None,CSV만 유지,,,"CSV 물리명 유지, Source 매핑 없음",41
+L0UR_SEARCH_HISTORY,hackathon_search_history,20,BQ_LOAD_USER_ID,BQ적재사용자ID,STRING,BQ_LOAD_USER_ID,str / None,CSV만 유지,,,"CSV 물리명 유지, Source 매핑 없음",43
+L0UR_FEEDBACK,hackathon_search_feedback,1,CZ_LNK_KEY,CSZ 연결키,INTEGER,CZ_LNK_KEY,str / None,분석 필드 변환,customer_id,VARCHAR,customer_id: 문자열 고객키의 SHA-256 앞 24자리 + customer_ 접두사,3
+L0UR_FEEDBACK,hackathon_search_feedback,2,P_YYYYMMDD,기준일(파티션키),DATE,P_YYYYMMDD,str / None,CSV만 유지,,,"CSV 물리명 유지, Source 매핑 없음",5
+L0UR_FEEDBACK,hackathon_search_feedback,3,ID,테이블 PK,INTEGER,ID,str / None,CSV만 유지,,,"CSV 물리명 유지, Source 매핑 없음; event_id 생성에 사용하지 않음",7
+L0UR_FEEDBACK,hackathon_search_feedback,4,RUN_ID,검색 실행 ID,STRING,RUN_ID,str / None,CSV만 유지,,,"CSV 물리명 유지, Source 매핑 없음; event_id 생성에 사용하지 않음",9
+L0UR_FEEDBACK,hackathon_search_feedback,5,FEEDBACK_TYPE,피드백 타입,STRING,FEEDBACK_TYPE,str / None,분석 필드 변환,outcome,VARCHAR,outcome: 문자열 변환; 제외 패턴 일치 값은 unknown,11
+L0UR_FEEDBACK,hackathon_search_feedback,6,REASON,피드백 사유,STRING,REASON,str / None,분석 필드 변환,text; dim_reason,VARCHAR; VARCHAR,"text: 문자열 변환; dim_reason: 공통 이벤트 dimensions.reason에서 평탄화; 문자열 유지, 제외 패턴 일치 값은 미노출",13
+L0UR_FEEDBACK,hackathon_search_feedback,7,OPTION,피드백의 세부 선택 옵션,STRING,OPTION,str / None,분석 필드 변환,topic,VARCHAR,topic: 문자열 변환; 제외 패턴 일치 값은 unknown,15
+L0UR_FEEDBACK,hackathon_search_feedback,8,BQ_LOAD_DTTM,BQ적재일시,DATETIME,BQ_LOAD_DTTM,str / None,분석 필드 변환,occurred_at,TIMESTAMP,"occurred_at: Asia/Seoul로 해석 후 UTC 변환, timezone 정보 제거",17
+L0UR_FEEDBACK,hackathon_search_feedback,9,BQ_LOAD_USER_ID,BQ적재사용자ID,STRING,BQ_LOAD_USER_ID,str / None,CSV만 유지,,,"CSV 물리명 유지, Source 매핑 없음",19
+L1RA_VOC_STT_DTL_H,hackathon_voc,1,P_YYYYMMDD,기준일(파티션키),DATE,P_YYYYMMDD,str / None,CSV만 유지,,,"CSV 물리명 유지, Source 매핑 없음",1
+L1RA_VOC_STT_DTL_H,hackathon_voc,2,CZ_LNK_KEY,CSZ연결키,INTEGER,CZ_LNK_KEY,str / None,분석 필드 변환,customer_id,VARCHAR,customer_id: 문자열 고객키의 SHA-256 앞 24자리 + customer_ 접두사,3
+L1RA_VOC_STT_DTL_H,hackathon_voc,3,BASE_DT,기준일자,STRING,BASE_DT,str / None,CSV만 유지,,,"CSV 물리명 유지, Source 매핑 없음",5
+L1RA_VOC_STT_DTL_H,hackathon_voc,4,CALL_ID,콜ID,STRING,CALL_ID,str / None,CSV만 유지,,,"CSV 물리명 유지, Source 매핑 없음; event_id 생성에 사용하지 않음",7
+L1RA_VOC_STT_DTL_H,hackathon_voc,5,AGNT_ID,대리인ID,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,9
+L1RA_VOC_STT_DTL_H,hackathon_voc,6,CALL_CRTE_DTTM,콜생성일시,DATETIME,CALL_CRTE_DTTM,str / None,분석 필드 변환,occurred_at,TIMESTAMP,"occurred_at: Asia/Seoul로 해석 후 UTC 변환, timezone 정보 제거",11
+L1RA_VOC_STT_DTL_H,hackathon_voc,7,CALL_STRT_DT,콜시작일자,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,13
+L1RA_VOC_STT_DTL_H,hackathon_voc,8,CALL_STRT_TM,콜시작시간,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,15
+L1RA_VOC_STT_DTL_H,hackathon_voc,9,CALL_NXT_STRT_TM,콜다음시작시간,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,17
+L1RA_VOC_STT_DTL_H,hackathon_voc,10,CALL_END_DT,콜종료일자,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,19
+L1RA_VOC_STT_DTL_H,hackathon_voc,11,CALL_END_TM,콜종료시간,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,21
+L1RA_VOC_STT_DTL_H,hackathon_voc,12,CUST_CNSL_TM,고객상담시간,INTEGER,CUST_CNSL_TM,str / None,분석 필드 변환,measure_consult_seconds,DOUBLE,measure_consult_seconds: 정수 파싱 후 DOUBLE; 단위 seconds,23
+L1RA_VOC_STT_DTL_H,hackathon_voc,13,CUST_CNTT_TLNO,고객연락전화번호,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,25
+L1RA_VOC_STT_DTL_H,hackathon_voc,14,TEAM_CD,팀코드,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,27
+L1RA_VOC_STT_DTL_H,hackathon_voc,15,TEAM_NM,팀명,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,29
+L1RA_VOC_STT_DTL_H,hackathon_voc,16,CSCT_CD,상담실코드,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,31
+L1RA_VOC_STT_DTL_H,hackathon_voc,17,CSCT_NM,상담실명,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,33
+L1RA_VOC_STT_DTL_H,hackathon_voc,18,CNTR_CD,센터코드,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,35
+L1RA_VOC_STT_DTL_H,hackathon_voc,19,CNTR_NM,센터명,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,37
+L1RA_VOC_STT_DTL_H,hackathon_voc,20,CALL_DIVS_CD,콜구분코드,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,39
+L1RA_VOC_STT_DTL_H,hackathon_voc,21,TRRC_DIVS_CD,송수신구분코드,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,41
+L1RA_VOC_STT_DTL_H,hackathon_voc,22,STT_TXT_CNTN,STT텍스트내용,STRING,STT_TXT_CNTN,str / None,CSV만 유지,,,"CSV 물리명 유지, Source 매핑 없음",43
+L1RA_VOC_STT_DTL_H,hackathon_voc,23,INQU_CNTN,문의내용,STRING,INQU_CNTN,str / None,CSV만 유지,,,"CSV 물리명 유지, Source 매핑 없음",45
+L1RA_VOC_STT_DTL_H,hackathon_voc,24,CSLR_PRSS_CNTN,상담사처리내용,STRING,CSLR_PRSS_CNTN,str / None,분석 필드 변환,dim_resolution,VARCHAR,"dim_resolution: 공통 이벤트 dimensions.resolution에서 평탄화; 문자열 유지, 제외 패턴 일치 값은 미노출",47
+L1RA_VOC_STT_DTL_H,hackathon_voc,25,CSLR_UTRT_CNTN,상담사미처리내용,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,49
+L1RA_VOC_STT_DTL_H,hackathon_voc,26,CNSL_ALL_SMRY_CNTN,상담전체요약내용,STRING,CNSL_ALL_SMRY_CNTN,str / None,분석 필드 변환,text,VARCHAR,text: 문자열 변환,51
+L1RA_VOC_STT_DTL_H,hackathon_voc,27,CUST_SNMT_NM,고객감정명,STRING,CUST_SNMT_NM,str / None,분석 필드 변환,outcome,VARCHAR,outcome: 문자열 변환; 제외 패턴 일치 값은 unknown,53
+L1RA_VOC_STT_DTL_H,hackathon_voc,28,CNSL_SBJC_TIT_NM,상담주제제목명,STRING,CNSL_SBJC_TIT_NM,str / None,분석 필드 변환,dim_subject,VARCHAR,"dim_subject: 공통 이벤트 dimensions.subject에서 평탄화; 문자열 유지, 제외 패턴 일치 값은 미노출",55
+L1RA_VOC_STT_DTL_H,hackathon_voc,29,CSLR_PRSS_UTRT_CNTN,상담사처리미처리내용,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,57
+L1RA_VOC_STT_DTL_H,hackathon_voc,30,CNSL_SCLS_CD,상담소분류코드,STRING,CNSL_SCLS_CD,str / None,CSV만 유지,,,"CSV 물리명 유지, Source 매핑 없음",59
+L1RA_VOC_STT_DTL_H,hackathon_voc,31,CNSL_THMA_NM,상담테마명,STRING,CNSL_THMA_NM,str / None,분석 필드 변환,topic,VARCHAR,topic: 문자열 변환; 제외 패턴 일치 값은 unknown,61
+L1RA_VOC_STT_DTL_H,hackathon_voc,32,THMA_CNSL_BGN_YN,테마상담신규여부,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,63
+L1RA_VOC_STT_DTL_H,hackathon_voc,33,CNSL_THMA_SMRY_CNTN,상담테마요약내용,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,65
+L1RA_VOC_STT_DTL_H,hackathon_voc,34,INTG_USER_ID,통합사용자ID,NUMERIC,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,67
+L1RA_VOC_STT_DTL_H,hackathon_voc,35,SVC_CD,서비스코드,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,69
+L1RA_VOC_STT_DTL_H,hackathon_voc,36,ENTR_NO,가입번호,STRING,ENTR_NO,str / None,CSV만 유지,,,"CSV 물리명 유지, Source 매핑 없음",71
+L1RA_VOC_STT_DTL_H,hackathon_voc,37,CUST_NO,고객번호,STRING,CUST_NO,str / None,CSV만 유지,,,"CSV 물리명 유지, Source 매핑 없음",73
+L1RA_VOC_STT_DTL_H,hackathon_voc,38,CNSL_RSPO_CNT,상담응대건수,INTEGER,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,75
+L1RA_VOC_STT_DTL_H,hackathon_voc,39,N01_CUST_RSPO_SQNO,01고객응대누적번호,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,77
+L1RA_VOC_STT_DTL_H,hackathon_voc,40,N01_CUST_RSPO_TME,01고객응대시각,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,79
+L1RA_VOC_STT_DTL_H,hackathon_voc,41,N01_CLPR_TLNO,01통화자전화번호,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,81
+L1RA_VOC_STT_DTL_H,hackathon_voc,42,N01_RSPO_SCLS_CD,01응대소분류코드,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,83
+L1RA_VOC_STT_DTL_H,hackathon_voc,43,N01_RSPO_SCLS_NM,01응대소분류명,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,85
+L1RA_VOC_STT_DTL_H,hackathon_voc,44,N01_CUST_RSPO_MEMO_CNTN,01고객응대메모내용,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,107
+L1RA_VOC_STT_DTL_H,hackathon_voc,45,N02_CUST_RSPO_SQNO,02고객응대누적번호,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,109
+L1RA_VOC_STT_DTL_H,hackathon_voc,46,N02_CUST_RSPO_TME,02고객응대시각,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,111
+L1RA_VOC_STT_DTL_H,hackathon_voc,47,N02_CLPR_TLNO,02통화자전화번호,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,113
+L1RA_VOC_STT_DTL_H,hackathon_voc,48,N02_RSPO_SCLS_CD,02응대소분류코드,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,115
+L1RA_VOC_STT_DTL_H,hackathon_voc,49,N02_RSPO_SCLS_NM,02응대소분류명,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,117
+L1RA_VOC_STT_DTL_H,hackathon_voc,50,N02_CUST_RSPO_MEMO_CNTN,02고객응대메모내용,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,139
+L1RA_VOC_STT_DTL_H,hackathon_voc,51,N03_CUST_RSPO_SQNO,03고객응대누적번호,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,141
+L1RA_VOC_STT_DTL_H,hackathon_voc,52,N03_CUST_RSPO_TME,03고객응대시각,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,143
+L1RA_VOC_STT_DTL_H,hackathon_voc,53,N03_CLPR_TLNO,03통화자전화번호,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,145
+L1RA_VOC_STT_DTL_H,hackathon_voc,54,N03_RSPO_SCLS_CD,03응대소분류코드,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,147
+L1RA_VOC_STT_DTL_H,hackathon_voc,55,N03_RSPO_SCLS_NM,03응대소분류명,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,149
+L1RA_VOC_STT_DTL_H,hackathon_voc,56,N03_CUST_RSPO_MEMO_CNTN,03고객응대메모내용,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,171
+L1RA_VOC_STT_DTL_H,hackathon_voc,57,N04_CUST_RSPO_SQNO,04고객응대누적번호,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,173
+L1RA_VOC_STT_DTL_H,hackathon_voc,58,N04_CUST_RSPO_TME,04고객응대시각,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,175
+L1RA_VOC_STT_DTL_H,hackathon_voc,59,N04_CLPR_TLNO,04통화자전화번호,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,177
+L1RA_VOC_STT_DTL_H,hackathon_voc,60,N04_RSPO_SCLS_CD,04응대소분류코드,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,179
+L1RA_VOC_STT_DTL_H,hackathon_voc,61,N04_RSPO_SCLS_NM,04응대소분류명,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,181
+L1RA_VOC_STT_DTL_H,hackathon_voc,62,N04_CUST_RSPO_MEMO_CNTN,04고객응대메모내용,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,203
+L1RA_VOC_STT_DTL_H,hackathon_voc,63,N05_CUST_RSPO_SQNO,05고객응대누적번호,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,205
+L1RA_VOC_STT_DTL_H,hackathon_voc,64,N05_CUST_RSPO_TME,05고객응대시각,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,207
+L1RA_VOC_STT_DTL_H,hackathon_voc,65,N05_CLPR_TLNO,05통화자전화번호,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,209
+L1RA_VOC_STT_DTL_H,hackathon_voc,66,N05_RSPO_SCLS_CD,05응대소분류코드,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,211
+L1RA_VOC_STT_DTL_H,hackathon_voc,67,N05_RSPO_SCLS_NM,05응대소분류명,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,213
+L1RA_VOC_STT_DTL_H,hackathon_voc,68,N05_CUST_RSPO_MEMO_CNTN,05고객응대메모내용,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,235
+L1RA_VOC_STT_DTL_H,hackathon_voc,69,BQ_LOAD_DTTM,BQ적재일시,DATETIME,BQ_LOAD_DTTM,str / None,CSV만 유지,,,"CSV 물리명 유지, Source 매핑 없음",237
+L1RA_VOC_STT_DTL_H,hackathon_voc,70,BQ_LOAD_USER_ID,BQ적재사용자ID,STRING,BQ_LOAD_USER_ID,str / None,CSV만 유지,,,"CSV 물리명 유지, Source 매핑 없음",239
+L2ZI_MBL_VAS_ENTR_INFO_DALY_H,hackathon_vas_subscription,1,P_YYYYMMDD,기준일(파티션키),DATE,P_YYYYMMDD,str / None,CSV만 유지,,,"CSV 물리명 유지, Source 매핑 없음",5
+L2ZI_MBL_VAS_ENTR_INFO_DALY_H,hackathon_vas_subscription,2,BASE_YYMM,기준년월,STRING,BASE_YYMM,str / None,CSV만 유지,,,"CSV 물리명 유지, Source 매핑 없음",7
+L2ZI_MBL_VAS_ENTR_INFO_DALY_H,hackathon_vas_subscription,3,MM_LAST_DT_YN,월마지막일자여부,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,9
+L2ZI_MBL_VAS_ENTR_INFO_DALY_H,hackathon_vas_subscription,4,ENTR_NO,가입번호,STRING,ENTR_NO,str / None,CSV만 유지,,,"CSV 물리명 유지, Source 매핑 없음",11
+L2ZI_MBL_VAS_ENTR_INFO_DALY_H,hackathon_vas_subscription,5,ENTR_SVC_SEQNO,가입상품누적번호,STRING,ENTR_SVC_SEQNO,str / None,CSV만 유지,,,"CSV 물리명 유지, Source 매핑 없음",13
+L2ZI_MBL_VAS_ENTR_INFO_DALY_H,hackathon_vas_subscription,6,CUST_NO,고객번호,STRING,CUST_NO,str / None,분석 필드 변환,customer_id,VARCHAR,customer_id: 문자열 고객키의 SHA-256 앞 24자리 + customer_ 접두사,15
+L2ZI_MBL_VAS_ENTR_INFO_DALY_H,hackathon_vas_subscription,7,PRD_NO,상품번호,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,17
+L2ZI_MBL_VAS_ENTR_INFO_DALY_H,hackathon_vas_subscription,8,AGE_SGMT_NM,연령세그먼트명,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,19
+L2ZI_MBL_VAS_ENTR_INFO_DALY_H,hackathon_vas_subscription,9,BILL_ACNT_NO,청구계정번호,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,21
+L2ZI_MBL_VAS_ENTR_INFO_DALY_H,hackathon_vas_subscription,10,PROD_CD,상품코드,STRING,PROD_CD,str / None,분석 필드 변환,dim_product_code,VARCHAR,"dim_product_code: 공통 이벤트 dimensions.product_code에서 평탄화; 문자열 유지, 제외 패턴 일치 값은 미노출",23
+L2ZI_MBL_VAS_ENTR_INFO_DALY_H,hackathon_vas_subscription,11,PROD_NM,상품명,STRING,PROD_NM,str / None,분석 필드 변환,topic; text,VARCHAR; VARCHAR,topic: 문자열 변환; 제외 패턴 일치 값은 unknown; text: 문자열 변환,25
+L2ZI_MBL_VAS_ENTR_INFO_DALY_H,hackathon_vas_subscription,12,CATG_LVL1_NM,카테고리1레벨명,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,27
+L2ZI_MBL_VAS_ENTR_INFO_DALY_H,hackathon_vas_subscription,13,CATG_LVL2_NM,카테고리2레벨명,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,29
+L2ZI_MBL_VAS_ENTR_INFO_DALY_H,hackathon_vas_subscription,14,CATG_LVL3_NM,카테고리3레벨명,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,31
+L2ZI_MBL_VAS_ENTR_INFO_DALY_H,hackathon_vas_subscription,15,CATG_LVL4_NM,카테고리4레벨명,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,33
+L2ZI_MBL_VAS_ENTR_INFO_DALY_H,hackathon_vas_subscription,16,BUY_PRC_YN,구매가격여부,STRING,BUY_PRC_YN,str / None,CSV만 유지,,,"CSV 물리명 유지, Source 매핑 없음",35
+L2ZI_MBL_VAS_ENTR_INFO_DALY_H,hackathon_vas_subscription,17,BILL_KD_CD,청구유형코드,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,37
+L2ZI_MBL_VAS_ENTR_INFO_DALY_H,hackathon_vas_subscription,18,VAT_XCLN_AMT,부가세제외금액,INTEGER,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,39
+L2ZI_MBL_VAS_ENTR_INFO_DALY_H,hackathon_vas_subscription,19,VAT_INCL_ALL_AMT,부가세포함전체금액,INTEGER,VAT_INCL_ALL_AMT,str / None,분석 필드 변환,measure_amount_krw,DOUBLE,measure_amount_krw: 정수 파싱 후 DOUBLE; 단위 KRW,41
+L2ZI_MBL_VAS_ENTR_INFO_DALY_H,hackathon_vas_subscription,20,PAC_YN,패키지여부,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,43
+L2ZI_MBL_VAS_ENTR_INFO_DALY_H,hackathon_vas_subscription,21,PAC_DIVS_CD,패키지구분코드,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,45
+L2ZI_MBL_VAS_ENTR_INFO_DALY_H,hackathon_vas_subscription,22,RTNG_DIVS_CD,과금구분코드,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,51
+L2ZI_MBL_VAS_ENTR_INFO_DALY_H,hackathon_vas_subscription,23,PROD_CSTC_CNTN,상품구성내용,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,57
+L2ZI_MBL_VAS_ENTR_INFO_DALY_H,hackathon_vas_subscription,24,KPI_YN,KPI여부,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,59
+L2ZI_MBL_VAS_ENTR_INFO_DALY_H,hackathon_vas_subscription,25,ARST_INCL_YN,실적포함여부,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,61
+L2ZI_MBL_VAS_ENTR_INFO_DALY_H,hackathon_vas_subscription,26,SVC_KD_CD,상품유형코드,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,63
+L2ZI_MBL_VAS_ENTR_INFO_DALY_H,hackathon_vas_subscription,27,SVC_STTS_CD,상품상태코드,STRING,SVC_STTS_CD,str / None,분석 필드 변환,action,VARCHAR,action: 문자열 변환,65
+L2ZI_MBL_VAS_ENTR_INFO_DALY_H,hackathon_vas_subscription,28,SVC_STTS_NM,상품상태명,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,67
+L2ZI_MBL_VAS_ENTR_INFO_DALY_H,hackathon_vas_subscription,29,SVC_STRT_DT,서비스시작일자,DATE,SVC_STRT_DT,str / None,CSV만 유지,,,"CSV 물리명 유지, Source 매핑 없음",69
+L2ZI_MBL_VAS_ENTR_INFO_DALY_H,hackathon_vas_subscription,30,SVC_END_DT,서비스종료일자,DATE,SVC_END_DT,str / None,CSV만 유지,,,"CSV 물리명 유지, Source 매핑 없음",71
+L2ZI_MBL_VAS_ENTR_INFO_DALY_H,hackathon_vas_subscription,31,BGN_YN,신규여부,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,73
+L2ZI_MBL_VAS_ENTR_INFO_DALY_H,hackathon_vas_subscription,32,SRVL_YN,잔존여부,STRING,SRVL_YN,str / None,분석 필드 변환,outcome,VARCHAR,outcome: 문자열 변환; 제외 패턴 일치 값은 unknown,75
+L2ZI_MBL_VAS_ENTR_INFO_DALY_H,hackathon_vas_subscription,33,EXPY_YN,해지여부,STRING,EXPY_YN,str / None,CSV만 유지,,,"CSV 물리명 유지, Source 매핑 없음",77
+L2ZI_MBL_VAS_ENTR_INFO_DALY_H,hackathon_vas_subscription,34,PROD_ENTR_DAYS,상품가입일수,INTEGER,PROD_ENTR_DAYS,str / None,분석 필드 변환,measure_subscription_days,DOUBLE,measure_subscription_days: 정수 파싱 후 DOUBLE; 단위 days,79
+L2ZI_MBL_VAS_ENTR_INFO_DALY_H,hackathon_vas_subscription,35,PROD_ENTR_MMCT,상품가입개월수,INTEGER,PROD_ENTR_MMCT,str / None,CSV만 유지,,,"CSV 물리명 유지, Source 매핑 없음",81
+L2ZI_MBL_VAS_ENTR_INFO_DALY_H,hackathon_vas_subscription,36,PAC_CMPT_PROD_YN,패키지구성품상품여부,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,83
+L2ZI_MBL_VAS_ENTR_INFO_DALY_H,hackathon_vas_subscription,37,PAC_PROD_CD,패키지상품코드,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,85
+L2ZI_MBL_VAS_ENTR_INFO_DALY_H,hackathon_vas_subscription,38,PAC_PROD_NM,패키지상품명,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,87
+L2ZI_MBL_VAS_ENTR_INFO_DALY_H,hackathon_vas_subscription,39,PAC_PROD_STRT_DT,패키지상품시작일자,DATE,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,89
+L2ZI_MBL_VAS_ENTR_INFO_DALY_H,hackathon_vas_subscription,40,PAC_PROD_END_DT,패키지상품종료일자,DATE,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,91
+L2ZI_MBL_VAS_ENTR_INFO_DALY_H,hackathon_vas_subscription,41,SVC_FRST_STRT_DT,상품최초시작일자,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,93
+L2ZI_MBL_VAS_ENTR_INFO_DALY_H,hackathon_vas_subscription,42,SVC_STRT_RSN_CD,상품시작사유코드,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,95
+L2ZI_MBL_VAS_ENTR_INFO_DALY_H,hackathon_vas_subscription,43,SVC_STRT_RSN_NM,상품시작사유명,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,97
+L2ZI_MBL_VAS_ENTR_INFO_DALY_H,hackathon_vas_subscription,44,SVC_END_RSN_CD,상품종료사유코드,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,99
+L2ZI_MBL_VAS_ENTR_INFO_DALY_H,hackathon_vas_subscription,45,SVC_END_RSN_NM,상품종료사유명,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,101
+L2ZI_MBL_VAS_ENTR_INFO_DALY_H,hackathon_vas_subscription,46,RSV_END_YN,예약종료여부,INTEGER,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,103
+L2ZI_MBL_VAS_ENTR_INFO_DALY_H,hackathon_vas_subscription,47,RSV_END_DT,예약종료일자,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,105
+L2ZI_MBL_VAS_ENTR_INFO_DALY_H,hackathon_vas_subscription,48,BASF_AMT,기본료금액,NUMERIC,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,107
+L2ZI_MBL_VAS_ENTR_INFO_DALY_H,hackathon_vas_subscription,49,BASF_DACAL_YN,기본료일할계산여부,INTEGER,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,109
+L2ZI_MBL_VAS_ENTR_INFO_DALY_H,hackathon_vas_subscription,50,PP_DPND_YN,요금제종속여부,INTEGER,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,111
+L2ZI_MBL_VAS_ENTR_INFO_DALY_H,hackathon_vas_subscription,51,SVC_ENTR_PRSS_DLR_CD,상품가입처리대리점코드,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,113
+L2ZI_MBL_VAS_ENTR_INFO_DALY_H,hackathon_vas_subscription,52,SVC_ENTR_OPRTR_ID,상품가입처리자ID,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,115
+L2ZI_MBL_VAS_ENTR_INFO_DALY_H,hackathon_vas_subscription,53,SVC_EXPRY_PRSS_DLR_CD,상품해지처리대리점코드,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,117
+L2ZI_MBL_VAS_ENTR_INFO_DALY_H,hackathon_vas_subscription,54,SVC_EXPRY_OPRTR_ID,상품해지처리자ID,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,119
+L2ZI_MBL_VAS_ENTR_INFO_DALY_H,hackathon_vas_subscription,55,ATRCT_CHNL_CD,유치채널코드,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,121
+L2ZI_MBL_VAS_ENTR_INFO_DALY_H,hackathon_vas_subscription,56,ATRCT_CHNL_NM,유치채널명,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,125
+L2ZI_MBL_VAS_ENTR_INFO_DALY_H,hackathon_vas_subscription,57,RSALE_POS_CD,실판매POS코드,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,127
+L2ZI_MBL_VAS_ENTR_INFO_DALY_H,hackathon_vas_subscription,58,SALE_EMP_NO,판매사원번호,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,129
+L2ZI_MBL_VAS_ENTR_INFO_DALY_H,hackathon_vas_subscription,59,LAST_YN,최종여부,INTEGER,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,131
+L2ZI_MBL_VAS_ENTR_INFO_DALY_H,hackathon_vas_subscription,60,ATRC_CHNL_DIVS_NM,유치채널구분명,STRING,ATRC_CHNL_DIVS_NM,str / None,CSV만 유지,,,"CSV 물리명 유지, Source 매핑 없음",133
+L2ZI_MBL_VAS_ENTR_INFO_DALY_H,hackathon_vas_subscription,61,ATRC_DGTL_CHNL_DIVS_NM,유치디지털채널구분명,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,135
+L2ZI_MBL_VAS_ENTR_INFO_DALY_H,hackathon_vas_subscription,62,LVL1_ORG_NM,1레벨조직명,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,137
+L2ZI_MBL_VAS_ENTR_INFO_DALY_H,hackathon_vas_subscription,63,LVL2_ORG_NM,2레벨조직명,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,139
+L2ZI_MBL_VAS_ENTR_INFO_DALY_H,hackathon_vas_subscription,64,LVL3_ORG_NM,3레벨조직명,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,141
+L2ZI_MBL_VAS_ENTR_INFO_DALY_H,hackathon_vas_subscription,65,LVL4_ORG_NM,4레벨조직명,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,143
+L2ZI_MBL_VAS_ENTR_INFO_DALY_H,hackathon_vas_subscription,66,EXPY_CHNL_DIVS_NM,해지채널구분명,STRING,EXPY_CHNL_DIVS_NM,str / None,CSV만 유지,,,"CSV 물리명 유지, Source 매핑 없음",145
+L2ZI_MBL_VAS_ENTR_INFO_DALY_H,hackathon_vas_subscription,67,DEVC_MDL_CD,단말모델코드,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,147
+L2ZI_MBL_VAS_ENTR_INFO_DALY_H,hackathon_vas_subscription,68,DEVC_MDL_NM,단말모델명,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,149
+L2ZI_MBL_VAS_ENTR_INFO_DALY_H,hackathon_vas_subscription,69,PET_NM,펫명,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,151
+L2ZI_MBL_VAS_ENTR_INFO_DALY_H,hackathon_vas_subscription,70,PET_NM2,펫명2,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,153
+L2ZI_MBL_VAS_ENTR_INFO_DALY_H,hackathon_vas_subscription,71,DVIC_KD_NM,단말기유형명,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,155
+L2ZI_MBL_VAS_ENTR_INFO_DALY_H,hackathon_vas_subscription,72,DVIC_SPEC_KD_NM,단말기스펙유형명,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,157
+L2ZI_MBL_VAS_ENTR_INFO_DALY_H,hackathon_vas_subscription,73,DVIC_OS_NM,단말기운영체제명,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,159
+L2ZI_MBL_VAS_ENTR_INFO_DALY_H,hackathon_vas_subscription,74,THMM_TRM_SALE_YN,당월단말판매여부,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,161
+L2ZI_MBL_VAS_ENTR_INFO_DALY_H,hackathon_vas_subscription,75,STOP_XCLN_TRM_USE_TERM_DAYS,정지제외단말사용기간일수,INTEGER,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,163
+L2ZI_MBL_VAS_ENTR_INFO_DALY_H,hackathon_vas_subscription,76,TRM_USE_TERM_MMCT,단말사용기간개월수,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,165
+L2ZI_MBL_VAS_ENTR_INFO_DALY_H,hackathon_vas_subscription,77,PP_CD,요금제코드,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,167
+L2ZI_MBL_VAS_ENTR_INFO_DALY_H,hackathon_vas_subscription,78,PP_NM,요금제명,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,169
+L2ZI_MBL_VAS_ENTR_INFO_DALY_H,hackathon_vas_subscription,79,PURE_RATE,순요율,NUMERIC,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,171
+L2ZI_MBL_VAS_ENTR_INFO_DALY_H,hackathon_vas_subscription,80,PP_NCRG_GRP_NM,요금제순액그룹명,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,173
+L2ZI_MBL_VAS_ENTR_INFO_DALY_H,hackathon_vas_subscription,81,PP_DIVS_NM,요금제구분명,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,175
+L2ZI_MBL_VAS_ENTR_INFO_DALY_H,hackathon_vas_subscription,82,LTE_G5_PP_DIVS_NM,LTE5G요금제구분명,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,177
+L2ZI_MBL_VAS_ENTR_INFO_DALY_H,hackathon_vas_subscription,83,BQ_LOAD_DTTM,BQ적재일시,DATETIME,BQ_LOAD_DTTM,str / None,분석 필드 변환,occurred_at,TIMESTAMP,"occurred_at: Asia/Seoul로 해석 후 UTC 변환, timezone 정보 제거",179
+L2ZI_MBL_VAS_ENTR_INFO_DALY_H,hackathon_vas_subscription,84,BQ_LOAD_USER_ID,BQ적재사용자ID,STRING,BQ_LOAD_USER_ID,str / None,CSV만 유지,,,"CSV 물리명 유지, Source 매핑 없음",181
+L1BAT_CUST_BLNG_AND_BNFT_SUM,hackathon_billing_profile,1,CZ_LNK_KEY,CSZ_연결키,INT64,CZ_LNK_KEY,str / None,분석 필드 변환,customer_id,VARCHAR,customer_id: 문자열 고객키의 SHA-256 앞 24자리 + customer_ 접두사,3
+L1BAT_CUST_BLNG_AND_BNFT_SUM,hackathon_billing_profile,2,BASE_YYMM,기준년월,STRING,BASE_YYMM,str / None,CSV만 유지,,,"CSV 물리명 유지, Source 매핑 없음",5
+L1BAT_CUST_BLNG_AND_BNFT_SUM,hackathon_billing_profile,3,BILL_ACNT_NO,암호화청구계정번호,STRING,BILL_ACNT_NO,str / None,CSV만 유지,,,"CSV 물리명 유지, Source 매핑 없음",9
+L1BAT_CUST_BLNG_AND_BNFT_SUM,hackathon_billing_profile,4,ACE_NO,암호화납입자정보,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,11
+L1BAT_CUST_BLNG_AND_BNFT_SUM,hackathon_billing_profile,5,ENTR_NO,암호화가입번호,STRING,ENTR_NO,str / None,CSV만 유지,,,"CSV 물리명 유지, Source 매핑 없음",13
+L1BAT_CUST_BLNG_AND_BNFT_SUM,hackathon_billing_profile,6,CUST_NO,암호화고객번호,STRING,CUST_NO,str / None,CSV만 유지,,,"CSV 물리명 유지, Source 매핑 없음",15
+L1BAT_CUST_BLNG_AND_BNFT_SUM,hackathon_billing_profile,7,YY10_AGELV_ID,10년연령대ID,INT64,YY10_AGELV_ID,str / None,분석 필드 변환,dim_age_band,VARCHAR,"dim_age_band: 공통 이벤트 dimensions.age_band에서 평탄화; 문자열 유지, 제외 패턴 일치 값은 미노출",17
+L1BAT_CUST_BLNG_AND_BNFT_SUM,hackathon_billing_profile,8,CUST_AGE,고객연령,INT64,CUST_AGE,str / None,CSV만 유지,,,"CSV 물리명 유지, Source 매핑 없음",19
+L1BAT_CUST_BLNG_AND_BNFT_SUM,hackathon_billing_profile,9,ONEID_EMAIL_ADDR,암호화ONEID이메일주소,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,21
+L1BAT_CUST_BLNG_AND_BNFT_SUM,hackathon_billing_profile,10,SVC_CD,서비스코드,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,23
+L1BAT_CUST_BLNG_AND_BNFT_SUM,hackathon_billing_profile,11,SVC_NM,서비스명,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,25
+L1BAT_CUST_BLNG_AND_BNFT_SUM,hackathon_billing_profile,12,PP_CD,요금제코드,STRING,PP_CD,str / None,CSV만 유지,,,"CSV 물리명 유지, Source 매핑 없음",27
+L1BAT_CUST_BLNG_AND_BNFT_SUM,hackathon_billing_profile,13,PP_NM,요금제명,STRING,PP_NM,str / None,분석 필드 변환,topic; text,VARCHAR; VARCHAR,topic: 문자열 변환; 제외 패턴 일치 값은 unknown; text: 문자열 변환,29
+L1BAT_CUST_BLNG_AND_BNFT_SUM,hackathon_billing_profile,14,PRD_NO,암호화상품번호,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,31
+L1BAT_CUST_BLNG_AND_BNFT_SUM,hackathon_billing_profile,15,ENTR_STTS_CD,가입상태코드,STRING,ENTR_STTS_CD,str / None,분석 필드 변환,outcome,VARCHAR,outcome: 문자열 변환; 제외 패턴 일치 값은 unknown,33
+L1BAT_CUST_BLNG_AND_BNFT_SUM,hackathon_billing_profile,16,ENTR_STTS_NM,가입상태명,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,35
+L1BAT_CUST_BLNG_AND_BNFT_SUM,hackathon_billing_profile,17,CNVG_NO,결합번호,INT64,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,37
+L1BAT_CUST_BLNG_AND_BNFT_SUM,hackathon_billing_profile,18,HM_CD,홈코드,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,39
+L1BAT_CUST_BLNG_AND_BNFT_SUM,hackathon_billing_profile,19,FRST_ENTR_DT,최초개통일자,STRING,FRST_ENTR_DT,str / None,CSV만 유지,,,"CSV 물리명 유지, Source 매핑 없음",41
+L1BAT_CUST_BLNG_AND_BNFT_SUM,hackathon_billing_profile,20,EXPRY_DT,해지일자,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,43
+L1BAT_CUST_BLNG_AND_BNFT_SUM,hackathon_billing_profile,21,BAS_AMT,기본료금액,NUMERIC,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,45
+L1BAT_CUST_BLNG_AND_BNFT_SUM,hackathon_billing_profile,22,SPPS_AMT,부가서비스금액,NUMERIC,SPPS_AMT,str / None,분석 필드 변환,measure_vas_amount_krw,DOUBLE,measure_vas_amount_krw: 정수 파싱 후 DOUBLE; 단위 KRW,47
+L1BAT_CUST_BLNG_AND_BNFT_SUM,hackathon_billing_profile,23,DEVC_INSTT_AMT,단말할부금액,NUMERIC,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,49
+L1BAT_CUST_BLNG_AND_BNFT_SUM,hackathon_billing_profile,24,DEVC_SALE_AMT,단말판매금액,NUMERIC,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,51
+L1BAT_CUST_BLNG_AND_BNFT_SUM,hackathon_billing_profile,25,DEVC_RENT_AMT,단말임대금액,NUMERIC,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,53
+L1BAT_CUST_BLNG_AND_BNFT_SUM,hackathon_billing_profile,26,DOME_CALL_AMT,국내통화료금액,NUMERIC,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,55
+L1BAT_CUST_BLNG_AND_BNFT_SUM,hackathon_billing_profile,27,DOME_VDO_CALL_AMT,국내영상통화료금액,NUMERIC,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,57
+L1BAT_CUST_BLNG_AND_BNFT_SUM,hackathon_billing_profile,28,ADDV_CALL_USE_AMT,부가통화사용금액,NUMERIC,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,59
+L1BAT_CUST_BLNG_AND_BNFT_SUM,hackathon_billing_profile,29,DOME_LTTR_TADV_AMT,국내문자이용금액,NUMERIC,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,61
+L1BAT_CUST_BLNG_AND_BNFT_SUM,hackathon_billing_profile,30,ENTP_LTTR_TADV_AMT,기업문자이용요금금액,NUMERIC,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,63
+L1BAT_CUST_BLNG_AND_BNFT_SUM,hackathon_billing_profile,31,MBL_GEN3_DATA_TADV_AMT,모바일3G데이터사용료금액,NUMERIC,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,65
+L1BAT_CUST_BLNG_AND_BNFT_SUM,hackathon_billing_profile,32,MBL_LTE_DATA_TADV_AMT,모바일LTE데이터사용료금액,NUMERIC,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,67
+L1BAT_CUST_BLNG_AND_BNFT_SUM,hackathon_billing_profile,33,RMNG_TADV_AMT,로밍이용금액,NUMERIC,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,69
+L1BAT_CUST_BLNG_AND_BNFT_SUM,hackathon_billing_profile,34,ICTY_CALL_AMT,시내통화료금액,NUMERIC,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,71
+L1BAT_CUST_BLNG_AND_BNFT_SUM,hackathon_billing_profile,35,OCTY_CALL_AMT,시외통화료금액,NUMERIC,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,73
+L1BAT_CUST_BLNG_AND_BNFT_SUM,hackathon_billing_profile,36,INTCALL_CALL_AMT,국제통화료금액,NUMERIC,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,75
+L1BAT_CUST_BLNG_AND_BNFT_SUM,hackathon_billing_profile,37,NAT_REP_CALL_AMT,전국대표통화료금액,NUMERIC,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,77
+L1BAT_CUST_BLNG_AND_BNFT_SUM,hackathon_billing_profile,38,ETC_CALL_AMT,기타통화료금액,NUMERIC,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,79
+L1BAT_CUST_BLNG_AND_BNFT_SUM,hackathon_billing_profile,39,INFO_TADV_AMT,정보이용료,NUMERIC,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,81
+L1BAT_CUST_BLNG_AND_BNFT_SUM,hackathon_billing_profile,40,PPS_RING_ELCTC_AMT,PPS링충전금액,NUMERIC,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,83
+L1BAT_CUST_BLNG_AND_BNFT_SUM,hackathon_billing_profile,41,SMLS_STLM_AMT,소액결제금액,NUMERIC,SMLS_STLM_AMT,str / None,분석 필드 변환,measure_micropayment_amount_krw,DOUBLE,measure_micropayment_amount_krw: 정수 파싱 후 DOUBLE; 단위 KRW,85
+L1BAT_CUST_BLNG_AND_BNFT_SUM,hackathon_billing_profile,42,GOOGLE_PLAY_BUY_AMT,구글플레이구매금액,NUMERIC,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,87
+L1BAT_CUST_BLNG_AND_BNFT_SUM,hackathon_billing_profile,43,INTG_APPSTORE_STLM_AMT,통합앱스토어결제금액,NUMERIC,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,89
+L1BAT_CUST_BLNG_AND_BNFT_SUM,hackathon_billing_profile,44,IPTV_VOD_TADV_AMT,IPTVVOD이용금액,NUMERIC,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,91
+L1BAT_CUST_BLNG_AND_BNFT_SUM,hackathon_billing_profile,45,ENTF_AMT,가입비금액,NUMERIC,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,93
+L1BAT_CUST_BLNG_AND_BNFT_SUM,hackathon_billing_profile,46,EBCST_AMT,설치비금액,NUMERIC,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,95
+L1BAT_CUST_BLNG_AND_BNFT_SUM,hackathon_billing_profile,47,ENGR_GOUT_AMT,기사출동금액,NUMERIC,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,97
+L1BAT_CUST_BLNG_AND_BNFT_SUM,hackathon_billing_profile,48,DEVC_INDM_AMT,단말배상금액,NUMERIC,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,99
+L1BAT_CUST_BLNG_AND_BNFT_SUM,hackathon_billing_profile,49,DEVC_RPAR_AMT,단말수리금액,NUMERIC,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,101
+L1BAT_CUST_BLNG_AND_BNFT_SUM,hackathon_billing_profile,50,AS_AMT,AS금액,NUMERIC,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,103
+L1BAT_CUST_BLNG_AND_BNFT_SUM,hackathon_billing_profile,51,AGDC_RETURN_AMT,약정할인반환금액,NUMERIC,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,105
+L1BAT_CUST_BLNG_AND_BNFT_SUM,hackathon_billing_profile,52,DEVC_RETURN_AMT,단말반환금액,NUMERIC,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,107
+L1BAT_CUST_BLNG_AND_BNFT_SUM,hackathon_billing_profile,53,DEVC_SUPRT_STACC_AMT,단말지원정산금액,NUMERIC,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,111
+L1BAT_CUST_BLNG_AND_BNFT_SUM,hackathon_billing_profile,54,BASF_DSCNT_RETURN_AMT,기본료할인반환금액,NUMERIC,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,117
+L1BAT_CUST_BLNG_AND_BNFT_SUM,hackathon_billing_profile,55,SPPS_DSCNT_RETURN_AMT,부가서비스할인반환금액,NUMERIC,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,119
+L1BAT_CUST_BLNG_AND_BNFT_SUM,hackathon_billing_profile,56,CNVG_DSCNT_RETURN_AMT,결합할인반환금액,NUMERIC,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,121
+L1BAT_CUST_BLNG_AND_BNFT_SUM,hackathon_billing_profile,57,OFFR_DSCNT_RETURN_AMT,오퍼할인반환금액,NUMERIC,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,123
+L1BAT_CUST_BLNG_AND_BNFT_SUM,hackathon_billing_profile,58,EBCST_RETURN_AMT,설치비반환금액,NUMERIC,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,125
+L1BAT_CUST_BLNG_AND_BNFT_SUM,hackathon_billing_profile,59,EXPRY_RETURN_AMT,해지반환금액,NUMERIC,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,127
+L1BAT_CUST_BLNG_AND_BNFT_SUM,hackathon_billing_profile,60,ETC_RETURN_AMT,기타반환금액,NUMERIC,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,129
+L1BAT_CUST_BLNG_AND_BNFT_SUM,hackathon_billing_profile,61,ETC_AMT,기타금액,NUMERIC,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,131
+L1BAT_CUST_BLNG_AND_BNFT_SUM,hackathon_billing_profile,62,AGDC_AMT,약정할인금액,NUMERIC,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,133
+L1BAT_CUST_BLNG_AND_BNFT_SUM,hackathon_billing_profile,63,CHCE_AGDC_AMT,선택약정할인금액,NUMERIC,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,135
+L1BAT_CUST_BLNG_AND_BNFT_SUM,hackathon_billing_profile,64,LNTEM_DSCNT_AMT,장기할인금액,NUMERIC,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,137
+L1BAT_CUST_BLNG_AND_BNFT_SUM,hackathon_billing_profile,65,HANBNG_YO_CNVG_DSCNT_AMT,한방에YO결합할인금액,NUMERIC,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,139
+L1BAT_CUST_BLNG_AND_BNFT_SUM,hackathon_billing_profile,66,ETC_CNVG_DSCNT_AMT,기타결합할인금액,NUMERIC,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,141
+L1BAT_CUST_BLNG_AND_BNFT_SUM,hackathon_billing_profile,67,PGM_DSCNT_AMT,프로그램할인금액,NUMERIC,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,143
+L1BAT_CUST_BLNG_AND_BNFT_SUM,hackathon_billing_profile,68,CUST_MGMT_DSCNT_AMT,고객케어할인금액,NUMERIC,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,145
+L1BAT_CUST_BLNG_AND_BNFT_SUM,hackathon_billing_profile,69,PRMTN_DSCNT_AMT,프로모션할인금액,NUMERIC,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,147
+L1BAT_CUST_BLNG_AND_BNFT_SUM,hackathon_billing_profile,70,MBRSH_DSCNT_AMT,멤버십할인금액,NUMERIC,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,149
+L1BAT_CUST_BLNG_AND_BNFT_SUM,hackathon_billing_profile,71,PUBWF_DSCNT_AMT,공공복지할인금액,NUMERIC,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,151
+L1BAT_CUST_BLNG_AND_BNFT_SUM,hackathon_billing_profile,72,GROP_DSCNT_AMT,단체할인금액,NUMERIC,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,153
+L1BAT_CUST_BLNG_AND_BNFT_SUM,hackathon_billing_profile,73,CNTC_DSCNT_AMT,계약할인금액,NUMERIC,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,155
+L1BAT_CUST_BLNG_AND_BNFT_SUM,hackathon_billing_profile,74,ETC_DSCNT_AMT,기타할인금액,NUMERIC,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,157
+L1BAT_CUST_BLNG_AND_BNFT_SUM,hackathon_billing_profile,75,CHRG_ADJMT_DSCNT_AMT,요금조정할인금액,NUMERIC,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,159
+L1BAT_CUST_BLNG_AND_BNFT_SUM,hackathon_billing_profile,76,CNTC_CHRG_ADJMT_AMT,계약요금조정금액,NUMERIC,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,161
+L1BAT_CUST_BLNG_AND_BNFT_SUM,hackathon_billing_profile,77,PMTH_UCLM_AMT,전월미청구금액,NUMERIC,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,163
+L1BAT_CUST_BLNG_AND_BNFT_SUM,hackathon_billing_profile,78,LTPYM_ADDC_AMT,연체가산금,NUMERIC,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,165
+L1BAT_CUST_BLNG_AND_BNFT_SUM,hackathon_billing_profile,79,BDP_NON_CLSS_BILL_AMT,BDP미분류청구금액,NUMERIC,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,167
+L1BAT_CUST_BLNG_AND_BNFT_SUM,hackathon_billing_profile,80,BILL_VAT_AMT,청구부가가치세금액,NUMERIC,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,169
+L1BAT_CUST_BLNG_AND_BNFT_SUM,hackathon_billing_profile,81,TOT_BILL_AMT,청구총금액,NUMERIC,TOT_BILL_AMT,str / None,CSV만 유지,,,"CSV 물리명 유지, Source 매핑 없음",171
+L1BAT_CUST_BLNG_AND_BNFT_SUM,hackathon_billing_profile,82,PMTH_UPAID_AMT,전월미납금액,NUMERIC,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,173
+L1BAT_CUST_BLNG_AND_BNFT_SUM,hackathon_billing_profile,83,PMTH_XCLN_ACLTN_UPAID_AMT,전월제외누적미납금액,NUMERIC,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,175
+L1BAT_CUST_BLNG_AND_BNFT_SUM,hackathon_billing_profile,84,PYM_AMT,납부금액,NUMERIC,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,177
+L1BAT_CUST_BLNG_AND_BNFT_SUM,hackathon_billing_profile,85,THMN_DEVC_SUPRT_AMT,당월단말지원금액,NUMERIC,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,179
+L1BAT_CUST_BLNG_AND_BNFT_SUM,hackathon_billing_profile,86,THMN_GIFT_AMT,당월사은품금액,NUMERIC,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,181
+L1BAT_CUST_BLNG_AND_BNFT_SUM,hackathon_billing_profile,87,MBRSH_RMND_PNT,멤버십잔여포인트,NUMERIC,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,183
+L1BAT_CUST_BLNG_AND_BNFT_SUM,hackathon_billing_profile,88,THMN_MBRSH_USE_PNT,당월멤버십사용포인트,NUMERIC,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,185
+L1BAT_CUST_BLNG_AND_BNFT_SUM,hackathon_billing_profile,89,THMN_CMPN_AMT,당월캠페인이용금액,NUMERIC,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,187
+L1BAT_CUST_BLNG_AND_BNFT_SUM,hackathon_billing_profile,90,THMN_EZPNT_USE_AMT,당월EZ포인트사용금액,NUMERIC,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,189
+L1BAT_CUST_BLNG_AND_BNFT_SUM,hackathon_billing_profile,91,THMN_YO_PNT_USE_AMT,당월YO포인트사용금액,NUMERIC,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,191
+L1BAT_CUST_BLNG_AND_BNFT_SUM,hackathon_billing_profile,92,THMN_AIR_MLGE_PNT_AMT,당월항공마일리지부여금액,NUMERIC,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,193
+L1BAT_CUST_BLNG_AND_BNFT_SUM,hackathon_billing_profile,93,CNTRB_PRFT_AMT,공헌이익금액,NUMERIC,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,195
+L1BAT_CUST_BLNG_AND_BNFT_SUM,hackathon_billing_profile,94,MBOOK_AMT,머니북금액,NUMERIC,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,199
+L1BAT_CUST_BLNG_AND_BNFT_SUM,hackathon_billing_profile,95,DP_LOAD_DTTM,데이터처리적재시간,DATETIME,DP_LOAD_DTTM,str / None,분석 필드 변환,occurred_at,TIMESTAMP,"occurred_at: Asia/Seoul로 해석 후 UTC 변환, timezone 정보 제거",201
+L1BAT_CUST_BLNG_AND_BNFT_SUM,hackathon_billing_profile,96,DP_LOAD_USER_ID,데이터처리사용자아이디,STRING,DP_LOAD_USER_ID,str / None,CSV만 유지,,,"CSV 물리명 유지, Source 매핑 없음",203
+L1BAT_CUST_BLNG_AND_BNFT_SUM,hackathon_billing_profile,97,SEX_DV_CD,성별구분코드,STRING,SEX_DV_CD,str / None,분석 필드 변환,dim_sex,VARCHAR,"dim_sex: 공통 이벤트 dimensions.sex에서 평탄화; 문자열 유지, 제외 패턴 일치 값은 미노출",205
+L1DA_RMNG_USE_MMLY_INTG_H,hackathon_roaming_usage,1,CSZ_LNK_KEY,CSZ_연결키,INT64,CSZ_LNK_KEY,str / None,CSV만 유지,,,"CSV 물리명 유지, Source 매핑 없음",3
+L1DA_RMNG_USE_MMLY_INTG_H,hackathon_roaming_usage,2,P_YYYYMM,기준연월(최저치),INT64,P_YYYYMM,str / None,분석 필드 변환,dim_billing_month,VARCHAR,"dim_billing_month: 공통 이벤트 dimensions.billing_month에서 평탄화; 문자열 유지, 제외 패턴 일치 값은 미노출",4
+L1DA_RMNG_USE_MMLY_INTG_H,hackathon_roaming_usage,3,ENTR_NO,가입번호,STRING,ENTR_NO,str / None,CSV만 유지,,,"CSV 물리명 유지, Source 매핑 없음",5
+L1DA_RMNG_USE_MMLY_INTG_H,hackathon_roaming_usage,4,CUST_NO,고객번호,STRING,CUST_NO,str / None,분석 필드 변환,customer_id,VARCHAR,customer_id: 문자열 고객키의 SHA-256 앞 24자리 + customer_ 접두사,6
+L1DA_RMNG_USE_MMLY_INTG_H,hackathon_roaming_usage,5,BILL_ACNT_NO,청구계정번호,STRING,BILL_ACNT_NO,str / None,CSV만 유지,,,"CSV 물리명 유지, Source 매핑 없음",7
+L1DA_RMNG_USE_MMLY_INTG_H,hackathon_roaming_usage,6,PROD_NO,상품번호,STRING,PROD_NO,str / None,CSV만 유지,,,"CSV 물리명 유지, Source 매핑 없음",8
+L1DA_RMNG_USE_MMLY_INTG_H,hackathon_roaming_usage,7,AG10_AGJU_ID,10대연령확인,INT64,AG10_AGJU_ID,str / None,CSV만 유지,,,"CSV 물리명 유지, Source 매핑 없음",9
+L1DA_RMNG_USE_MMLY_INTG_H,hackathon_roaming_usage,8,CUST_AGE,고객연령,INT64,CUST_AGE,str / None,CSV만 유지,,,"CSV 물리명 유지, Source 매핑 없음",10
+L1DA_RMNG_USE_MMLY_INTG_H,hackathon_roaming_usage,9,SEX_DIVS_CD,성별구분코드,STRING,SEX_DIVS_CD,str / None,CSV만 유지,,,"CSV 물리명 유지, Source 매핑 없음",11
+L1DA_RMNG_USE_MMLY_INTG_H,hackathon_roaming_usage,10,SEX_DIVS_NM,성별구분명,STRING,SEX_DIVS_NM,str / None,CSV만 유지,,,"CSV 물리명 유지, Source 매핑 없음",12
+L1DA_RMNG_USE_MMLY_INTG_H,hackathon_roaming_usage,11,CUST_BRTH_YEAR,고객출생년월,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,13
+L1DA_RMNG_USE_MMLY_INTG_H,hackathon_roaming_usage,12,CUST_KD_CD,고객유형코드,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,14
+L1DA_RMNG_USE_MMLY_INTG_H,hackathon_roaming_usage,13,CUST_KD_NM,고객유형명,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,15
+L1DA_RMNG_USE_MMLY_INTG_H,hackathon_roaming_usage,14,PP_CD,요금제코드,STRING,PP_CD,str / None,CSV만 유지,,,"CSV 물리명 유지, Source 매핑 없음",16
+L1DA_RMNG_USE_MMLY_INTG_H,hackathon_roaming_usage,15,PP_NM,요금제명,STRING,PP_NM,str / None,CSV만 유지,,,"CSV 물리명 유지, Source 매핑 없음",17
+L1DA_RMNG_USE_MMLY_INTG_H,hackathon_roaming_usage,16,NCRG_CHRG,순정요금,"NUMERIC(22, ...)",,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,18
+L1DA_RMNG_USE_MMLY_INTG_H,hackathon_roaming_usage,17,ENTR_STUS_CD,가입일상태코드,STRING,ENTR_STUS_CD,str / None,CSV만 유지,,,"CSV 물리명 유지, Source 매핑 없음",19
+L1DA_RMNG_USE_MMLY_INTG_H,hackathon_roaming_usage,18,ENTR_STUS_NM,가입일상태명,STRING,ENTR_STUS_NM,str / None,CSV만 유지,,,"CSV 물리명 유지, Source 매핑 없음",20
+L1DA_RMNG_USE_MMLY_INTG_H,hackathon_roaming_usage,19,MRKT_CD,단말코드,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,21
+L1DA_RMNG_USE_MMLY_INTG_H,hackathon_roaming_usage,20,MRKT_NM,단말명,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,22
+L1DA_RMNG_USE_MMLY_INTG_H,hackathon_roaming_usage,21,TRM_MDL_CD,단말상품군명,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,23
+L1DA_RMNG_USE_MMLY_INTG_H,hackathon_roaming_usage,22,TRM_MDL_NM,단말모델명,STRING,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,24
+L1DA_RMNG_USE_MMLY_INTG_H,hackathon_roaming_usage,23,SCDEV_USE_YN,2ND단말기사용여부,INT64,,,CSV 미생성,,,현재 합성 CSV 및 분석용 DuckDB에 없음,25
+L1DA_RMNG_USE_MMLY_INTG_H,hackathon_roaming_usage,24,RMNG_NATN_NM,로밍국가명,STRING,RMNG_NATN_NM,str / None,분석 필드 변환,dim_country,VARCHAR,"dim_country: 공통 이벤트 dimensions.country에서 평탄화; 문자열 유지, 제외 패턴 일치 값은 미노출",26
+L1DA_RMNG_USE_MMLY_INTG_H,hackathon_roaming_usage,25,DPTR_DT,출국일자,STRING,DPTR_DT,str / None,분석 필드 변환,dim_departure_date,VARCHAR,"dim_departure_date: 공통 이벤트 dimensions.departure_date에서 평탄화; 문자열 유지, 제외 패턴 일치 값은 미노출",27
+L1DA_RMNG_USE_MMLY_INTG_H,hackathon_roaming_usage,26,HMCML_DT,귀국일자,STRING,HMCML_DT,str / None,분석 필드 변환,dim_return_date,VARCHAR,"dim_return_date: 공통 이벤트 dimensions.return_date에서 평탄화; 문자열 유지, 제외 패턴 일치 값은 미노출",28
+L1DA_RMNG_USE_MMLY_INTG_H,hackathon_roaming_usage,27,ABRD_STAY_DAYS,국외체류일수,INT64,ABRD_STAY_DAYS,str / None,분석 필드 변환,measure_abroad_stay_days,DOUBLE,measure_abroad_stay_days: 정수 파싱 후 DOUBLE; 단위 days,29
+L1DA_RMNG_USE_MMLY_INTG_H,hackathon_roaming_usage,28,SPPS_CD,부가서비스코드,STRING,SPPS_CD,str / None,분석 필드 변환,dim_product_code,VARCHAR,"dim_product_code: 공통 이벤트 dimensions.product_code에서 평탄화; 문자열 유지, 제외 패턴 일치 값은 미노출",30
+L1DA_RMNG_USE_MMLY_INTG_H,hackathon_roaming_usage,29,SPPS_NM,부가서비스명,STRING,SPPS_NM,str / None,분석 필드 변환,text,VARCHAR,text: 문자열 변환,31
+L1DA_RMNG_USE_MMLY_INTG_H,hackathon_roaming_usage,30,SPPS_ENTR_STUS_CD,부가서비스가입상태코드,STRING,SPPS_ENTR_STUS_CD,str / None,분석 필드 변환,outcome,VARCHAR,outcome: 문자열 변환; 제외 패턴 일치 값은 unknown,32
+L1DA_RMNG_USE_MMLY_INTG_H,hackathon_roaming_usage,31,SPPS_ENTR_STUS_NM,부가서비스가입상태명,STRING,SPPS_ENTR_STUS_NM,str / None,CSV만 유지,,,"CSV 물리명 유지, Source 매핑 없음",33
+L1DA_RMNG_USE_MMLY_INTG_H,hackathon_roaming_usage,32,SPPS_FRST_ENTR_DT,부가서비스최초가입일자,STRING,SPPS_FRST_ENTR_DT,str / None,CSV만 유지,,,"CSV 물리명 유지, Source 매핑 없음",34
+L1DA_RMNG_USE_MMLY_INTG_H,hackathon_roaming_usage,33,SPPS_STRT_DT,부가서비스시작일자,STRING,SPPS_STRT_DT,str / None,분석 필드 변환,dim_service_start_date,VARCHAR,"dim_service_start_date: 공통 이벤트 dimensions.service_start_date에서 평탄화; 문자열 유지, 제외 패턴 일치 값은 미노출",35
+L1DA_RMNG_USE_MMLY_INTG_H,hackathon_roaming_usage,34,SPPS_END_DT,부가서비스종료일자,STRING,SPPS_END_DT,str / None,분석 필드 변환,dim_service_end_date,VARCHAR,"dim_service_end_date: 공통 이벤트 dimensions.service_end_date에서 평탄화; 문자열 유지, 제외 패턴 일치 값은 미노출",36
+L1DA_RMNG_USE_MMLY_INTG_H,hackathon_roaming_usage,35,RTNG_STRT_DT,과금시작일자,STRING,RTNG_STRT_DT,str / None,분석 필드 변환,dim_rating_start_date,VARCHAR,"dim_rating_start_date: 공통 이벤트 dimensions.rating_start_date에서 평탄화; 문자열 유지, 제외 패턴 일치 값은 미노출",37
+L1DA_RMNG_USE_MMLY_INTG_H,hackathon_roaming_usage,36,RTNG_END_DT,과금종료일자,STRING,RTNG_END_DT,str / None,CSV만 유지,,,"CSV 물리명 유지, Source 매핑 없음",38
+L1DA_RMNG_USE_MMLY_INTG_H,hackathon_roaming_usage,37,PP_USE_DAYS,요금제사용일수,INT64,PP_USE_DAYS,str / None,분석 필드 변환,measure_plan_use_days,DOUBLE,measure_plan_use_days: 정수 파싱 후 DOUBLE; 단위 days,39
+L1DA_RMNG_USE_MMLY_INTG_H,hackathon_roaming_usage,38,MERT_USE_DAYS,증량제사용일수,INT64,MERT_USE_DAYS,str / None,CSV만 유지,,,"CSV 물리명 유지, Source 매핑 없음",40
+L1DA_RMNG_USE_MMLY_INTG_H,hackathon_roaming_usage,39,DATA_USAG,데이터사용량,"NUMERIC(22, ...)",DATA_USAG,str / None,분석 필드 변환,measure_data_usage,DOUBLE,measure_data_usage: 실수 파싱 후 DOUBLE; 단위 bytes,41
+L1DA_RMNG_USE_MMLY_INTG_H,hackathon_roaming_usage,40,ALL_VCE_PHCL_U...,전체음성통화사용량,"NUMERIC(22, ...)",,,원안 물리명 잘림 / CSV 미생성,,,"원문 표기 그대로 기록, 전체 물리명 추정 안 함",42
+L1DA_RMNG_USE_MMLY_INTG_H,hackathon_roaming_usage,41,VCE_PHCL_RCP_...,음성통화수신사용량,"NUMERIC(22, ...)",,,원안 물리명 잘림 / CSV 미생성,,,"원문 표기 그대로 기록, 전체 물리명 추정 안 함",43
+L1DA_RMNG_USE_MMLY_INTG_H,hackathon_roaming_usage,42,VCE_PHCL_DSP_...,음성통화발신사용량,"NUMERIC(22, ...)",,,원안 물리명 잘림 / CSV 미생성,,,"원문 표기 그대로 기록, 전체 물리명 추정 안 함",44
+L1DA_RMNG_USE_MMLY_INTG_H,hackathon_roaming_usage,43,ALL_VDO_PHCL_U...,전체영상통화사용량,"NUMERIC(22, ...)",,,원안 물리명 잘림 / CSV 미생성,,,"원문 표기 그대로 기록, 전체 물리명 추정 안 함",45
+L1DA_RMNG_USE_MMLY_INTG_H,hackathon_roaming_usage,44,VDO_PHCL_RCP_...,영상통화수신사용량,"NUMERIC(22, ...)",,,원안 물리명 잘림 / CSV 미생성,,,"원문 표기 그대로 기록, 전체 물리명 추정 안 함",46
+L1DA_RMNG_USE_MMLY_INTG_H,hackathon_roaming_usage,45,VDO_PHCL_DSP...,영상통화발신사용량,"NUMERIC(22, ...)",,,원안 물리명 잘림 / CSV 미생성,,,"원문 표기 그대로 기록, 전체 물리명 추정 안 함",47
+L1DA_RMNG_USE_MMLY_INTG_H,hackathon_roaming_usage,46,RMNG_LTTR_CNT,로밍문자건수,INT64,RMNG_LTTR_CNT,str / None,CSV만 유지,,,"CSV 물리명 유지, Source 매핑 없음",48
+L1DA_RMNG_USE_MMLY_INTG_H,hackathon_roaming_usage,47,SVC_ATRC_DEAL...,서비스유치대리점코드,STRING,,,원안 물리명 잘림 / CSV 미생성,,,"원문 표기 그대로 기록, 전체 물리명 추정 안 함",49
+L1DA_RMNG_USE_MMLY_INTG_H,hackathon_roaming_usage,48,SVC_ATRC_DEAL...,서비스유치대리점명,STRING,,,원안 물리명 잘림 / CSV 미생성,,,"원문 표기 그대로 기록, 전체 물리명 추정 안 함",50
+L1DA_RMNG_USE_MMLY_INTG_H,hackathon_roaming_usage,49,SVC_ENTR_OPTR...,서비스가입처리자ID,STRING,,,원안 물리명 잘림 / CSV 미생성,,,"원문 표기 그대로 기록, 전체 물리명 추정 안 함",51
+L1DA_RMNG_USE_MMLY_INTG_H,hackathon_roaming_usage,50,LAST_RMNG_PP...,최종로밍요금제시...,STRING,,,원안 물리명 잘림 / CSV 미생성,,,"원문 표기 그대로 기록, 전체 물리명 추정 안 함",52
+L1DA_RMNG_USE_MMLY_INTG_H,hackathon_roaming_usage,51,LAST_RMNG_PP...,최종로밍요금제코드,STRING,,,원안 물리명 잘림 / CSV 미생성,,,"원문 표기 그대로 기록, 전체 물리명 추정 안 함",53
+L1DA_RMNG_USE_MMLY_INTG_H,hackathon_roaming_usage,52,LAST_RMNG_PP...,최종로밍요금제명,STRING,,,원안 물리명 잘림 / CSV 미생성,,,"원문 표기 그대로 기록, 전체 물리명 추정 안 함",54
+L1DA_RMNG_USE_MMLY_INTG_H,hackathon_roaming_usage,53,YY1_RMNG_USE...,1년로밍사용여부,INT64,,,원안 물리명 잘림 / CSV 미생성,,,"원문 표기 그대로 기록, 전체 물리명 추정 안 함",55
+L1DA_RMNG_USE_MMLY_INTG_H,hackathon_roaming_usage,54,YY3_RMNG_USE...,3년로밍사용여부,INT64,,,원안 물리명 잘림 / CSV 미생성,,,"원문 표기 그대로 기록, 전체 물리명 추정 안 함",56
+L1DA_RMNG_USE_MMLY_INTG_H,hackathon_roaming_usage,55,BQ_LOAD_DTTM,BQ적재일시,DATETIME,BQ_LOAD_DTTM,str / None,분석 필드 변환,occurred_at,TIMESTAMP,"occurred_at: Asia/Seoul로 해석 후 UTC 변환, timezone 정보 제거",57
+L1DA_RMNG_USE_MMLY_INTG_H,hackathon_roaming_usage,56,BQ_LOAD_USER_ID,BQ적재사용자ID,STRING,BQ_LOAD_USER_ID,str / None,CSV만 유지,,,"CSV 물리명 유지, Source 매핑 없음",58
