@@ -199,6 +199,8 @@ export function SignalCatcherApp() {
               burstMark={options.burst}
               speed={options.speed}
               log={controller.log}
+              activities={controller.activities}
+              topologyEvents={controller.topologyEvents}
               onAnswerClarification={controller.answerClarification}
               onRetry={controller.retry}
               onGiveUp={restart}

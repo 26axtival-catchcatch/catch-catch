@@ -2,6 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import type { AgentActivity } from "../../customer-intelligence/agent-activity";
+import type { AnyRunStreamEvent } from "../../customer-intelligence/contracts";
+
 import {
   CLARIFICATION,
   DEMO_QUESTION,
@@ -165,6 +168,10 @@ export interface CatchSessionController {
   tick: StageTick | null;
   /** 지나간 진행 문장까지 포함한 로그. 화면은 뒤에서 몇 줄만 보여준다. */
   log: (StageTick & { stage: StageKey })[];
+  /** 실제 역할 실행과 그 아래 모델·도구 호출의 최신 공개 상태. */
+  activities: AgentActivity[];
+  /** Catching 토폴로지가 서버에서 받은 순서 그대로 사용하는 공개 SSE 이벤트. */
+  topologyEvents: AnyRunStreamEvent[];
   start: (question: string, options?: CatchStartOptions) => void;
   /** 실패 화면에서 같은 질문으로 다시 실행한다. */
   retry: () => void;
@@ -494,6 +501,8 @@ function useMockCatchSession({ flags, pause, speed, view }: DemoOptions): CatchS
       flatline,
       tick,
       log,
+      activities: [],
+      topologyEvents: [],
       start,
       retry,
       restore,

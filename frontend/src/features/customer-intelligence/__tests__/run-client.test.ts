@@ -923,13 +923,29 @@ describe("RunClient", () => {
   });
 });
 
-it("retains agent activity without breaking the existing result stream", async () => {
+it("parses the complete agent activity payload without changing its public values", async () => {
   const activity = {
-    schema_version: 1, node_id: "agent-1", parent_node_id: null,
-    depends_on: [], kind: "agent", role: "investigator", task_id: "task-search",
-    round_index: 0, status: "started", name: "investigator", display_text: "가설 조사",
-    occurred_at: "2026-09-10T00:00:00Z", duration_ms: null, model: null,
-    details: { candidates: [], decisions: [], limitations: [] },
+    schema_version: 1, node_id: "agent-reporter", parent_node_id: null,
+    depends_on: ["agent-verifier"], kind: "agent", role: "reporter", task_id: "task-reporting",
+    round_index: 0, status: "completed", name: "reporter",
+    display_text: "검색 실패 후 관련 없는 메뉴를 탐색하는 배회 행동을 확인했습니다.",
+    occurred_at: "2026-09-10T08:54:31.123456Z", duration_ms: 30257, model: null,
+    details: {
+      query_id: null, row_count: null, event_count: null, customer_count: null,
+      table_count: null, truncated: false, measurement_id: "measurement-1",
+      candidate_id: "candidate-1", item_count: null, tool_count: 3,
+      input_tokens: 4087, output_tokens: 124,
+      candidates: [{
+        candidate_id: "candidate-1", title: "검색 후 메뉴 배회",
+        cohort_query_id: "query-cohort", evidence_query_ids: ["query-evidence"],
+      }],
+      decisions: [{
+        candidate_id: "candidate-1", verdict: "confirmed", reason: "독립 재측정 완료",
+        cohort_query_id: "query-cohort", evidence_query_ids: ["query-evidence"],
+        followup_question: null,
+      }],
+      limitations: ["일부 앱 화면은 적재 시각만 제공합니다."], error_code: null,
+    },
   };
   const client = new RunClient({ fetchImpl: vi.fn().mockResolvedValue(responseStream([
     frame("run-1", 1, "agent_activity", activity),

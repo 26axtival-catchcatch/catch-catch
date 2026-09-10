@@ -1,13 +1,16 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import { useMemo } from "react";
 
+import type { AgentActivity } from "../../customer-intelligence/agent-activity";
+import type { AnyRunStreamEvent } from "../../customer-intelligence/contracts";
 import { HeartBurst } from "../brand/Brand";
-import { markOf } from "../state/tick-marks";
 import type { CatchSession, StageKey, StageTick } from "../state/types";
 
 import { createAgentTopology } from "./agent-topology";
 import { ClarificationModal } from "./ClarificationModal";
+import { TopologyActivityStream } from "./TopologyActivityStream";
 import styles from "./catching.module.css";
 
 const AgentGraph = dynamic(
@@ -30,6 +33,8 @@ interface CatchingScreenProps {
   /** URL speed 옵션과 캔버스의 pulse 속도를 함께 맞춘다. */
   speed: number;
   log: (StageTick & { stage: StageKey })[];
+  activities: AgentActivity[];
+  topologyEvents: AnyRunStreamEvent[];
   onAnswerClarification: (answer: string) => void;
   onRetry: () => void;
   onGiveUp: () => void;
@@ -42,6 +47,8 @@ export function CatchingScreen({
   burstMark,
   speed,
   log,
+  activities,
+  topologyEvents,
   onAnswerClarification,
   onRetry,
   onGiveUp,
@@ -50,8 +57,7 @@ export function CatchingScreen({
   const halted = flatline || failed || Boolean(session.clarification);
   const activeIndex = session.stages.findIndex((stage) => stage.status === "active");
   const active = activeIndex < 0 ? null : session.stages[activeIndex];
-  const current = log.at(-1) ?? null;
-  const graphTopology = createAgentTopology(session, log);
+  const graphTopology = useMemo(() => createAgentTopology(topologyEvents), [topologyEvents]);
   const { stats: graphStats } = graphTopology;
 
   const lead = flatline
@@ -103,29 +109,22 @@ export function CatchingScreen({
                 </p>
               </div>
               <span className={styles.count}>
-                작업 {graphTopology.nodes.length}개 · 데이터 조회 {graphStats.tools}회 · <b>발견 {graphStats.catches}건</b>
+                역할 {graphStats.agents}개 · 도구 호출 {graphStats.tools}회 · <b>확정 {graphStats.catches}건</b>
               </span>
             </div>
 
-            <AgentGraph session={session} log={log} halted={halted} speed={speed} />
-
-            <div className={styles.eventRail} aria-live="polite">
-              <span className={styles.eventMark} aria-hidden="true">
-                {halted ? "⏸" : current ? markOf(current) : "✎"}
-              </span>
-              {current?.kind === "tool" && current.primitive ? (
-                <code className={styles.primitive}>{current.primitive}</code>
-              ) : null}
-              {current?.kind === "fact" && current.short ? (
-                <strong className={styles.caught}>발견 · {current.short}</strong>
-              ) : null}
-              {current?.kind === "reject" ? (
-                <strong className={styles.dropped}>제외 · 근거 부족</strong>
-              ) : null}
-              <span className={styles.eventText}>
-                {halted ? lead : (current?.text ?? "질문에서 분석 조건을 확인하고 있어요")}
-              </span>
-              {current?.kind === "tool" ? <span className={styles.eventMeta}>{current.meta}</span> : null}
+            <div className={styles.workspace}>
+              <TopologyActivityStream activities={activities} halted={halted} />
+              <section className={styles.graphPanel} aria-labelledby="agent-topology-title">
+                <header className={styles.columnHeader}>
+                  <div>
+                    <p className={styles.columnKicker}>AGENT TOPOLOGY</p>
+                    <h2 id="agent-topology-title">실시간 멀티에이전트 실행</h2>
+                  </div>
+                  <span className={styles.graphLegend}>현재 실행을 따라 이동 · 드래그로 이전 단계 확인</span>
+                </header>
+                <AgentGraph topology={graphTopology} halted={halted} speed={speed} />
+              </section>
             </div>
           </div>
         )}

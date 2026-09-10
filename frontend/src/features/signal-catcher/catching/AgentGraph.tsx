@@ -8,6 +8,7 @@ import {
   ReactFlow,
   ReactFlowProvider,
   getSmoothStepPath,
+  getViewportForBounds,
   useReactFlow,
   type Edge,
   type EdgeProps,
@@ -18,18 +19,19 @@ import { memo, useEffect, useMemo, useRef, useState } from "react";
 
 import "@xyflow/react/dist/style.css";
 
-import type { CatchSession, StageKey, StageTick } from "../state/types";
-
 import {
-  createAgentTopology,
   type AgentTopology,
   type AgentTopologyNode,
   type SignalEdgeState,
+  type TopologyEdgeRelation,
 } from "./agent-topology";
 import styles from "./catching.module.css";
 
-const NODE_WIDTH = 132;
-const NODE_HEIGHT = 78;
+const NODE_DIMENSIONS = {
+  workflow: { width: 154, height: 72 },
+  step: { width: 172, height: 88 },
+  agent: { width: 184, height: 104 },
+} as const;
 
 type LayoutDirection = "LR" | "TB";
 type AgentNodeData = AgentTopologyNode & {
@@ -38,14 +40,14 @@ type AgentNodeData = AgentTopologyNode & {
 type AgentFlowNode = Node<AgentNodeData, "agent">;
 type SignalEdgeData = {
   state: SignalEdgeState;
+  relation: TopologyEdgeRelation;
   halted: boolean;
   speed: number;
 } & Record<string, unknown>;
 type SignalFlowEdge = Edge<SignalEdgeData, "signal">;
 
 interface AgentGraphProps {
-  session: CatchSession;
-  log: (StageTick & { stage: StageKey })[];
+  topology: AgentTopology;
   halted: boolean;
   speed: number;
 }
@@ -58,6 +60,8 @@ const AgentNodeCard = memo(function AgentNodeCard({ data }: NodeProps<AgentFlowN
       className={styles.node}
       data-primary={data.primary}
       data-state={data.state}
+      data-category={data.category}
+      data-role={data.role ?? undefined}
       role="listitem"
       aria-label={`${data.label}, ${data.meta}`}
     >
@@ -67,9 +71,20 @@ const AgentNodeCard = memo(function AgentNodeCard({ data }: NodeProps<AgentFlowN
         position={horizontal ? Position.Left : Position.Top}
         isConnectable={false}
       />
-      <span className={styles.orb} aria-hidden="true">{data.mark}</span>
-      <span className={styles.nodeLabel}>{data.label}</span>
-      <span className={styles.nodeMeta}>{data.meta}</span>
+      <span className={styles.nodeHead}>
+        <span className={styles.orbWrap} aria-hidden="true">
+          <span className={styles.orb}>{data.mark}</span>
+        </span>
+        <span className={styles.nodeTitle}>
+          <span className={styles.nodeEyebrow}>{data.eyebrow}</span>
+          <span className={styles.nodeLabel}>{data.label}</span>
+        </span>
+      </span>
+      <span className={styles.nodeMeta} title={data.meta}>{data.meta}</span>
+      {data.detail ? <span className={styles.nodeDetail}>{data.detail}</span> : null}
+      <span className={styles.nodeBadges} aria-label="수신한 이벤트 상태">
+        {data.badges.map((badge) => <span key={badge}>{badge}</span>)}
+      </span>
       <Handle
         className={styles.handle}
         type="source"
@@ -108,6 +123,7 @@ function SignalEdge({
         path={edgePath}
         className={styles.edge}
         data-state={state}
+        data-relation={data?.relation ?? "stream"}
         style={{ "--pulse-duration": `${duration}s` } as React.CSSProperties}
       />
       {state === "active" && !data?.halted ? (
@@ -133,33 +149,34 @@ function layoutTopology(
     rankdir: direction,
     ranker: "network-simplex",
     align: "UL",
-    nodesep: direction === "LR" ? 20 : 14,
-    edgesep: 12,
-    ranksep: direction === "LR" ? 62 : 44,
+    nodesep: direction === "LR" ? 20 : 12,
+    edgesep: 10,
+    ranksep: direction === "LR" ? 48 : 18,
     marginx: 16,
     marginy: 16,
   });
   graph.setDefaultEdgeLabel(() => ({}));
 
   for (const node of topology.nodes) {
-    graph.setNode(node.id, { width: NODE_WIDTH, height: NODE_HEIGHT });
+    graph.setNode(node.id, { ...NODE_DIMENSIONS[node.category] });
   }
   for (const edge of topology.edges) {
     graph.setEdge(edge.source, edge.target);
   }
-
   layout(graph);
 
   const nodes: AgentFlowNode[] = topology.nodes.map((node) => {
-    const position = graph.node(node.id);
+    const dimensions = NODE_DIMENSIONS[node.category];
+    const dagrePosition = graph.node(node.id);
+    const position = {
+      x: (dagrePosition.x ?? 0) - dimensions.width / 2,
+      y: (dagrePosition.y ?? 0) - dimensions.height / 2,
+    };
     return {
       id: node.id,
       type: "agent",
       data: { ...node, direction } as AgentNodeData,
-      position: {
-        x: (position.x ?? 0) - NODE_WIDTH / 2,
-        y: (position.y ?? 0) - NODE_HEIGHT / 2,
-      },
+      position,
       sourcePosition: direction === "LR" ? Position.Right : Position.Bottom,
       targetPosition: direction === "LR" ? Position.Left : Position.Top,
       draggable: false,
@@ -167,13 +184,13 @@ function layoutTopology(
       connectable: false,
       focusable: false,
       className: styles.flowNode,
-      style: { width: NODE_WIDTH, height: NODE_HEIGHT },
+      style: dimensions,
     };
   });
   const edges: SignalFlowEdge[] = topology.edges.map((edge) => ({
     ...edge,
     type: "signal",
-    data: { state: edge.state, halted, speed },
+    data: { state: edge.state, relation: edge.relation, halted, speed },
     selectable: false,
     focusable: false,
   }));
@@ -182,40 +199,86 @@ function layoutTopology(
 }
 
 function useLayoutDirection(): LayoutDirection {
-  const [direction, setDirection] = useState<LayoutDirection>(() =>
-    window.matchMedia("(max-width: 700px)").matches ? "TB" : "LR",
+  const [compact, setCompact] = useState(() =>
+    window.matchMedia("(max-width: 900px)").matches,
   );
 
   useEffect(() => {
-    const query = window.matchMedia("(max-width: 700px)");
-    const updateDirection = () => setDirection(query.matches ? "TB" : "LR");
-    query.addEventListener("change", updateDirection);
-    return () => query.removeEventListener("change", updateDirection);
+    const query = window.matchMedia("(max-width: 900px)");
+    const updateCompact = () => setCompact(query.matches);
+    query.addEventListener("change", updateCompact);
+    return () => query.removeEventListener("change", updateCompact);
   }, []);
 
-  return direction;
+  return compact ? "TB" : "LR";
 }
 
-function AgentGraphCanvas({ session, log, halted, speed }: AgentGraphProps) {
+function focusWindow(nodes: readonly AgentFlowNode[]): AgentFlowNode[] {
+  if (nodes.length <= 4) return [...nodes];
+
+  const ordered = [...nodes].sort(
+    (left, right) => left.data.lastEventId - right.data.lastEventId,
+  );
+  const activeIds = new Set(
+    ordered.filter((node) => node.data.state === "active").map((node) => node.id),
+  );
+  const currentIndex = activeIds.size > 0
+    ? ordered.reduce(
+      (latest, node, index) => activeIds.has(node.id) ? Math.max(latest, index) : latest,
+      0,
+    )
+    : ordered.length - 1;
+  const start = Math.max(0, currentIndex - 3);
+  const focus = ordered.slice(start, currentIndex + 1);
+
+  for (const node of ordered) {
+    if (activeIds.has(node.id) && !focus.some((candidate) => candidate.id === node.id)) {
+      focus.push(node);
+    }
+  }
+  return focus;
+}
+
+function focusBounds(nodes: readonly AgentFlowNode[]) {
+  const left = Math.min(...nodes.map((node) => node.position.x));
+  const top = Math.min(...nodes.map((node) => node.position.y));
+  const right = Math.max(...nodes.map(
+    (node) => node.position.x + NODE_DIMENSIONS[node.data.category].width,
+  ));
+  const bottom = Math.max(...nodes.map(
+    (node) => node.position.y + NODE_DIMENSIONS[node.data.category].height,
+  ));
+  return { x: left, y: top, width: right - left, height: bottom - top };
+}
+
+function AgentGraphCanvas({ topology, halted, speed }: AgentGraphProps) {
   const canvasRef = useRef<HTMLDivElement>(null);
   const direction = useLayoutDirection();
-  const topology = useMemo(() => createAgentTopology(session, log), [session, log]);
   const { nodes, edges } = useMemo(
     () => layoutTopology(topology, halted, speed, direction),
     [topology, halted, speed, direction],
   );
-  const topologyKey = `${direction}|${nodes.map((node) => node.id).join(",")}|${edges.map((edge) => edge.id).join(",")}`;
-  const { fitView } = useReactFlow<AgentFlowNode, SignalFlowEdge>();
+  const focusNodes = useMemo(() => focusWindow(nodes), [nodes]);
+  const focusKey = `${direction}|${focusNodes.map((node) => `${node.id}:${node.data.state}:${node.data.lastEventId}`).join(",")}`;
+  const { setViewport } = useReactFlow<AgentFlowNode, SignalFlowEdge>();
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas || focusNodes.length === 0) return;
 
     let frame = 0;
     const refit = () => {
       window.cancelAnimationFrame(frame);
       frame = window.requestAnimationFrame(() => {
-        void fitView({ padding: 0.16, duration: 420, maxZoom: 1.12 });
+        const viewport = getViewportForBounds(
+          focusBounds(focusNodes),
+          canvas.clientWidth,
+          canvas.clientHeight,
+          0.66,
+          1.05,
+          0.28,
+        );
+        void setViewport(viewport, { duration: 420 });
       });
     };
     const observer = new ResizeObserver(refit);
@@ -226,34 +289,36 @@ function AgentGraphCanvas({ session, log, halted, speed }: AgentGraphProps) {
       observer.disconnect();
       window.cancelAnimationFrame(frame);
     };
-  }, [fitView, topologyKey]);
+  }, [focusKey, focusNodes, setViewport]);
 
   return (
     <div
       ref={canvasRef}
       className={styles.canvas}
       data-halted={halted}
-      role="list"
+      role={nodes.length > 0 ? "list" : undefined}
       aria-label="멀티에이전트 실행 토폴로지"
     >
-      <ReactFlow<AgentFlowNode, SignalFlowEdge>
-        nodes={nodes}
-        edges={edges}
-        nodeTypes={nodeTypes}
-        edgeTypes={edgeTypes}
-        fitView
-        fitViewOptions={{ padding: 0.16, maxZoom: 1.12 }}
-        minZoom={0.28}
-        maxZoom={1.35}
-        nodesDraggable={false}
-        nodesConnectable={false}
-        elementsSelectable={false}
-        panOnDrag={false}
-        zoomOnScroll={false}
-        zoomOnPinch={false}
-        zoomOnDoubleClick={false}
-        preventScrolling={false}
-      />
+      {nodes.length > 0 ? (
+        <ReactFlow<AgentFlowNode, SignalFlowEdge>
+          nodes={nodes}
+          edges={edges}
+          nodeTypes={nodeTypes}
+          edgeTypes={edgeTypes}
+          minZoom={0.28}
+          maxZoom={1.35}
+          nodesDraggable={false}
+          nodesConnectable={false}
+          elementsSelectable={false}
+          panOnDrag
+          zoomOnScroll={false}
+          zoomOnPinch
+          zoomOnDoubleClick={false}
+          preventScrolling={false}
+        />
+      ) : (
+        <p className={styles.graphEmpty}>에이전트 실행 이벤트를 기다리고 있어요.</p>
+      )}
     </div>
   );
 }

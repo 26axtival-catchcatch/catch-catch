@@ -158,6 +158,7 @@ export function useLiveCatchSession(providedClient?: SignalCatcherClient): Catch
   const [flatline, setFlatline] = useState(false);
   const [tick, setTick] = useState<StageTick | null>(null);
   const [log, setLog] = useState<(StageTick & { stage: StageKey })[]>([]);
+  const [topologyEvents, setTopologyEvents] = useState<AnyRunStreamEvent[]>([]);
   const [evidence, setEvidence] = useState<EvidenceMap>({});
   const [evidenceLoadingId, setEvidenceLoadingId] = useState<string | null>(null);
   const [evidenceErrorId, setEvidenceErrorId] = useState<string | null>(null);
@@ -174,6 +175,7 @@ export function useLiveCatchSession(providedClient?: SignalCatcherClient): Catch
   const factsRef = useRef<AnalysisFact[]>([]);
   const durationsRef = useRef<Record<string, number>>({});
   const traceRef = useRef<(StageTick & { stage: StageKey })[]>([]);
+  const topologyEventLogRef = useRef<AnyRunStreamEvent[]>([]);
   const reportRef = useRef<CustomerSignalReport | null>(null);
   const sourceListRef = useRef<PublicSourceList>({ items: [] });
   const startedAtRef = useRef(0);
@@ -186,6 +188,16 @@ export function useLiveCatchSession(providedClient?: SignalCatcherClient): Catch
     setLog(traceRef.current);
     setTick(entry);
   }, []);
+
+  const appendTopologyEvent = useCallback((event: AnyRunStreamEvent) => {
+    topologyEventLogRef.current = [...topologyEventLogRef.current, event];
+    setTopologyEvents(topologyEventLogRef.current);
+  }, []);
+
+  const activities = useMemo(
+    () => topologyEvents.flatMap((event) => event.type === "agent_activity" ? [event.data] : []),
+    [topologyEvents],
+  );
 
   const advance = useCallback((stage: StageKey, detail: string) => {
     const requestedIndex = STAGE_ORDER.indexOf(stage);
@@ -344,8 +356,11 @@ export function useLiveCatchSession(providedClient?: SignalCatcherClient): Catch
             versionRef.current !== version
           ) continue;
           lastEventIdRef.current = event.id;
+          appendTopologyEvent(event);
 
           switch (event.type) {
+            case "agent_activity":
+              break;
             case "run_started": {
               const entry = makeTick("goal", "think", "질문에서 분석 목적과 범위를 확인하고 있어요");
               advance("goal", entry.text);
@@ -530,7 +545,7 @@ export function useLiveCatchSession(providedClient?: SignalCatcherClient): Catch
         streamActiveRef.current = false;
       }
     },
-    [advance, appendTick, client, fail, settle],
+    [advance, appendTick, appendTopologyEvent, client, fail, settle],
   );
 
   const start = useCallback(
@@ -552,6 +567,7 @@ export function useLiveCatchSession(providedClient?: SignalCatcherClient): Catch
       factsRef.current = [];
       durationsRef.current = {};
       traceRef.current = [];
+      topologyEventLogRef.current = [];
       reportRef.current = null;
       publishingFactsRef.current = false;
       startedAtRef.current = Date.now();
@@ -560,6 +576,7 @@ export function useLiveCatchSession(providedClient?: SignalCatcherClient): Catch
       setFlatline(false);
       setTick(null);
       setLog([]);
+      setTopologyEvents([]);
       setEvidence({});
       setEvidenceLoadingId(null);
       setEvidenceErrorId(null);
@@ -718,6 +735,8 @@ export function useLiveCatchSession(providedClient?: SignalCatcherClient): Catch
     setFlatline(false);
     setTick(null);
     setLog([]);
+    topologyEventLogRef.current = [];
+    setTopologyEvents([]);
     setEvidence({});
     setEvidenceLoadingId(null);
     setEvidenceErrorId(null);
@@ -752,6 +771,8 @@ export function useLiveCatchSession(providedClient?: SignalCatcherClient): Catch
       flatline,
       tick,
       log,
+      activities,
+      topologyEvents,
       start,
       retry,
       answerClarification,
@@ -779,6 +800,8 @@ export function useLiveCatchSession(providedClient?: SignalCatcherClient): Catch
       flatline,
       tick,
       log,
+      activities,
+      topologyEvents,
       start,
       retry,
       answerClarification,

@@ -83,18 +83,48 @@ const journeyFact = {
 } as unknown as AnalysisFact;
 
 function streamEvents(): AnyRunStreamEvent[] {
+  const activity = {
+    schema_version: 1 as const,
+    node_id: "agent-coordinator-1",
+    parent_node_id: null,
+    depends_on: [],
+    kind: "agent" as const,
+    role: "coordinator" as const,
+    task_id: "task-coordinate",
+    round_index: 0,
+    name: "coordinator",
+    occurred_at: "2026-09-11T00:00:01Z",
+    duration_ms: null,
+    model: null,
+    details: { candidates: [], decisions: [], limitations: [] },
+  };
   return [
     { id: 1, type: "run_started", data: { status: "running" } },
-    { id: 2, type: "goal_created", data: { goal } },
-    { id: 3, type: "plan_created", data: { plan } },
     {
-      id: 4,
+      id: 2,
+      type: "agent_activity",
+      data: { ...activity, status: "started", display_text: "질문을 역할별로 나누고 있어요." },
+    },
+    {
+      id: 3,
+      type: "agent_activity",
+      data: {
+        ...activity,
+        status: "completed",
+        display_text: "조사할 가설 두 개를 배분했어요.",
+        duration_ms: 830,
+      },
+    },
+    { id: 4, type: "goal_created", data: { goal } },
+    { id: 5, type: "plan_created", data: { plan } },
+    {
+      id: 6,
       type: "fact_created",
       data: { step_id: journeyFact.step_id, fact: journeyFact },
     },
-    { id: 5, type: "report_validating", data: { fact_ids: [], result_ids: [] } },
-    { id: 6, type: "result", data: { agent_mode: "bedrock", report } },
-    { id: 7, type: "done", data: { status: "completed" } },
+    { id: 7, type: "report_validating", data: { fact_ids: [], result_ids: [] } },
+    { id: 8, type: "result", data: { agent_mode: "bedrock", report } },
+    { id: 9, type: "done", data: { status: "completed" } },
   ];
 }
 
@@ -204,6 +234,30 @@ describe("useLiveCatchSession", () => {
     expect(statusCalls).toBeGreaterThanOrEqual(3);
     expect(result.current.session.report?.runId).toBe("run-live-1");
     expect(result.current.session.report?.headlineCount).toBe(1);
+    expect(result.current.activities).toHaveLength(2);
+    expect(result.current.activities[0]).toMatchObject({
+      node_id: "agent-coordinator-1",
+      status: "started",
+      display_text: "질문을 역할별로 나누고 있어요.",
+      duration_ms: null,
+    });
+    expect(result.current.activities[1]).toMatchObject({
+      node_id: "agent-coordinator-1",
+      status: "completed",
+      display_text: "조사할 가설 두 개를 배분했어요.",
+      duration_ms: 830,
+    });
+    expect(result.current.topologyEvents.map((event) => event.type)).toEqual([
+      "run_started",
+      "agent_activity",
+      "agent_activity",
+      "goal_created",
+      "plan_created",
+      "fact_created",
+      "report_validating",
+      "result",
+      "done",
+    ]);
     expect(result.current.sourceCount).toBe(2);
     expect(result.current.sourceOptions?.map((source) => source.id)).toEqual([
       "hackathon_search_history",
