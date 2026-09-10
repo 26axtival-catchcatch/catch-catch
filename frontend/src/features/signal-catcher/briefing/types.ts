@@ -27,6 +27,9 @@ export interface BriefingSignal {
   trend: number[];
   /** "근거 3개 소스 · 로밍 / 상담 / VOC" */
   evidenceNote: string;
+  sourceIds: string[];
+  periodLabel: string | null;
+  limitation: string | null;
   /** 사용자가 걸어 둔 요청으로 잡힌 시그널. 카드에 배지가 붙는다. */
   fromRequest: boolean;
   /** 아래 칩에 쓰는 짧은 이름. */
@@ -39,6 +42,8 @@ export interface Briefing {
   /** 리드 문장. headline 과 같은 `*강조*` 규칙을 쓴다. */
   lede: string;
   signals: BriefingSignal[];
+  total: number;
+  nextOffset: number | null;
   /** 이번 브리핑에 반영된 내 요청 수. 0이면 배지를 숨긴다. */
   requestCount: number;
   /** 관찰 중인 실험 수. */

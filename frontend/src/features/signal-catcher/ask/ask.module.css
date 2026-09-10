@@ -11,22 +11,26 @@
 }
 
 /* 브리핑이 비면 독립 화면 대신 스티치 카드 안에서 같은 컴포저를 쓴다. */
-.screen[data-mode="empty-briefing"] {
+.screen[data-mode="empty-briefing"],
+.screen[data-mode="briefing-request"] {
   display: block;
   padding: 0;
 }
 
-.screen[data-mode="empty-briefing"] .center {
+.screen[data-mode="empty-briefing"] .center,
+.screen[data-mode="briefing-request"] .center {
   width: 100%;
   text-align: left;
 }
 
-.screen[data-mode="empty-briefing"] .kicker {
+.screen[data-mode="empty-briefing"] .kicker,
+.screen[data-mode="briefing-request"] .kicker {
   margin-bottom: 0.55rem;
   color: var(--signal-soft);
 }
 
-.screen[data-mode="empty-briefing"] .title {
+.screen[data-mode="empty-briefing"] .title,
+.screen[data-mode="briefing-request"] .title {
   max-width: 18em;
   font-family: inherit;
   font-size: clamp(1.25rem, 3vw, 1.75rem);
@@ -35,15 +39,18 @@
   letter-spacing: -0.015em;
 }
 
-.screen[data-mode="empty-briefing"] .composerWrap {
+.screen[data-mode="empty-briefing"] .composerWrap,
+.screen[data-mode="briefing-request"] .composerWrap {
   margin-top: 1.5rem;
 }
 
-.screen[data-mode="empty-briefing"] .tokens {
+.screen[data-mode="empty-briefing"] .tokens,
+.screen[data-mode="briefing-request"] .tokens {
   justify-content: flex-start;
 }
 
-.screen[data-mode="empty-briefing"] .cards {
+.screen[data-mode="empty-briefing"] .cards,
+.screen[data-mode="briefing-request"] .cards {
   margin-top: 1.25rem;
 }
 

@@ -31,6 +31,7 @@ interface ApiBriefingSignal {
   populationDescription: string;
   latestMeasurement: ApiMeasurement | null;
   comparable: boolean;
+  comparisonLimitations: string[];
   changes: ApiMetricChange[];
   trendComparable: boolean;
   points: ApiMeasurement[];
@@ -111,6 +112,7 @@ function signalOf(value: unknown, path: string): ApiBriefingSignal {
       ? null
       : measurementOf(signal.latest_measurement, `${path}.latest_measurement`),
     comparable: comparison.comparable === true,
+    comparisonLimitations: stringArrayOf(comparison.comparison_limitations, `${path}.comparison.comparison_limitations`),
     changes: comparison.metrics.map((item, index) => {
       const change = recordOf(item, `${path}.comparison.metrics[${index}]`);
       return {
@@ -194,6 +196,19 @@ function cardOf(signal: ApiBriefingSignal): BriefingSignal {
     metrics,
     trend: primary && signal.trendComparable ? normalizedTrend(signal.points, primary.key) : [],
     evidenceNote: `${signal.sourceIds.length}개 소스 · ${signal.populationDescription}`,
+    sourceIds: signal.sourceIds,
+    periodLabel: signal.latestMeasurement
+      ? `${shortDate(signal.latestMeasurement.startAt)} – ${shortDate(new Date(new Date(signal.latestMeasurement.endAt).getTime() - 1).toISOString())}`
+      : null,
+    limitation: signal.latestMeasurement === null
+      ? "측정 이력이 아직 없어요."
+      : signal.latestMeasurement.status === "unavailable"
+        ? signal.latestMeasurement.reason ?? "이번 관측은 측정할 수 없었어요."
+        : !signal.comparable
+          ? signal.comparisonLimitations.join(" ") || null
+          : !signal.trendComparable
+            ? "서로 다른 관측 기간은 추이로 연결하지 않았어요."
+            : null,
     fromRequest: false,
   };
 }
@@ -224,11 +239,11 @@ export class BriefingClient {
     this.fetchImpl = options.fetchImpl ?? globalThis.fetch.bind(globalThis);
   }
 
-  async getBriefing(signal?: AbortSignal): Promise<Briefing> {
+  async getBriefing(signal?: AbortSignal, offset = 0): Promise<Briefing> {
     let response: Response;
     try {
       response = await this.fetchImpl(
-        `${this.apiBaseUrl}/api/signals/briefing?status=active&limit=20&offset=0`,
+        `${this.apiBaseUrl}/api/signals/briefing?status=active&limit=20&offset=${offset}`,
         { signal },
       );
     } catch (error) {
@@ -243,13 +258,17 @@ export class BriefingClient {
     const generatedAt = stringOf(payload.generated_at, "briefing.generated_at");
     const total = numberOf(payload.total, "briefing.total");
     const items = payload.items.map((item, index) => signalOf(item, `briefing.items[${index}]`));
-    const pastDates = [...new Set(items.flatMap((item) => item.points.map((point) => shortDate(point.endAt))))]
+    const pastDates = [...new Set(items.flatMap((item) => item.points.map((point) =>
+      shortDate(new Date(new Date(point.endAt).getTime() - 1).toISOString()),
+    )))]
       .slice(-3)
       .reverse();
     return {
       dateLabel: dateLabel(generatedAt),
-      lede: items.length ? `지금 *${total}개 변화*를 지켜보고 있어요.` : "오늘 먼저 알려드릴 시그널은 없어요.",
+      lede: items.length ? `지금 *${total}개 변화*를 지켜보고 있어요.` : "오늘 먼저 알려드릴 변화는 없어요.",
       signals: items.map(cardOf),
+      total,
+      nextOffset: payload.next_offset === null ? null : numberOf(payload.next_offset, "briefing.next_offset"),
       requestCount: 0,
       watchingCount: total,
       pastDates,

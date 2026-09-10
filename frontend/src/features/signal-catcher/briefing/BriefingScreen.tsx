@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { FormEvent } from "react";
 
 import { AskScreen, type AskConditions } from "../ask/AskScreen";
 import type { SourceOption } from "../state/types";
@@ -21,8 +20,6 @@ interface BriefingScreenProps {
   onAsk: (question: string, conditions: AskConditions) => void;
   notice: string | null;
   suggestedQuestions: string[];
-  /** 상단 "＋ 지켜볼 것 요청하기". 다음 브리핑부터 반영되는 요청을 건다. */
-  onRequestWatch: (request: string) => void;
   sourceCount?: number | null;
   fixedPeriodLabel?: string;
   conditionsLocked?: boolean;
@@ -33,6 +30,10 @@ interface BriefingScreenProps {
   loading?: boolean;
   error?: string | null;
   onRetry?: () => void;
+  loadingMore?: boolean;
+  loadMoreError?: string | null;
+  onLoadMore?: () => void;
+  sourceLabels?: Record<string, string>;
 }
 
 /**
@@ -62,63 +63,6 @@ function sparkPath(trend: number[]): string {
     .join(" ");
 }
 
-interface AskRowProps {
-  placeholder: string;
-  submitLabel: string;
-  value: string;
-  onChange: (value: string) => void;
-  onSubmit: () => void;
-  autoFocus?: boolean;
-  /** Esc 로 닫는다. 열어 둔 자리를 키보드만으로 되돌릴 수 있어야 한다. */
-  onCancel: () => void;
-}
-
-/** 요청/추가 질문이 쓰는 한 줄 입력. 두 자리가 같은 모양을 쓴다. */
-function AskRow({
-  placeholder,
-  submitLabel,
-  value,
-  onChange,
-  onSubmit,
-  autoFocus,
-  onCancel,
-}: AskRowProps) {
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    if (autoFocus) inputRef.current?.focus();
-  }, [autoFocus]);
-
-  function submit(event: FormEvent) {
-    event.preventDefault();
-    if (!value.trim()) return;
-    onSubmit();
-  }
-
-  return (
-    <form
-      className={styles.askRow}
-      onSubmit={submit}
-      onKeyDown={(event) => {
-        if (event.key === "Escape") onCancel();
-      }}
-    >
-      <span className={styles.askIcon} aria-hidden="true">⌕</span>
-      <input
-        ref={inputRef}
-        className={styles.askInput}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        placeholder={placeholder}
-        aria-label={placeholder}
-      />
-      <button type="submit" className={styles.askSubmit} disabled={!value.trim()}>
-        {submitLabel}
-      </button>
-    </form>
-  );
-}
-
 export function BriefingScreen({
   briefing,
   question,
@@ -127,7 +71,6 @@ export function BriefingScreen({
   onAsk,
   notice,
   suggestedQuestions,
-  onRequestWatch,
   sourceCount,
   fixedPeriodLabel,
   conditionsLocked,
@@ -138,37 +81,45 @@ export function BriefingScreen({
   loading = false,
   error = null,
   onRetry,
+  loadingMore = false,
+  loadMoreError = null,
+  onLoadMore,
+  sourceLabels = {},
 }: BriefingScreenProps) {
   const { signals } = briefing;
-  const total = signals.length;
   // 훅은 빈 브리핑에서도 같은 순서로 호출하되, 실제 덱은 렌더링하지 않는다.
-  const deck = useSwipeDeck(Math.max(total, 1));
+  const deck = useSwipeDeck(Math.max(signals.length, 1));
 
-  const [sheetOpen, setSheetOpen] = useState(false);
-  const [requestText, setRequestText] = useState("");
-  /** 방금 건 요청. 접수됐다는 것을 화면에서 바로 돌려준다. */
-  const [justRequested, setJustRequested] = useState<string | null>(null);
-  const sheetRef = useRef<HTMLDivElement>(null);
+  const [exploreOpen, setExploreOpen] = useState(false);
+  const selectedSignalRef = useRef<string | null>(null);
+  const signalIdsRef = useRef("");
 
   const current = signals[deck.index] ?? null;
+  const signalIds = signals.map((signal) => signal.id).join("\u0000");
 
-  function toggleSheet() {
-    setSheetOpen((open) => {
-      if (open) return false;
-      requestAnimationFrame(() =>
-        sheetRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" }),
-      );
-      return true;
-    });
-  }
+  useEffect(() => {
+    if (signalIdsRef.current && signalIdsRef.current !== signalIds) {
+      const selectedIndex = selectedSignalRef.current
+        ? signals.findIndex((signal) => signal.id === selectedSignalRef.current)
+        : -1;
+      if (selectedIndex >= 0) deck.go(selectedIndex);
+      else {
+        selectedSignalRef.current = signals[0]?.id ?? null;
+        deck.go(0);
+      }
+    }
+    signalIdsRef.current = signalIds;
+  }, [deck.go, signalIds, signals]);
 
-  function submitRequest() {
-    const request = requestText.trim();
-    onRequestWatch(request);
-    setJustRequested(request);
-    setRequestText("");
-    setSheetOpen(false);
-  }
+  useEffect(() => {
+    selectedSignalRef.current = signals[deck.index]?.id ?? null;
+    // 신호 목록이 갱신된 경우는 위 효과가 기존 ID를 먼저 복원한다.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [deck.index]);
+
+  useEffect(() => {
+    if (!exploreOpen && briefing.nextOffset !== null && deck.index >= signals.length - 1 && !loadingMore && !loadMoreError) onLoadMore?.();
+  }, [briefing.nextOffset, deck.index, exploreOpen, loadMoreError, loadingMore, onLoadMore, signals.length]);
 
   return (
     <div className={styles.screen}>
@@ -182,10 +133,10 @@ export function BriefingScreen({
           <button
             type="button"
             className={styles.addReq}
-            onClick={toggleSheet}
-            aria-expanded={sheetOpen}
+            onClick={() => setExploreOpen(true)}
+            aria-pressed={exploreOpen}
           >
-            ＋ 지켜볼 것 요청하기
+            ＋ 새 시그널 찾기
           </button>
         ) : null}
       </div>
@@ -195,7 +146,7 @@ export function BriefingScreen({
           <span className={styles.statePulse} aria-hidden="true" />
           <div>
             <b>지켜보는 변화를 모으고 있어요</b>
-            <p>등록된 시그널의 최근 수치와 흐름을 불러옵니다.</p>
+            <p>지켜보는 변화의 최근 수치와 흐름을 불러옵니다.</p>
           </div>
         </article>
       ) : error ? (
@@ -212,11 +163,31 @@ export function BriefingScreen({
             <Highlight text={briefing.lede} />
           </p>
 
+          {exploreOpen ? (
+            <article className={styles.requestWorkspace} aria-label="새 시그널 찾기">
+              <AskScreen
+                mode="briefing-request"
+                question={question}
+                onQuestionChange={onQuestionChange}
+                onSubmit={(conditions) => onAsk(question, conditions)}
+                notice={notice}
+                suggestedQuestions={suggestedQuestions}
+                sourceCount={sourceCount}
+                fixedPeriodLabel={fixedPeriodLabel}
+                conditionsLocked={conditionsLocked}
+                periodLocked={periodLocked}
+                sourceOptions={sourceOptions}
+                initialStartAt={initialStartAt}
+                initialEndAt={initialEndAt}
+              />
+            </article>
+          ) : (
+          <>
           <div
             className={styles.deck}
             tabIndex={0}
             role="group"
-            aria-label="오늘의 시그널"
+            aria-label="오늘의 브리핑"
             onKeyDown={(event) => {
               if (event.key === "ArrowRight") {
                 event.preventDefault();
@@ -237,18 +208,20 @@ export function BriefingScreen({
             data-from={deck.from ?? undefined}
           >
             <p className={styles.kicker}>
-              시그널 {deck.index + 1} · {current.name}
+              브리핑 {deck.index + 1} · {current.name}
               {current.fromRequest ? (
                 <span className={styles.fromReq}>◆ 내 요청으로 잡음</span>
               ) : null}
               <span className={styles.count}>
-                {deck.index + 1} / {total}
+                {deck.index + 1} / {briefing.total}
               </span>
             </p>
             <h2 className={styles.headline}>
               <Highlight text={current.headline} />
             </h2>
             <p className={styles.body}>{current.body}</p>
+            {current.periodLabel ? <p className={styles.period}>관측 {current.periodLabel}</p> : null}
+            {current.limitation ? <p className={styles.cardNote}>{current.limitation}</p> : null}
 
             <div className={styles.row}>
               <ul className={styles.metrics}>
@@ -276,12 +249,16 @@ export function BriefingScreen({
 
             <div className={styles.acts}>
               <button type="button" className={styles.btn} onClick={() => onOpenSignal(current)}>
-                이 시그널 확인하기
+                자세히 보기
               </button>
-              <button type="button" className={styles.ghost} onClick={() => deck.step(1)}>
-                넘기기
+              <button type="button" className={styles.ghost} onClick={() => loadMoreError ? onLoadMore?.() : deck.step(1)}>
+                {loadingMore ? "다음 카드 불러오는 중…" : loadMoreError ? "다음 카드 다시 불러오기" : "넘기기"}
               </button>
-              <span className={styles.hint}>{current.evidenceNote}</span>
+              <span className={styles.hint}>
+                {current.sourceIds.length
+                  ? current.sourceIds.map((id) => sourceLabels[id] ?? id).join(" · ")
+                  : current.evidenceNote}
+              </span>
             </div>
           </article>
           </div>
@@ -289,20 +266,36 @@ export function BriefingScreen({
           <p className={styles.swipeHint} data-off={deck.touched ? "1" : undefined}>
             <i aria-hidden="true">‹</i> 좌우로 드래그해 넘겨보세요 <i aria-hidden="true">›</i>
           </p>
+          </>
+          )}
 
-          <div className={styles.rest}>
+          <div className={styles.rest} role="tablist" aria-label="브리핑 탭">
             {signals.map((signal, i) => (
               <button
                 key={signal.id}
                 type="button"
                 className={styles.chip}
-                data-cur={deck.index === i ? "1" : undefined}
-                aria-current={deck.index === i}
-                onClick={() => deck.go(i)}
+                role="tab"
+                data-cur={!exploreOpen && deck.index === i ? "1" : undefined}
+                aria-selected={!exploreOpen && deck.index === i}
+                onClick={() => {
+                  setExploreOpen(false);
+                  deck.go(i);
+                }}
               >
                 {i + 1} · {signal.chipLabel}
               </button>
             ))}
+            <button
+              type="button"
+              className={`${styles.chip} ${styles.chipAdd}`}
+              role="tab"
+              data-cur={exploreOpen ? "1" : undefined}
+              aria-selected={exploreOpen}
+              onClick={() => setExploreOpen(true)}
+            >
+              ＋ 새 시그널 찾기
+            </button>
           </div>
         </>
       ) : (
@@ -310,7 +303,7 @@ export function BriefingScreen({
           <div className={styles.emptyStatus}>
             <span className={styles.emptyPulse} aria-hidden="true" />
             <p>
-              <b>오늘 먼저 알려드릴 시그널은 없어요.</b>
+              <b>오늘 먼저 알려드릴 변화는 없어요.</b>
               <span>브리핑을 기다리지 않고 직접 찾아볼 수 있어요.</span>
             </p>
           </div>
@@ -332,41 +325,10 @@ export function BriefingScreen({
         </article>
       )}
 
-      {/* 지켜볼 것 요청 — 다음 브리핑에 반영된다 */}
-      {sheetOpen ? (
-        <div className={styles.sheet} ref={sheetRef}>
-          <p className={styles.sheetTitle}>무엇을 지켜볼까요 — 다음 브리핑부터 반영됩니다</p>
-          <AskRow
-            placeholder={briefing.askPlaceholder}
-            submitLabel="요청 추가"
-            value={requestText}
-            onChange={setRequestText}
-            onSubmit={submitRequest}
-            onCancel={() => setSheetOpen(false)}
-            autoFocus
-          />
-          <ul className={styles.suggestions}>
-            {briefing.suggestions.map((item) => (
-              <li key={item}>
-                <button type="button" onClick={() => setRequestText(item)}>
-                  {item}
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
-
-      {!sheetOpen && justRequested ? (
-        <p className={styles.requested} role="status">
-          <b>“{justRequested}”</b> 를 지켜보기로 했어요. 다음 브리핑부터 반영됩니다.
-        </p>
-      ) : null}
-
       {signals.length > 0 ? (
         <div className={styles.foot}>
           <span>
-            캐치 중인 시그널 {briefing.watchingCount}건
+            캐치 중 {briefing.watchingCount}건
             {briefing.pastDates.length ? (
               <>
                 {" · 최근 측정 "}

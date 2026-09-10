@@ -50,7 +50,7 @@ interface AskScreenProps {
   /** 되돌아왔을 때 백엔드가 준 대안 질문. 있으면 제안 카드를 대체한다. */
   suggestedQuestions: string[];
   /** 브리핑이 비었을 때 스티치 카드 안에 같은 입력 경험을 넣는다. */
-  mode?: "standalone" | "empty-briefing";
+  mode?: "standalone" | "empty-briefing" | "briefing-request";
   /** 라이브 Run은 핸드오프의 고정 주간과 서버 등록 Source 전체를 사용한다. */
   sourceCount?: number | null;
   fixedPeriodLabel?: string;
@@ -177,10 +177,12 @@ export function AskScreen({
         <p className={styles.kicker}>
           {mode === "empty-briefing"
             ? "아직 도착한 브리핑이 없어요"
+            : mode === "briefing-request"
+              ? "새로 지켜볼 변화를 찾아요"
             : "고객은 말보다 먼저 신호를 보냅니다"}
         </p>
         <h1 className={styles.title}>
-          {mode === "empty-briefing"
+          {mode === "empty-briefing" || mode === "briefing-request"
             ? "지금 궁금한 고객의 신호를 찾아볼까요?"
             : "고객의 시그널을 찾아보세요"}
         </h1>
@@ -244,7 +246,7 @@ export function AskScreen({
                 <TypewriterPlaceholder phrases={PLACEHOLDER_QUESTIONS} paused={question.length > 0} />
               </div>
 
-              <button type="submit" className={styles.go} aria-label="시그널 캐치하기">
+              <button type="submit" className={styles.go} aria-label="고객 변화 찾기">
                 <svg width="18" height="18" viewBox="0 0 20 20" aria-hidden="true">
                   <circle cx="8.6" cy="8.6" r="6" fill="none" stroke="currentColor" strokeWidth="2" />
                   <path

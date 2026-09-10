@@ -22,6 +22,7 @@ interface ProposalMetricDraft {
   id: string;
   proposalId: string | null;
   proposalTitle: string | null;
+  proposalMeta: string | null;
   key: string;
   label: string;
   value: number;
@@ -65,13 +66,14 @@ function metricValue(value: number, unit: string): string {
 
 function proposalDraftOf(
   metric: { key: string; label: string; value: number; unit: string },
-  proposal: Pick<SignalProposal, "proposalId" | "title"> | null,
+  proposal: Pick<SignalProposal, "proposalId" | "title" | "description" | "populationDescription"> | null,
   index: number,
 ): ProposalMetricDraft {
   return {
     id: `${proposal?.proposalId ?? "report"}:${metric.key}:${index}`,
     proposalId: proposal?.proposalId ?? null,
     proposalTitle: proposal?.title ?? null,
+    proposalMeta: proposal ? `${proposal.populationDescription} · ${proposal.description}` : null,
     key: metric.key,
     label: metric.label,
     value: metric.value,
@@ -177,6 +179,9 @@ export function WatchSignalModal({
         const fromApi = usefulDrafts(proposals);
         if (!fromApi.length) {
           setLoadNote("아직 등록할 수 있는 추적 후보가 없어 분석 지표만 보여드려요.");
+        } else {
+          const limitations = [...new Set(proposals.flatMap((proposal) => proposal.limitations))];
+          setLoadNote(limitations.length ? `측정 참고: ${limitations.join(" ")}` : null);
         }
         setMetrics(fromApi.length ? fromApi : fallback);
       })
@@ -395,7 +400,7 @@ export function WatchSignalModal({
                           <span className={styles.checkmark} aria-hidden="true"><HeartMark size={12} /></span>
                           <span className={styles.metricName}>
                             {metric.label}
-                            {metric.proposalTitle ? <small>{metric.proposalTitle}</small> : null}
+                            {metric.proposalTitle ? <small title={metric.proposalMeta ?? undefined}>{metric.proposalTitle} · {metric.proposalMeta}</small> : null}
                           </span>
                         </label>
                         <div className={styles.current}>

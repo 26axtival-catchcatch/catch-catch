@@ -9,7 +9,7 @@
   flex-direction: column;
   width: min(64rem, 100%);
   margin: 0 auto;
-  padding: 2rem clamp(1.25rem, 4vw, 2.5rem) 2.5rem;
+  padding: 2rem clamp(1.25rem, 4vw, 2.5rem) 0.5rem;
 }
 
 /* ── 요청 막대 (B2) ──────────────────────────────────── */
@@ -140,6 +140,19 @@
   animation: rise 0.45s var(--ease) both;
 }
 
+/* 등록된 브리핑 옆의 입력 탭도 빈 브리핑과 같은 탐색 경험을 사용한다. */
+.requestWorkspace {
+  position: relative;
+  min-height: 22rem;
+  padding: clamp(1.2rem, 3vw, 2rem);
+  border: 1px dashed color-mix(in srgb, var(--signal) 42%, var(--line));
+  border-radius: var(--radius);
+  background:
+    radial-gradient(circle at 8% 0%, var(--signal-wash), transparent 28rem),
+    var(--card);
+  animation: rise 0.45s var(--ease) both;
+}
+
 .emptyStatus {
   display: flex;
   align-items: center;
@@ -188,6 +201,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .emptyBriefing,
+  .requestWorkspace,
   .emptyPulse {
     animation: none;
   }
@@ -328,6 +342,21 @@
   color: var(--fog);
   position: relative;
   max-width: 44em;
+}
+
+.period {
+  margin: 0.45rem 0 0;
+  color: var(--fog-dim);
+  font: 0.64rem var(--font-mono);
+}
+
+.cardNote {
+  margin: 0.55rem 0 0;
+  padding: 0.42rem 0.58rem;
+  border-radius: 0.45rem;
+  background: var(--amber-wash);
+  color: var(--fog);
+  font-size: 0.66rem;
 }
 
 .row {
@@ -545,6 +574,7 @@
 
 .rest {
   margin-top: 1.5rem;
+  margin-bottom: 1.25rem;
   display: flex;
   align-items: center;
   gap: 0.6rem;

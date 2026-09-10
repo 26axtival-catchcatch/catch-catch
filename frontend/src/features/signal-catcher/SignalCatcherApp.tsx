@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { ActionScreen } from "./action/ActionScreen";
 import { ExperimentMenu } from "./action/ExperimentMenu";
+import { SignalAlertInbox } from "./alerts/SignalAlertInbox";
+import { useSignalAlerts } from "./alerts/use-signal-alerts";
 import { AskScreen } from "./ask/AskScreen";
 import { BriefingScreen } from "./briefing/BriefingScreen";
 import { DEMO_BRIEFING } from "./briefing/briefing-mock";
@@ -11,6 +13,7 @@ import { useSignalBriefing } from "./briefing/use-signal-briefing";
 import { SignalMark } from "./brand/Brand";
 import { CatchingScreen } from "./catching/CatchingScreen";
 import { ResultScreen } from "./result/ResultScreen";
+import { SignalDetailModal } from "./signals/SignalDetailModal";
 import {
   type ViewParam,
   useCatchSession,
@@ -95,9 +98,14 @@ export function SignalCatcherApp({
 
   const experiments = useExperiments();
   const liveBriefing = useSignalBriefing();
+  const signalAlerts = useSignalAlerts();
   const [question, setQuestion] = useState("");
-  /** 브리핑 화면에서 이번 세션에 새로 건 와쳐 요청. 백엔드가 붙으면 서버로 보낸다. */
-  const [watchRequests, setWatchRequests] = useState<string[]>([]);
+  const [selectedSignalId, setSelectedSignalId] = useState<string | null>(null);
+  const sourceLabels = useMemo(
+    () => Object.fromEntries(controller.sourceOptions.map((source) => [source.id, source.label])),
+    [controller.sourceOptions],
+  );
+  const closeSignal = useCallback(() => setSelectedSignalId(null), []);
   const [actionId, setActionId] = useState<string>("search_keyword");
   /** 리포트에서 "이어지는 액션"으로 넘어왔을 때 결과 화면이 안내할 카드. */
   const [highlightActionId, setHighlightActionId] = useState<string | null>(null);
@@ -184,6 +192,12 @@ export function SignalCatcherApp({
           </span>
         </button>
         <span className={styles.barSpacer} />
+        <SignalAlertInbox
+          events={signalAlerts.events}
+          error={signalAlerts.error}
+          onOpenSignal={setSelectedSignalId}
+          onClear={signalAlerts.clear}
+        />
         <ExperimentMenu
           experiments={experiments.experiments}
           onOpen={(id) => {
@@ -191,10 +205,6 @@ export function SignalCatcherApp({
             openAction();
           }}
         />
-        <span className={styles.barNote}>
-          <em className={styles.barBadge}>PROTOTYPE</em>
-          by 네박자
-        </span>
       </header>
 
       <main className={styles.stage}>
@@ -203,14 +213,14 @@ export function SignalCatcherApp({
             {options.main === "briefing" ? (
               <BriefingScreen
                 briefing={options.briefingEmpty
-                  ? liveBriefing.briefing ?? { ...DEMO_BRIEFING, signals: [], requestCount: 0 }
-                  : {
-                      ...DEMO_BRIEFING,
-                      requestCount: DEMO_BRIEFING.requestCount + watchRequests.length,
-                    }}
+                  ? liveBriefing.briefing ?? { ...DEMO_BRIEFING, signals: [], total: 0, requestCount: 0 }
+                  : DEMO_BRIEFING}
                 loading={options.briefingEmpty && liveBriefing.loading}
+                loadingMore={options.briefingEmpty && liveBriefing.loadingMore}
+                loadMoreError={options.briefingEmpty ? liveBriefing.loadMoreError : null}
                 error={options.briefingEmpty ? liveBriefing.error : null}
                 onRetry={liveBriefing.refresh}
+                onLoadMore={liveBriefing.loadMore}
                 question={question}
                 onQuestionChange={setQuestion}
                 notice={session.failureReason}
@@ -222,11 +232,8 @@ export function SignalCatcherApp({
                 sourceOptions={controller.sourceOptions}
                 initialStartAt={controller.periodStartAt}
                 initialEndAt={controller.periodEndAt}
-                onOpenSignal={(signal) => {
-                  const asked = `${signal.name} 시그널을 확인해줘`;
-                  setQuestion(asked);
-                  controller.start(asked);
-                }}
+                sourceLabels={sourceLabels}
+                onOpenSignal={(signal) => setSelectedSignalId(signal.id)}
                 onAsk={(asked, conditions) => {
                   setQuestion(asked);
                   controller.start(asked, {
@@ -235,9 +242,6 @@ export function SignalCatcherApp({
                     endAt: conditions.endAt,
                   });
                 }}
-                onRequestWatch={(request) =>
-                  setWatchRequests((list) => [...list, request])
-                }
               />
             ) : (
               <AskScreen
@@ -346,8 +350,18 @@ export function SignalCatcherApp({
         ) : null}
       </main>
 
+      <footer className={styles.signature}>by 네박자</footer>
+
       {/* 드로어와 모달이 붙는 자리. 전환 래퍼의 transform 밖이어야 한다. */}
       <div id={OVERLAY_ID} />
+      {selectedSignalId ? (
+        <SignalDetailModal
+          signalId={selectedSignalId}
+          sourceLabels={sourceLabels}
+          onClose={closeSignal}
+          onChanged={liveBriefing.refresh}
+        />
+      ) : null}
     </div>
   );
 }
