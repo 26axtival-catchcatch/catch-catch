@@ -178,6 +178,7 @@ describe("RunClient", () => {
         report: currentBackendReport,
         error: null,
         plan_history: [genericPlan],
+        facts: [genericFact],
       });
     };
     const client = new RunClient({ apiBaseUrl: "http://api.test", fetchImpl });
@@ -193,6 +194,7 @@ describe("RunClient", () => {
     });
     expect(snapshot.report?.representative_journeys.map((event) => event.event_type))
       .toEqual(expectedTypes);
+    expect(snapshot.facts).toEqual([genericFact]);
     expect(journey.events.map((event) => event.event_type)).toEqual(expectedTypes);
   });
 

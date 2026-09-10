@@ -10,7 +10,11 @@ import { DEMO_BRIEFING } from "./briefing/briefing-mock";
 import { SignalMark } from "./brand/Brand";
 import { CatchingScreen } from "./catching/CatchingScreen";
 import { ResultScreen } from "./result/ResultScreen";
-import { useCatchSession, useDemoOptions } from "./state/use-catch-session";
+import {
+  type ViewParam,
+  useCatchSession,
+  useDemoOptions,
+} from "./state/use-catch-session";
 import { ACTION_PLANS } from "./state/action-mock";
 import { DEMO_QUESTION } from "./state/mock";
 import { useExperiments } from "./state/use-experiments";
@@ -27,7 +31,7 @@ const FONT_HREF =
  * 한 페이지를 유지한 채 history 만 동기화한다.
  * 새로고침, 뒤로가기, 링크 공유가 모두 살아난다.
  */
-function syncUrl(phase: string, push: boolean) {
+function syncDemoUrl(phase: string, push: boolean) {
   if (typeof window === "undefined") return;
   const url = new URL(window.location.href);
   if (phase === "result" || phase === "trace" || phase === "action") {
@@ -40,10 +44,53 @@ function syncUrl(phase: string, push: boolean) {
   else window.history.replaceState({ phase }, "", next);
 }
 
-export function SignalCatcherApp() {
+function runPath(runId: string, view: ViewParam = "result"): string {
+  const path = `/runs/${encodeURIComponent(runId)}`;
+  return view === "result" ? path : `${path}?view=${view}`;
+}
+
+function runIdFromPath(pathname: string): string | null {
+  const matched = /^\/runs\/([^/]+)\/?$/.exec(pathname);
+  if (!matched) return null;
+  try {
+    return decodeURIComponent(matched[1]);
+  } catch {
+    return null;
+  }
+}
+
+function viewFromUrl(url: URL): ViewParam {
+  const view = url.searchParams.get("view");
+  return view === "trace" || view === "action" ? view : "result";
+}
+
+function syncRunUrl(phase: string, runId: string | null, push: boolean) {
+  if (typeof window === "undefined") return;
+  const next = phase === "result" || phase === "trace" || phase === "action"
+    ? runId
+      ? runPath(runId, phase)
+      : "/"
+    : "/";
+  if (next === `${window.location.pathname}${window.location.search}`) return;
+  if (push) window.history.pushState({ phase, runId }, "", next);
+  else window.history.replaceState({ phase, runId }, "", next);
+}
+
+interface SignalCatcherAppProps {
+  initialRunId?: string;
+  initialView?: ViewParam;
+}
+
+export function SignalCatcherApp({
+  initialRunId,
+  initialView = "result",
+}: SignalCatcherAppProps = {}) {
   const options = useDemoOptions();
-  const controller = useCatchSession(options);
-  const { session, reset, restore } = controller;
+  const controller = useCatchSession(options, initialRunId);
+  const { session, reset, restore, restoreRun } = controller;
+  const usesDemo = Boolean(
+    options.pause || options.flags.size || (options.view && !initialRunId),
+  );
 
   const experiments = useExperiments();
   const [question, setQuestion] = useState("");
@@ -54,14 +101,20 @@ export function SignalCatcherApp() {
   const [highlightActionId, setHighlightActionId] = useState<string | null>(null);
   const lastPhase = useRef(session.phase);
 
+  useEffect(() => {
+    if (!initialRunId || usesDemo) return;
+    restoreRun(initialRunId, initialView);
+  }, [initialRunId, initialView, restoreRun, usesDemo]);
+
   // 로딩(catching)은 되돌아갈 지점이 아니라서 기록에 남기지 않는다.
   useEffect(() => {
     if (options.pause) return;
     if (lastPhase.current === session.phase) return;
     lastPhase.current = session.phase;
     if (session.phase === "catching") return;
-    syncUrl(session.phase, true);
-  }, [session.phase, options.pause]);
+    if (usesDemo) syncDemoUrl(session.phase, true);
+    else syncRunUrl(session.phase, session.report?.runId ?? null, true);
+  }, [session.phase, session.report?.runId, options.pause, usesDemo]);
 
   /*
    * 화면이 바뀌면 스크롤을 처음으로 되돌린다.
@@ -75,16 +128,29 @@ export function SignalCatcherApp() {
   useEffect(() => {
     if (options.pause) return;
     function onPop() {
-      const view = new URL(window.location.href).searchParams.get("view");
-      if (view === "result" || view === "trace" || view === "action") {
-        restore(view, session.question || DEMO_QUESTION);
-      } else {
+      const url = new URL(window.location.href);
+      if (usesDemo) {
+        const view = url.searchParams.get("view");
+        if (view === "result" || view === "trace" || view === "action") {
+          restore(view, session.question || DEMO_QUESTION);
+          return;
+        }
         reset();
+        return;
       }
+
+      const runId = runIdFromPath(url.pathname);
+      if (!runId) {
+        reset();
+        return;
+      }
+      const view = viewFromUrl(url);
+      if (session.report?.runId === runId) restore(view, session.question);
+      else restoreRun(runId, view);
     }
     window.addEventListener("popstate", onPop);
     return () => window.removeEventListener("popstate", onPop);
-  }, [restore, reset, session.question, options.pause]);
+  }, [restore, restoreRun, reset, session.question, session.report?.runId, options.pause, usesDemo]);
 
   // 자동 진입이나 새로고침 복원으로 들어와도 입력창에 질문이 남아 있어야 한다.
   useEffect(() => {

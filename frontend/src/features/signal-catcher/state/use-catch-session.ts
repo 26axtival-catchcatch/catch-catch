@@ -177,6 +177,8 @@ export interface CatchSessionController {
   retry: () => void;
   answerClarification: (answer: string) => void;
   restore: (view: ViewParam, question: string) => void;
+  /** 저장된 Run을 API에서 다시 불러와 공유 가능한 결과 경로를 복원한다. */
+  restoreRun: (runId: string, view?: ViewParam) => void;
   openTrace: () => void;
   closeTrace: () => void;
   /** 액션 상세로 이동. 어떤 액션인지는 셸이 따로 들고 있는다. */
@@ -423,6 +425,11 @@ function useMockCatchSession({ flags, pause, speed, view }: DemoOptions): CatchS
     });
   }, [clearTimers]);
 
+  const restoreRun = useCallback((runId: string, next: ViewParam = "result") => {
+    void runId;
+    restore(next, DEMO_QUESTION);
+  }, [restore]);
+
   useEffect(() => {
     if (pause || !view) return;
     restore(view, DEMO_QUESTION);
@@ -506,6 +513,7 @@ function useMockCatchSession({ flags, pause, speed, view }: DemoOptions): CatchS
       start,
       retry,
       restore,
+      restoreRun,
       answerClarification,
       openTrace,
       closeTrace,
@@ -533,6 +541,7 @@ function useMockCatchSession({ flags, pause, speed, view }: DemoOptions): CatchS
       start,
       retry,
       restore,
+      restoreRun,
       answerClarification,
       openTrace,
       closeTrace,
@@ -548,9 +557,14 @@ function useMockCatchSession({ flags, pause, speed, view }: DemoOptions): CatchS
  * URL 시연 옵션은 기존 결정론적 Mock을 유지하고, 일반 사용자 흐름은 실제 Run API를 쓴다.
  * 두 훅을 항상 같은 순서로 호출해 React의 Hook 규칙을 지킨다.
  */
-export function useCatchSession(options: DemoOptions): CatchSessionController {
+export function useCatchSession(
+  options: DemoOptions,
+  initialRunId?: string,
+): CatchSessionController {
   const mock = useMockCatchSession(options);
   const live = useLiveCatchSession();
-  const usesMock = Boolean(options.pause || options.view || options.flags.size);
+  const usesMock = Boolean(
+    options.pause || options.flags.size || (options.view && !initialRunId),
+  );
   return usesMock ? mock : live;
 }

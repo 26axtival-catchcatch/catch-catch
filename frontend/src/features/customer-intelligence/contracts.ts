@@ -470,6 +470,7 @@ export interface RunSnapshot {
   report: GenericOrLegacyReport | null;
   error: RunError | null;
   plan_history: AnalysisPlan[];
+  facts: AnalysisFact[];
   last_event_id?: number;
 }
 

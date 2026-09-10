@@ -500,6 +500,10 @@ function decodeRunSnapshot(value: unknown): RunSnapshot {
             "snapshot.plan_history",
             decodeAnalysisPlan,
           ),
+    facts:
+      record.facts === undefined
+        ? []
+        : expectArray(record.facts, "snapshot.facts", decodeAnalysisFact),
     ...(record.last_event_id === undefined
       ? {}
       : {

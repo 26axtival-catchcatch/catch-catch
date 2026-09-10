@@ -153,6 +153,7 @@ describe("useLiveCatchSession", () => {
       report,
       error: null,
       plan_history: [plan],
+      facts: [journeyFact],
     };
     const client: SignalCatcherClient = {
       listSources: vi.fn(async () => {
@@ -271,5 +272,56 @@ describe("useLiveCatchSession", () => {
       "evidence-1",
       expect.any(AbortSignal),
     );
+  });
+
+  it("restores a completed run and its detailed journey from the run id", async () => {
+    const snapshot: RunSnapshot = {
+      run_id: "run-saved-1",
+      status: "completed",
+      request: {
+        question: "저장된 고객 여정을 보여줘",
+        start_at: LIVE_START_AT,
+        end_at: LIVE_END_AT,
+        enabled_sources: sources.items.map((item) => item.source_id),
+      },
+      created_at: "2026-09-11T00:00:00Z",
+      updated_at: "2026-09-11T00:03:00Z",
+      agent_mode: "bedrock",
+      report,
+      error: null,
+      plan_history: [plan],
+      facts: [journeyFact],
+      last_event_id: 9,
+    };
+    const client: SignalCatcherClient = {
+      listSources: vi.fn(async () => apiSources),
+      createRun: vi.fn(),
+      getRun: vi.fn(async () => snapshot),
+      async *streamRunEvents() {},
+      submitClarification: vi.fn(),
+      getJourney: vi.fn(async () => ({
+        result_id: "journey-saved-1",
+        customer_id: "C-01**",
+        events: [],
+        evidence_ids: [],
+        stats: { scanned_rows: 0, returned_rows: 0 },
+      })),
+      getEvidence: vi.fn(),
+    };
+    const { result } = renderHook(() => useLiveCatchSession(client));
+
+    act(() => result.current.restoreRun("run-saved-1"));
+
+    await waitFor(() => expect(result.current.session.phase).toBe("result"));
+
+    expect(client.createRun).not.toHaveBeenCalled();
+    expect(client.getRun).toHaveBeenCalledWith("run-saved-1", expect.any(AbortSignal));
+    expect(client.getJourney).toHaveBeenCalledWith(
+      "run-saved-1",
+      "C-01**",
+      expect.any(AbortSignal),
+    );
+    expect(result.current.session.question).toBe("저장된 고객 여정을 보여줘");
+    expect(result.current.session.report?.runId).toBe("run-saved-1");
   });
 });

@@ -265,6 +265,7 @@ export function useLiveCatchSession(providedClient?: SignalCatcherClient): Catch
           report: reportRef.current,
           error: null,
           plan_history: plansRef.current,
+          facts: factsRef.current,
         };
       }
       if (
@@ -286,6 +287,8 @@ export function useLiveCatchSession(providedClient?: SignalCatcherClient): Catch
         return;
       }
 
+      const facts = snapshot.facts.length ? snapshot.facts : factsRef.current;
+      factsRef.current = facts;
       let journey = report.representative_journeys;
       const customerId = firstJourneyCustomer(factsRef.current);
       if (customerId) {
@@ -309,7 +312,7 @@ export function useLiveCatchSession(providedClient?: SignalCatcherClient): Catch
         runId,
         report,
         plans: snapshot.plan_history.length ? snapshot.plan_history : plansRef.current,
-        facts: factsRef.current,
+        facts,
         stepDurations: durationsRef.current,
         traceLog: traceRef.current,
         sourceLabels: sourceLabelsOf(sourceListRef.current),
@@ -680,6 +683,141 @@ export function useLiveCatchSession(providedClient?: SignalCatcherClient): Catch
       current.report || view === "action" ? { ...current, phase: view } : current,
     );
   }, []);
+
+  const restoreRun = useCallback(
+    (rawRunId: string, view: ViewParam = "result") => {
+      const runId = rawRunId.trim();
+      if (!runId) return;
+
+      versionRef.current += 1;
+      const version = versionRef.current;
+      abortRef.current?.abort();
+      const controller = new AbortController();
+      abortRef.current = controller;
+      runIdRef.current = runId;
+      lastEventIdRef.current = 0;
+      plansRef.current = [];
+      factsRef.current = [];
+      durationsRef.current = {};
+      traceRef.current = [];
+      topologyEventLogRef.current = [];
+      reportRef.current = null;
+      startedAtRef.current = Date.now();
+      setBursting(false);
+      setFlatline(false);
+      setTick(null);
+      setLog([]);
+      setTopologyEvents([]);
+      setEvidence({});
+      setEvidenceLoadingId(null);
+      setEvidenceErrorId(null);
+      setSession({ ...idleSession(), phase: "catching" });
+
+      void (async () => {
+        try {
+          const snapshotPromise = client.getRun(runId, controller.signal);
+          const sourcesPromise = client.listSources(controller.signal).catch(
+            () => sourceListRef.current,
+          );
+          const [snapshot, sourceResponse] = await Promise.all([
+            snapshotPromise,
+            sourcesPromise,
+          ]);
+          if (
+            !mountedRef.current || controller.signal.aborted ||
+            versionRef.current !== version
+          ) return;
+
+          const sources = activeSourceListOf(sourceResponse);
+          sourceListRef.current = sources;
+          setSourceCount(sources.items.length);
+          setSourceOptions(sourceOptionsOf(sources));
+          plansRef.current = snapshot.plan_history;
+          factsRef.current = snapshot.facts;
+          lastEventIdRef.current = snapshot.last_event_id ?? 0;
+          startedAtRef.current = Date.parse(snapshot.created_at);
+          reportRef.current = isCustomerSignalReport(snapshot.report)
+            ? snapshot.report
+            : null;
+          setSession((current) => ({
+            ...current,
+            question: snapshot.request.question,
+          }));
+
+          if (snapshot.status === "failed") {
+            fail(snapshot.error ?? {
+              code: "run_failed",
+              message: "분석을 완료하지 못했어요.",
+            });
+            return;
+          }
+
+          if (snapshot.status !== "completed" && snapshot.status !== "degraded") {
+            void consumeStream(
+              runId,
+              controller,
+              version,
+              snapshot.last_event_id ?? 0,
+            );
+            return;
+          }
+
+          const report = reportRef.current;
+          if (!report) {
+            fail({
+              code: "unsupported_report",
+              message: "분석은 완료됐지만 결과를 불러오지 못했어요. 다시 시도해 주세요.",
+            });
+            return;
+          }
+
+          let journey = report.representative_journeys;
+          const customerId = firstJourneyCustomer(snapshot.facts);
+          if (customerId) {
+            try {
+              const detail = await client.getJourney(runId, customerId, controller.signal);
+              journey = detail.events;
+            } catch (error) {
+              if (controller.signal.aborted || isAbort(error)) return;
+              // 저장된 공개 리포트의 대표 여정으로 결과 화면을 계속 복원한다.
+            }
+          }
+          if (
+            !mountedRef.current || controller.signal.aborted ||
+            versionRef.current !== version
+          ) return;
+
+          const catchReport = toCatchReport({
+            runId,
+            report,
+            plans: snapshot.plan_history,
+            facts: snapshot.facts,
+            stepDurations: {},
+            traceLog: [],
+            sourceLabels: sourceLabelsOf(sources),
+            journey,
+            startedAt: Date.parse(snapshot.created_at),
+            completedAt: snapshot.updated_at,
+          });
+          setSession({
+            ...idleSession(),
+            phase: view,
+            question: snapshot.request.question,
+            stages: completedStages(),
+            outcome: snapshot.status === "degraded" ? "degraded" : "completed",
+            report: catchReport,
+          });
+        } catch (error) {
+          if (
+            !mountedRef.current || controller.signal.aborted || isAbort(error) ||
+            versionRef.current !== version
+          ) return;
+          fail(publicError(error));
+        }
+      })();
+    },
+    [client, consumeStream, fail],
+  );
   const openTrace = useCallback(() => {
     setSession((current) => current.report ? { ...current, phase: "trace" } : current);
   }, []);
@@ -777,6 +915,7 @@ export function useLiveCatchSession(providedClient?: SignalCatcherClient): Catch
       retry,
       answerClarification,
       restore,
+      restoreRun,
       openTrace,
       closeTrace,
       openAction,
@@ -806,6 +945,7 @@ export function useLiveCatchSession(providedClient?: SignalCatcherClient): Catch
       retry,
       answerClarification,
       restore,
+      restoreRun,
       openTrace,
       closeTrace,
       openAction,
