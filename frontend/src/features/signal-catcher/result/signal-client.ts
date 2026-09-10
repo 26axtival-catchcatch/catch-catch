@@ -108,11 +108,17 @@ export interface FastForwardResult {
   requestId: string;
   items: Array<{
     signalId: string;
-    status: "completed" | "skipped";
+    status: "completed" | "skipped" | "blocked";
     reason: string | null;
     dailyResults: DailyResult[];
     alertCount: number;
   }>;
+}
+
+export interface FastForwardResetResult {
+  requestId: string;
+  startAt: string;
+  signalCount: number;
 }
 
 export interface MeasurementHistory {
@@ -472,12 +478,26 @@ export class SignalClient {
         if (!Array.isArray(item.alert_events)) throw new SignalClientError("빨리감기 알림 응답 형식이 올바르지 않습니다.");
         return {
           signalId: stringOf(item.signal_id, `${path}.signal_id`),
-          status: oneOf(item.status, ["completed", "skipped"], `${path}.status`),
+          status: oneOf(item.status, ["completed", "skipped", "blocked"], `${path}.status`),
           reason: nullableStringOf(item.reason, `${path}.reason`),
           dailyResults: dailyResultsOf({ items: item.daily_results, next_before: null, pending_days: 0 }, path).items,
           alertCount: item.alert_events.length,
         };
       }),
+    };
+  }
+
+  async resetFastForward(requestId: string, startAt: string): Promise<FastForwardResetResult> {
+    const response = await this.request("/api/signals/fast-forward/reset", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ request_id: requestId, start_at: startAt }),
+    });
+    const payload = recordOf(await response.json(), "fast-forward-reset");
+    if (!Array.isArray(payload.items)) throw new SignalClientError("시작일 설정 응답 형식이 올바르지 않습니다.");
+    return {
+      requestId: stringOf(payload.request_id, "fast-forward-reset.request_id"),
+      startAt: stringOf(payload.start_at, "fast-forward-reset.start_at"),
+      signalCount: payload.items.length,
     };
   }
 

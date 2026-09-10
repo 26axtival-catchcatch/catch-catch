@@ -23,6 +23,9 @@ from customer_signal.signals.alert_recommendations import fixture_recommendation
 from customer_signal.signals.fast_forward import (
     FastForwardConflict, FastForwardRequest, FastForwardResult, FastForwardService,
 )
+from customer_signal.signals.fast_forward_reset import (
+    FastForwardResetRequest, FastForwardResetResult, FastForwardResetService,
+)
 
 
 class RequestModel(BaseModel):
@@ -96,6 +99,7 @@ def create_router(
     service = SignalService(store=store, load_data=load_data, recommend=recommend)
     schedules = ScheduleStore(store)
     fast_forward_service = FastForwardService(service)
+    reset_service = FastForwardResetService(fast_forward_service)
     # Alert router declares the shared tag itself; avoid duplicate inherited tags.
     alert_router = create_alert_router(service=service)
 
@@ -206,6 +210,19 @@ def create_router(
             return fast_forward_service.run(request)
         except KeyError:
             raise HTTPException(404, "시그널을 찾을 수 없습니다.") from None
+        except FastForwardConflict as error:
+            raise HTTPException(409, str(error)) from None
+        except ScheduleBusy:
+            raise HTTPException(409, "측정 실행 중입니다. 같은 request_id로 재시도할 수 있습니다.") from None
+
+    @router.post("/api/signals/fast-forward/reset", summary="이력을 보관하고 빨리감기 시작일 재설정")
+    def reset_fast_forward(request: FastForwardResetRequest) -> FastForwardResetResult:
+        try:
+            return reset_service.run(request)
+        except KeyError:
+            raise HTTPException(404, "시그널을 찾을 수 없습니다.") from None
+        except MeasurementUnavailable as error:
+            raise HTTPException(422, str(error)) from None
         except FastForwardConflict as error:
             raise HTTPException(409, str(error)) from None
         except ScheduleBusy:

@@ -232,13 +232,28 @@ class DailyScheduler:
         self.poll_seconds, self.clock = poll_seconds, clock
         self._stop = asyncio.Event()
 
-    def execute_day(self, signal_id: str, end_at: datetime) -> DailyResult:
+    def execute_day(
+        self, signal_id: str, end_at: datetime, *, require_success: bool = False,
+    ) -> DailyResult:
         """Execute one day; caller must hold the shared signal schedule lock."""
+        from customer_signal.signals.service import MeasurementUnavailable
+
         execution_id = self.schedules.start(signal_id, end_at)
         signal = self.schedules.store.get_signal(signal_id)
-        measurement = self.service.measure(
-            signal, start_at=end_at - DAY, end_at=end_at, trace_run_id=execution_id,
-        )
+        try:
+            measurement = self.service.measure(
+                signal, start_at=end_at - DAY, end_at=end_at, trace_run_id=execution_id,
+                **({"require_success": True} if require_success else {}),
+            )
+        except MeasurementUnavailable:
+            # A rejected fast-forward day must not become a completed/pending day.
+            # Other failures retain the running row for crash recovery.
+            with self.schedules.store._connection() as db:
+                db.execute(
+                    "DELETE FROM signal_daily_runs WHERE execution_id=? AND status='running'",
+                    (execution_id,),
+                )
+            raise
         self.schedules.finish(execution_id, measurement)
         return self.schedules.completed_day(signal_id, end_at)
 

@@ -14,12 +14,11 @@ from customer_signal.signals.alert_contracts import AlertEvent
 from customer_signal.signals.contracts import Contract, Measurement
 from customer_signal.signals.schedule_contracts import DAY, DailyResult, next_midnight
 from customer_signal.signals.scheduling import DailyScheduler, ScheduleStore
-from customer_signal.signals.service import SignalService
+from customer_signal.signals.service import MeasurementUnavailable, SignalService
 
 
-class FastForwardRequest(Contract):
+class SignalSelection(Contract):
     request_id: UUID = Field(description="한 번의 빨리감기를 식별하는 UUID, 재시도 시 재사용")
-    days: int = Field(default=1, strict=True, ge=1, le=7, description="분석할 다음 일자 수")
     signal_ids: list[str] | None = Field(
         default=None, min_length=1, max_length=100,
         description="대상 시그널 ID, 생략하면 현재 등록 목록을 고정해 처리",
@@ -35,9 +34,13 @@ class FastForwardRequest(Contract):
         return value
 
 
+class FastForwardRequest(SignalSelection):
+    days: int = Field(default=1, strict=True, ge=1, le=7, description="분석할 다음 일자 수")
+
+
 class FastForwardItem(Contract):
     signal_id: str
-    status: Literal["completed", "skipped"]
+    status: Literal["completed", "skipped", "blocked"]
     reason: str | None = None
     start_at: AwareDatetime | None = None
     end_at: AwareDatetime | None = None
@@ -60,9 +63,7 @@ class FastForwardConflict(ValueError):
 class FastForwardService:
     def __init__(self, service):
         self.store, self.load_data = service.store, service.load_data
-        # Fast-forward can intentionally exceed available dates. A completely empty
-        # future window is unknown, including for definitions without a denominator.
-        # Normal manual/scheduled measurements retain their established zero semantics.
+        # Missing observations must stop fast-forward without creating a future cursor.
         self.service = SignalService(store=self.store, load_data=self._observed_data)
         self.schedules = ScheduleStore(self.store)
         self.worker = DailyScheduler(self.schedules, self.service)
@@ -76,7 +77,9 @@ class FastForwardService:
         data = self.load_data(request)
         if not data.events:
             data.close()
-            raise ValueError("빨리감기할 날짜의 관측 데이터가 없습니다.")
+            raise MeasurementUnavailable(
+                "해당 날짜의 관측 데이터가 없어 멈췄습니다. 시작일을 다시 설정하거나 데이터를 추가해 주세요."
+            )
         return data
 
     def run(self, request: FastForwardRequest) -> FastForwardResult:
@@ -132,7 +135,7 @@ class FastForwardService:
 
     def _plan(self, signal_id: str, days: int) -> FastForwardItem:
         reason = self._inactive_reason(signal_id)
-        measurements = self.store.list_measurements(signal_id)
+        measurements = [m for m in self.store.list_measurements(signal_id) if m.status == "success"]
         if reason or not measurements:
             return FastForwardItem(
                 signal_id=signal_id, status="skipped",
@@ -146,7 +149,7 @@ class FastForwardService:
             signal_id=signal_id, status="completed", start_at=start, end_at=start + days * DAY,
         )
 
-    def _baseline(self, signal_id: str, end_at: datetime) -> Measurement:
+    def _baseline(self, signal_id: str, end_at: datetime) -> Measurement | None:
         existing = [
             m for m in self.store.list_measurements(signal_id)
             if m.start_at == end_at - DAY and m.end_at == end_at and m.status == "success"
@@ -155,10 +158,13 @@ class FastForwardService:
             return existing[-1]
         # A weekly registration needs a comparable day. Saving that baseline must never
         # retroactively trigger an alert, including when aligning a partial-day query.
-        return self.service.measure(
-            self.store.get_signal(signal_id), start_at=end_at - DAY, end_at=end_at,
-            evaluate_alerts=False,
-        )
+        try:
+            return self.service.measure(
+                self.store.get_signal(signal_id), start_at=end_at - DAY, end_at=end_at,
+                evaluate_alerts=False, require_success=True,
+            )
+        except MeasurementUnavailable:
+            return None
 
     def _execute(self, item: FastForwardItem) -> FastForwardItem:
         if item.status == "skipped":
@@ -171,8 +177,21 @@ class FastForwardService:
         end = item.start_at + DAY
         while end <= item.end_at:
             day = self.schedules.completed_day(item.signal_id, end)
+            if day is not None and day.status != "success":
+                # Older versions committed unavailable days. Allow a real retry after
+                # data arrives, while preserving the old measurement in history.
+                with self.store._connection() as db:
+                    db.execute("DELETE FROM signal_daily_runs WHERE execution_id=?", (day.execution_id,))
+                day = None
             if day is None:
-                day = self.worker.execute_day(item.signal_id, end)
+                try:
+                    day = self.worker.execute_day(item.signal_id, end, require_success=True)
+                except MeasurementUnavailable as error:
+                    return item.model_copy(update={
+                        "status": "blocked", "reason": str(error),
+                        "baseline_measurement": baseline, "daily_results": days,
+                        "alert_events": events,
+                    })
             days.append(day)
             with self.store._connection() as db:
                 rows = db.execute(

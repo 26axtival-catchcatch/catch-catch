@@ -87,6 +87,8 @@ class SignalService:
         try:
             data = self.load_data(request)
             result = measure_definition(data, definition)
+        except MeasurementUnavailable as error:
+            result = unavailable_measurement(definition, start_at, end_at, str(error))
         except Exception:
             result = unavailable_measurement(
                 definition,
@@ -189,6 +191,8 @@ class SignalService:
         end_at: datetime,
         trace_run_id: str | None = None,
         evaluate_alerts: bool = True,
+        require_success: bool = False,
+        persist: bool = True,
     ) -> Measurement:
         trace = self._trace(f"시그널 재측정: {signal.title}", signal.definition, trace_run_id)
         with (
@@ -220,9 +224,11 @@ class SignalService:
                 end_at=end_at,
                 trace_id=trace.trace_id,
             )
+            if require_success and measurement.status != "success":
+                raise MeasurementUnavailable(measurement.reason or "측정할 수 없는 날짜입니다.")
             persisted = self.store.add_measurement(
                 signal.signal_id, measurement, evaluate_alerts=evaluate_alerts,
-            )
+            ) if persist else measurement
             observation.update(output=persisted.model_dump(mode="json"))
             signal_span.update(
                 output={

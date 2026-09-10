@@ -196,13 +196,19 @@ def test_unknown_signal_and_busy_do_not_partially_execute(demo):
     assert not loads and len(store.list_measurements(sid)) == 1
 
 
-def test_empty_future_data_is_unavailable_without_fake_alert(demo):
-    client, _, _, _, _, events, _ = demo
+def test_empty_future_data_stops_without_advancing_or_fake_alert(demo):
+    client, store, sid, _, _, events, _ = demo
     events[:] = [e for e in events if e.occurred_at < END]
     response, _ = forward(client)
     assert response.status_code == 200, response.text
     item = response.json()["items"][0]
-    assert item["daily_results"][0]["measurement"]["status"] == "unavailable"
+    assert item["status"] == "blocked"
+    assert "데이터" in item["reason"]
+    assert not item["daily_results"]
+    assert max(m.end_at for m in store.list_measurements(sid)) == END
+    assert not client.get(f"/api/signals/{sid}/daily-results").json()["items"]
+    again, _ = forward(client)
+    assert again.json()["items"][0]["start_at"] == item["start_at"]
     assert not item["alert_events"]
     assert not client.get("/api/signal-alert-events?after=0").json()["items"]
 
@@ -313,9 +319,10 @@ def test_count_only_signal_does_not_treat_unobserved_future_as_zero(demo):
     events[:] = [e for e in events if e.occurred_at < END]
     response, _ = forward(client, signal_ids=[other.signal_id])
     assert response.status_code == 200, response.text
-    m = response.json()["items"][0]["daily_results"][0]["measurement"]
-    assert m["status"] == "unavailable"
-    assert all(v["value"] is None for v in m["values"])
+    item = response.json()["items"][0]
+    assert item["status"] == "blocked"
+    assert not item["daily_results"]
+    assert all(m.status == "success" for m in store.list_measurements(other.signal_id))
 
 
 def test_no_selected_rules_measures_without_notifications(demo):
@@ -356,3 +363,121 @@ def test_existing_daily_baseline_wins_over_later_weekly_snapshot_with_same_end(d
     assert item["baseline_measurement"]["measurement_id"] == daily.measurement_id
     assert len(item["alert_events"]) == 1
     assert item["alert_events"][0]["baseline_measurement_id"] == daily.measurement_id
+
+
+def test_multi_day_request_stops_at_data_boundary_and_resumes_after_new_data(demo):
+    client, store, sid, _, _, events, _ = demo
+    removed = [e for e in events if e.occurred_at >= END + DAY]
+    events[:] = [e for e in events if e.occurred_at < END + DAY]
+    response, body = forward(client, days=3)
+    item = response.json()["items"][0]
+    assert item["status"] == "blocked"
+    assert len(item["daily_results"]) == 1
+    assert max(m.end_at for m in store.list_measurements(sid)) == END + DAY
+    events.extend(removed)
+    assert client.post(PATH, json=body).json() == response.json()
+    resumed, _ = forward(client)
+    day = resumed.json()["items"][0]["daily_results"][0]
+    assert day["start_at"] == (END + DAY).isoformat().replace("+00:00", "Z")
+    assert day["measurement"]["values"][0]["value"] == 4
+
+
+def test_restart_preserves_definition_rules_and_archives_history_then_emits_new_alert(demo):
+    import json
+    client, store, sid, _, _, _, _ = demo
+    forward(client, days=3)
+    previous = store.list_measurements(sid)
+    definition = store.get_signal(sid).definition
+    rules = client.get(f"/api/signals/{sid}/alert-rules").json()
+    cursor = client.get("/api/signal-alert-events").json()["next_cursor"]
+    body = {"request_id": str(uuid4()), "start_at": END.isoformat()}
+    response = client.post(PATH + "/reset", json=body)
+    assert response.status_code == 200, response.text
+    assert response.json()["items"][0]["archived_measurements"] == len(previous)
+    assert store.get_signal(sid).definition == definition
+    assert client.get(f"/api/signals/{sid}/alert-rules").json() == rules
+    assert len(store.list_measurements(sid)) == 1
+    assert store.list_measurements(sid)[0].end_at == END
+    assert not client.get(f"/api/signals/{sid}/daily-results").json()["items"]
+    with store._connection() as db:
+        archived = json.loads(db.execute("SELECT payload FROM signal_tracking_archives").fetchone()[0])
+    assert len(archived["measurements"]) == len(previous)
+    advanced, _ = forward(client)
+    day = advanced.json()["items"][0]["daily_results"][0]
+    assert day["measurement"]["values"][0]["value"] == 4
+    assert len(client.get(f"/api/signal-alert-events?after={cursor}").json()["items"]) == 1
+    assert client.post(PATH + "/reset", json=body).json() == response.json()
+    assert max(m.end_at for m in store.list_measurements(sid)) == END + DAY
+    assert client.post(PATH + "/reset", json={**body, "start_at": (END + DAY).isoformat()}).status_code == 409
+
+
+def test_restart_rejects_empty_or_partial_day_without_mutating_history(demo):
+    client, store, sid, _, _, _, _ = demo
+    previous = store.list_measurements(sid)
+    for start in [END + 30 * DAY, END + timedelta(hours=2)]:
+        response = client.post(PATH + "/reset", json={
+            "request_id": str(uuid4()), "start_at": start.isoformat(),
+        })
+        assert response.status_code == 422, response.text
+        assert store.list_measurements(sid) == previous
+
+
+def test_restart_is_visible_in_openapi(demo):
+    operation = demo[0].get("/openapi.json").json()["paths"][PATH + "/reset"]["post"]
+    assert operation["tags"] == ["signals"]
+    assert "시작일" in operation["summary"]
+    assert operation["responses"]["200"]["content"]["application/json"]["schema"]["$ref"]
+
+
+def test_restart_rolls_back_archive_and_history_if_commit_fails(demo, monkeypatch):
+    client, store, sid, _, _, _, _ = demo
+    previous = store.list_measurements(sid)
+    schedule = ScheduleStore(store).get(sid)
+
+    def crash(*args):
+        raise RuntimeError("simulated commit failure")
+
+    monkeypatch.setattr(store, "_insert_measurement", crash)
+    response = client.post(PATH + "/reset", json={
+        "request_id": str(uuid4()), "start_at": END.isoformat(),
+    })
+    assert response.status_code == 500
+    assert store.list_measurements(sid) == previous
+    assert ScheduleStore(store).get(sid) == schedule
+    with store._connection() as db:
+        assert db.execute("SELECT COUNT(*) FROM signal_tracking_archives").fetchone()[0] == 0
+        assert db.execute("SELECT COUNT(*) FROM signal_fast_forward_resets").fetchone()[0] == 0
+
+
+def test_restart_replay_survives_process_recreation_and_shared_lock(demo):
+    client, store, sid, _, _, _, client_for = demo
+    body = {"request_id": str(uuid4()), "start_at": END.isoformat()}
+    with ScheduleStore(store).lock(sid):
+        assert client.post(PATH + "/reset", json=body).status_code == 409
+    response = client.post(PATH + "/reset", json=body)
+    assert response.status_code == 200
+    forward(client)
+    with client_for(SignalStore(store.path)) as reopened:
+        assert reopened.post(PATH + "/reset", json=body).json() == response.json()
+    assert max(m.end_at for m in store.list_measurements(sid)) == END + DAY
+
+
+def test_restart_cancels_reserved_work_from_an_interrupted_old_request(demo, monkeypatch):
+    client, store, sid, _, _, _, _ = demo
+    original = ScheduleStore.finish
+
+    def crash(*args):
+        raise RuntimeError("interrupted before daily commit")
+
+    monkeypatch.setattr(ScheduleStore, "finish", crash)
+    interrupted, old_body = forward(client, days=2)
+    assert interrupted.status_code == 500
+    monkeypatch.setattr(ScheduleStore, "finish", original)
+    reset = client.post(PATH + "/reset", json={
+        "request_id": str(uuid4()), "start_at": END.isoformat(),
+    })
+    assert reset.status_code == 200
+    old_retry = client.post(PATH, json=old_body)
+    assert old_retry.status_code == 200
+    assert old_retry.json()["items"][0]["status"] == "skipped"
+    assert max(m.end_at for m in store.list_measurements(sid)) == END
