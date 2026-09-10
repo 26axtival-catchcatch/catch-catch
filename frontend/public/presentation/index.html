@@ -185,9 +185,8 @@
 
     /* 10 Service expansion */
     .expansion .title { font-size: 2.85cqw; }
-    .expansion-media { position: relative; display: grid; flex: 1; min-height: 0; margin-top: 1.55cqw; padding: .45cqw; overflow: hidden; border: 1px solid var(--line); background: #1c1018; place-items: center; }
-    .expansion-media::after { content: ""; position: absolute; z-index: 1; top: 0; left: 0; right: 0; height: 11%; background: linear-gradient(180deg, #1c1018 0 84%, rgb(28 16 24 / 0%) 100%); pointer-events: none; }
-    .expansion-media img { display: block; width: 100%; height: 100%; object-fit: contain; }
+    .expansion-media { display: flex; flex: 1; min-height: 0; margin-top: 1.55cqw; align-items: flex-start; justify-content: center; }
+    .expansion-media img { display: block; width: auto; height: auto; max-width: 100%; max-height: 38cqw; }
 
     /* 12 Closing */
     .closing { background: #fffdfd; }
@@ -421,7 +420,7 @@
         <div class="pad">
           <p class="eyebrow">SERVICE SCALE · CUSTOMER EXPANSION</p>
           <h2 class="title">하나의 서비스, <em>전사 고객 의사결정 플랫폼</em>으로</h2>
-          <div class="expansion-media"><img src="/presentation/images/image_page_10_3.png" alt="고객 시그널 캐처를 활용하는 앱 기획자, 고객센터 상담사, 도메인별 사업 담당자, 전략팀" /></div>
+          <div class="expansion-media"><img src="/presentation/images/image_page_10_3 (2).PNG" alt="고객 시그널 캐처를 활용하는 앱 기획자, 고객센터 상담사, 도메인별 사업 담당자, 전략팀" /></div>
         </div>
         <div class="progress"><i style="width:91.7%"></i></div>
       </article>
