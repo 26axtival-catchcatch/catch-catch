@@ -86,6 +86,8 @@ _LABELS = {
 _TOOLS = {
     "catalog_data": "데이터 목록 확인",
     "query_data": "데이터 질의",
+    "read_query_result": "질의 결과 추가 조회",
+    "recheck_candidate": "후보 근거 재검증",
     "customer_journey": "대표 여정 조회",
     "find_signals": "기존 패턴 조회",
     "measure_signal": "패턴 지표 측정",

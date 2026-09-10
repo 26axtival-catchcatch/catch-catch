@@ -155,6 +155,7 @@ async def test_verifier_query_tool_returns_only_credited_preview_rows():
 
 
 async def test_verifier_must_receive_tool_batch_before_finishing():
+    from customer_signal.investigation.activity import ActivityStream
     from customer_signal.investigation.contracts import Verification
     from customer_signal.investigation.model import GeminiInvestigationModel
     from test_investigation_model import (
@@ -191,16 +192,24 @@ async def test_verifier_must_receive_tool_batch_before_finishing():
     model = GeminiInvestigationModel(
         api_key="test", primary_model="test", fallback_model="test", model_factory=provider
     )
+    events = []
+
+    async def emit(event):
+        events.append(event.payload)
+
+    stream = ActivityStream(emit)
+    node = await stream.agent("verifier", "task-verifier", 0, [])
     token = reference_owner.set("task-verifier")
     try:
-        result = await model.run_role(
-            role="verifier",
-            task_id="task-verifier",
-            instruction="검증",
-            context={"candidates": [investigation_candidate()]},
-            data=ReferenceData(),
-            result_type=Verification,
-        )
+        with stream.bind(node):
+            result = await model.run_role(
+                role="verifier",
+                task_id="task-verifier",
+                instruction="검증",
+                context={"candidates": [investigation_candidate()]},
+                data=ReferenceData(),
+                result_type=Verification,
+            )
     finally:
         reference_owner.reset(token)
     assert result.decisions[0].verdict == "confirmed"
@@ -209,6 +218,12 @@ async def test_verifier_must_receive_tool_batch_before_finishing():
         json.loads(provider.calls[1]["messages"][-1].content)["error"]
         == "finish_requires_separate_turn"
     )
+
+    finish_events = [e for e in events if e["kind"] == "tool" and e["name"] == "finish"]
+    assert [e["status"] for e in finish_events] == ["started", "failed", "started", "completed"]
+    assert finish_events[1]["details"]["error_code"]
+    assert all(e["parent_node_id"] == node.node_id for e in finish_events)
+    assert "customer-1" not in json.dumps(events)
 
 
 def test_journey_review_credits_only_delivered_rows_and_owned_pages():

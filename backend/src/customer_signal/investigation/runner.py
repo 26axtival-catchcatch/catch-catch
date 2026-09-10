@@ -147,8 +147,20 @@ class InvestigationRunner:
                     if name == "coordinator":
                         dependencies = []
                     elif name == "investigator":
-                        upstream = "verifier" if round_index else "coordinator"
-                        dependencies = [n.node_id for n in role_nodes if n.role == upstream][-1:]
+                        if round_index:
+                            prior_verifiers = {
+                                verifier_task_id(candidate["candidate_id"], round_index - 1)
+                                for candidate in context.get("prior_candidates", [])
+                            }
+                            dependencies = [
+                                n.node_id
+                                for n in role_nodes
+                                if n.role == "verifier" and n.task_id in prior_verifiers
+                            ]
+                        else:
+                            dependencies = [
+                                n.node_id for n in role_nodes if n.role == "coordinator"
+                            ][-1:]
                     elif name == "verifier":
                         dependencies = [
                             n.node_id
@@ -156,7 +168,7 @@ class InvestigationRunner:
                             if n.role == "investigator" and n.round_index == round_index
                         ]
                     else:
-                        dependencies = [n.node_id for n in role_nodes if n.role == "verifier"][-1:]
+                        dependencies = [n.node_id for n in role_nodes if n.role == "verifier"]
                         if not dependencies:
                             dependencies = [
                                 n.node_id for n in role_nodes if n.role == "investigator"

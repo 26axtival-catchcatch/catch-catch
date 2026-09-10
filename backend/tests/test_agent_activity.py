@@ -246,3 +246,50 @@ async def test_tool_repair_failure_is_visible_without_leaking_arguments():
     assert failed[0]["details"]["error_code"] == "validation_failed"
     assert events[-1].payload["status"] == "completed"
     assert "private-error-marker" not in json.dumps([e.payload for e in events])
+
+
+async def test_parallel_verifier_activity_keeps_candidate_followup_and_report_dependencies(
+    tmp_path,
+):
+    from customer_signal.investigation.verification import verifier_task_id
+    from test_verification_context import SplitModel
+
+    outcome, events = await collect(tmp_path, model=SplitModel(followup=True))
+    assert outcome.status == "completed"
+    queued = [
+        e.payload
+        for e in events
+        if e.type == "agent_activity"
+        and e.payload["kind"] == "agent"
+        and e.payload["status"] == "queued"
+    ]
+    verifiers = [e for e in queued if e["role"] == "verifier"]
+    original = next(e for e in verifiers if e["task_id"] == verifier_task_id("pattern-0", 0))
+    followup = next(e for e in queued if e["role"] == "investigator" and e["round_index"] == 1)
+    assert followup["depends_on"] == [original["node_id"]]
+    reporter = next(e for e in queued if e["role"] == "reporter")
+    assert set(reporter["depends_on"]) == {e["node_id"] for e in verifiers}
+
+
+@pytest.mark.parametrize(
+    "name,label",
+    [
+        ("read_query_result", "질의 결과 추가 조회"),
+        ("recheck_candidate", "후보 근거 재검증"),
+    ],
+)
+async def test_verifier_helpers_have_tool_activity_labels(name, label):
+    from customer_signal.investigation.activity import ActivityStream, operation
+
+    events = []
+
+    async def emit(event):
+        events.append(event.payload)
+
+    stream = ActivityStream(emit)
+    node = await stream.agent("verifier", "task-verifier", 0, [])
+    with stream.bind(node):
+        async with operation("tool", name):
+            pass
+    assert events[-1]["kind"] == "tool"
+    assert events[-1]["display_text"] == label
