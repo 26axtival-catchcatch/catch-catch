@@ -6,6 +6,7 @@ import type { AnalysisMetricFact } from "../../customer-intelligence/contracts";
 
 import { HeartMark } from "../brand/Brand";
 import { Overlay } from "../Overlay";
+import { BrowserNotificationSettings } from "../alerts/BrowserNotificationSettings";
 
 import {
   SignalClient,
@@ -540,6 +541,8 @@ export function WatchSignalModal({
               <p id="watch-description">
                 선택한 {savedCount}개 기준은 매일 다시 확인돼요. 메인 브리핑에서 최신 측정값을 볼 수 있어요.
               </p>
+              <BrowserNotificationSettings />
+              <p>상단의 하루 빨리감기로 다음 날짜의 변화를 확인할 수 있어요.</p>
               <button type="button" className={styles.submit} onClick={onGoHome}>메인화면으로 돌아가기</button>
             </div>
           )}

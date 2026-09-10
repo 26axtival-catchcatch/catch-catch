@@ -156,9 +156,28 @@ class ScheduleStore:
                 (measurement.status, now().isoformat(), measurement.measurement_id, execution_id),
             )
             db.execute(
-                "UPDATE signal_schedules SET next_run_at=?, updated_at=? WHERE signal_id=?",
+                "UPDATE signal_schedules SET next_run_at=MAX(next_run_at, ?), updated_at=? "
+                "WHERE signal_id=?",
                 ((datetime.fromisoformat(end) + DAY).isoformat(), now().isoformat(), signal_id),
             )
+
+    def completed_day(self, signal_id: str, end_at: datetime) -> DailyResult | None:
+        """Return the committed execution snapshot, without re-evaluating an older day."""
+        with self.store._connection() as db:
+            row = db.execute(
+                "SELECT r.execution_id, r.start_at, r.end_at, r.status, r.started_at, "
+                "r.completed_at, m.payload FROM signal_daily_runs r "
+                "JOIN signal_measurements m ON m.measurement_id=r.measurement_id "
+                "WHERE r.signal_id=? AND r.end_at=? AND r.status!='running'",
+                (signal_id, end_at.astimezone(timezone.utc).isoformat()),
+            ).fetchone()
+        if row is None:
+            return None
+        return DailyResult(
+            execution_id=row[0], signal_id=signal_id, start_at=row[1], end_at=row[2],
+            status=row[3], started_at=row[4], completed_at=row[5],
+            measurement=Measurement.model_validate_json(row[6]),
+        )
 
     def results(self, signal_id: str, *, limit=30, before=None, at=None) -> DailyResults:
         schedule = self.get(signal_id)
@@ -213,6 +232,16 @@ class DailyScheduler:
         self.poll_seconds, self.clock = poll_seconds, clock
         self._stop = asyncio.Event()
 
+    def execute_day(self, signal_id: str, end_at: datetime) -> DailyResult:
+        """Execute one day; caller must hold the shared signal schedule lock."""
+        execution_id = self.schedules.start(signal_id, end_at)
+        signal = self.schedules.store.get_signal(signal_id)
+        measurement = self.service.measure(
+            signal, start_at=end_at - DAY, end_at=end_at, trace_run_id=execution_id,
+        )
+        self.schedules.finish(execution_id, measurement)
+        return self.schedules.completed_day(signal_id, end_at)
+
     def tick(self, at: datetime | None = None) -> int:
         at = at or self.clock()
         completed = 0
@@ -226,16 +255,7 @@ class DailyScheduler:
                         or schedule.next_run_at > at
                     ):
                         continue
-                    end = schedule.next_run_at
-                    execution_id = self.schedules.start(signal_id, end)
-                    signal = self.schedules.store.get_signal(signal_id)
-                    measurement = self.service.measure(
-                        signal,
-                        start_at=end - DAY,
-                        end_at=end,
-                        trace_run_id=execution_id,
-                    )
-                    self.schedules.finish(execution_id, measurement)
+                    self.execute_day(signal_id, schedule.next_run_at)
                     completed += 1
             except ScheduleBusy:
                 continue
