@@ -145,6 +145,24 @@ Reporter explains proposed metrics and limitations; it cannot register or change
 No tool registers signals. Registration is a separate human-selected API action.
 """
 
+_VERIFIER_PROMPT = """
+Minimize remote model round trips while preserving independent semantic verification.
+The server has already called recheck_candidate under YOUR task owner before your first response.
+Read that tool result and the assigned SQL/definition first. Successful prepared checks count as
+your independent evidence; do not repeat them or reread the same representative journeys.
+If the evidence suffices, submit finish immediately. Otherwise request ALL currently identifiable
+missing checks in ONE response: normal-cohort counterexamples, same-customer/intent feedback,
+event ordering and final resolution. Prefer compact grouped aggregates to paging through raw rows.
+Use the prepared cohort_table for joins. Every independent query belongs in the same tool batch,
+including a normal representative journey when its customer_id is already known.
+After receiving that batch, decide and finish. Another batch is warranted only for a concrete
+unresolved issue that could change the verdict or a failed query/definition that needs correction.
+Do not start a fresh exploratory investigation, repeat established counts, or collect more examples
+of an already established pattern. Missing behavioral proof must stay candidate/rejected; do not
+confirm merely to finish quickly. Do not request reinvestigation for optional enrichment.
+Keep reasons and limitations concise and cite the decisive query IDs, not every exploratory ID.
+"""
+
 
 class GeminiInvestigationError(RuntimeError):
     """A bounded public failure without provider or database details."""
@@ -219,7 +237,9 @@ class GeminiInvestigationModel:
         if self._api_key is None:
             raise self._error("not_configured", "API Key가 설정되지 않았습니다.")
         messages: list[BaseMessage] = [
-            SystemMessage(content=_SYSTEM_PROMPT),
+            SystemMessage(
+                content=_SYSTEM_PROMPT + (_VERIFIER_PROMPT if role == "verifier" else "")
+            ),
             HumanMessage(
                 content=json.dumps(
                     {
@@ -235,6 +255,40 @@ class GeminiInvestigationModel:
                 )
             ),
         ]
+        if role == "verifier" and result_type is Verification:
+            # Mandatory local work needs no model decision or remote round trip.
+            # Keep this actual server-executed tool pair in the recoverable history;
+            # the entire result must reach the model before any verdict is accepted.
+            async with operation("tool", "recheck_candidate") as activity:
+                prepared = await self._run_tool(
+                    name="recheck_candidate",
+                    arguments={},
+                    data=data,
+                    result_type=result_type,
+                    task_id=task_id,
+                    context=context,
+                )
+                activity.details = tool_details("recheck_candidate", prepared)
+                activity.failed = activity.details.error_code is not None
+            messages.extend(
+                [
+                    AIMessage(
+                        content="Server-prepared mandatory verification checks.",
+                        tool_calls=[
+                            {
+                                "name": "recheck_candidate",
+                                "args": {},
+                                "id": "verification-precheck",
+                            }
+                        ],
+                    ),
+                    ToolMessage(
+                        content=json.dumps(prepared, ensure_ascii=False, default=str),
+                        tool_call_id="verification-precheck",
+                        name="recheck_candidate",
+                    ),
+                ]
+            )
         while True:
             if role == "verifier":
                 messages = bound_messages(messages)
