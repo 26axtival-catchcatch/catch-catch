@@ -76,6 +76,9 @@ make setup
 
 ## 빠른 시작
 
+앱과 자체 Langfuse를 Docker로 함께 실행하려면
+[로컬 Compose 가이드](docs/local-compose.md)를 사용합니다.
+
 키 없이 Fixture 데모를 실행할 수 있습니다.
 
 ```bash
@@ -146,7 +149,9 @@ BEDROCK_INVESTIGATOR_MODEL=us.anthropic.claude-sonnet-4-6
 ```
 
 `BEDROCK_INVESTIGATOR_MODEL`은 investigator 전용 모델이며, 생략하면 Sonnet 4.6을 사용합니다.
-coordinator, verifier, reporter는 `BEDROCK_MODEL`을 사용합니다.
+coordinator, reporter는 `BEDROCK_MODEL`을 사용합니다.
+verifier도 기본적으로 같은 모델을 사용하며, `BEDROCK_VERIFIER_MODEL`로 별도 지정할 수 있습니다.
+검증은 후보별로 분리해 최대 6개를 동시에 실행하며, 후보별 직접 질의와 재측정을 요구합니다.
 investigator도 Opus로 실행하려면 두 변수에 같은 모델 ID를 지정합니다.
 설정을 변경한 뒤에는 Backend를 다시 시작해야 합니다.
 

@@ -12,6 +12,24 @@ ARTIFACT_DIRECTORY := data/run-artifacts
 HACKATHON_SEED_PATH := data/seeding/hackathon-2week
 
 .DEFAULT_GOAL := help
+COMPOSE_FLAGS ?=
+.PHONY: compose-init compose-up compose-verify compose-ps compose-down
+
+compose-init:
+	python3 scripts/compose.py init
+
+compose-up:
+	python3 scripts/compose.py up $(COMPOSE_FLAGS)
+
+compose-verify:
+	python3 scripts/compose.py verify
+
+compose-ps:
+	python3 scripts/compose.py ps
+
+compose-down:
+	python3 scripts/compose.py down
+
 .PHONY: help setup seed seed-hackathon dev dev-auto dev-fixture dev-gemini dev-bedrock serve-backend-fixture serve-frontend test e2e e2e-generic e2e-legacy
 
 help:

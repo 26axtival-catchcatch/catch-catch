@@ -49,7 +49,9 @@ Backend 를 실행하면 FastAPI 가 다음 경로를 자동으로 제공합니�
 `mode=bedrock`은 `AWS_BEARER_TOKEN_BEDROCK`, `AWS_REGION`(기본 `us-east-1`),
 `BEDROCK_MODEL`(기본 `us.anthropic.claude-opus-4-6-v1`)로 Converse API를 호출합니다.
 investigator는 `BEDROCK_INVESTIGATOR_MODEL`(기본 `us.anthropic.claude-sonnet-4-6`)을
-사용하며, coordinator, verifier, reporter는 `BEDROCK_MODEL`을 사용합니다.
+사용하며, coordinator, reporter는 `BEDROCK_MODEL`을 사용합니다.
+verifier는 `BEDROCK_VERIFIER_MODEL`을 지정하면 해당 모델을 사용하고, 생략하면
+`BEDROCK_MODEL`을 사용합니다. 후보마다 독립 검증 작업을 실행하며 최대 동시 실행 수는 6개입니다.
 `mode=gemini`와 `mode=bedrock`은 총괄, 가설별 조사, 독립 검증과 보고 역할을 실행합니다.
 Bedrock 호출 실패 시 다른 모델이나 fixture로 자동 전환하지 않습니다.
 상태 응답과 SSE의 `agent_mode`에 `bedrock`이 표시되며, 저장 Artifact의

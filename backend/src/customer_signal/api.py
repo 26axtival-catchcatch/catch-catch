@@ -256,6 +256,7 @@ def _default_dependencies(settings: Settings) -> ApiDependencies:
                 api_key=bedrock_key.get_secret_value(),
                 model=settings.bedrock_model,
                 investigator_model=settings.bedrock_investigator_model,
+                verifier_model=settings.bedrock_verifier_model,
                 region=settings.aws_region,
             ),
             data_factory=lambda request: InvestigationData.load(refresh_sources()[0], request),

@@ -14,6 +14,7 @@ def clear_settings_environment(monkeypatch: pytest.MonkeyPatch) -> None:
         "AWS_DEFAULT_REGION",
         "BEDROCK_MODEL",
         "BEDROCK_INVESTIGATOR_MODEL",
+        "BEDROCK_VERIFIER_MODEL",
         "GEMINI_API_KEY",
         "GOOGLE_API_KEY",
         "GEMINI_MODEL",
@@ -132,3 +133,19 @@ def test_blank_investigator_model_is_rejected(value: str) -> None:
 def test_unknown_agent_mode_is_rejected() -> None:
     with pytest.raises(ValidationError):
         Settings(agent_mode="unknown", _env_file=None)
+
+
+def test_verifier_override_is_optional_and_independent(monkeypatch):
+    clear_settings_environment(monkeypatch)
+    monkeypatch.delenv('BEDROCK_VERIFIER_MODEL', raising=False)
+    assert Settings(_env_file=None).bedrock_verifier_model is None
+    monkeypatch.setenv('BEDROCK_VERIFIER_MODEL', 'test-haiku-profile')
+    settings = Settings(_env_file=None)
+    assert settings.bedrock_verifier_model == 'test-haiku-profile'
+    assert settings.bedrock_model == 'us.anthropic.claude-opus-4-6-v1'
+
+
+@pytest.mark.parametrize('value', ['', '   '])
+def test_blank_verifier_override_rejected(value):
+    with pytest.raises(ValidationError):
+        Settings(bedrock_verifier_model=value, _env_file=None)
