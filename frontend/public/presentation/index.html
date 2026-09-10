@@ -1,0 +1,484 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>캐치캐치 해커톤 발표 덱</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gasoek+One&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+KR:wght@300;400;500;600;700&display=swap" />
+  <style>
+    * { box-sizing: border-box; }
+    :root {
+      --bg: #fffdfd;
+      --ink: #1d0c21;
+      --fog: #725e74;
+      --dim: #a593a4;
+      --line: #eadde7;
+      --wash: #fbf1f7;
+      --wash-2: #f5e8f0;
+      --signal: #e0007e;
+      --jade: #137d65;
+      --amber: #9a6413;
+    }
+    html, body { width: 100%; height: 100%; }
+    body { margin: 0; overflow: hidden; background: #f2edf1; color: var(--ink); font-family: "IBM Plex Sans KR", sans-serif; word-break: keep-all; }
+    button { font: inherit; }
+    .toolbar { position: fixed; z-index: 5; left: 50%; top: 12px; transform: translateX(-50%); display: flex; gap: 2px; padding: 4px; background: rgb(255 255 255 / 92%); border: 1px solid var(--line); box-shadow: 0 8px 28px rgb(58 20 50 / 10%); }
+    .toolbar button { border: 0; background: transparent; color: var(--fog); padding: 6px 10px; cursor: pointer; font-family: "IBM Plex Mono", monospace; font-size: 11px; letter-spacing: .06em; }
+    .toolbar button:hover { color: var(--signal); }
+    .nav { position: fixed; z-index: 5; top: 50%; transform: translateY(-50%); width: 38px; height: 80px; border: 1px solid var(--line); background: rgb(255 255 255 / 88%); color: var(--fog); cursor: pointer; font-size: 21px; }
+    .nav:hover { border-color: var(--signal); color: var(--signal); }
+    .nav:disabled { opacity: .25; cursor: default; }
+    #prev { left: 12px; } #next { right: 12px; }
+    .stage { position: absolute; left: 50%; top: 50%; width: 1280px; height: 720px; transform-origin: center; }
+    .frame { position: absolute; inset: 0; display: none; width: 1280px; height: 720px; }
+    .frame.active { display: block; }
+    .slide { position: relative; width: 1280px; height: 720px; overflow: hidden; background: var(--bg); color: var(--ink); container-type: inline-size; }
+    .pad { position: absolute; inset: 0; padding: 4.5cqw 5.7cqw 4.4cqw; display: flex; flex-direction: column; }
+    .slide-no { position: absolute; right: 5.7cqw; top: 4.7cqw; font: 500 .84cqw "IBM Plex Mono", monospace; letter-spacing: .12em; color: var(--dim); }
+    .eyebrow { margin: 0; font: 500 .88cqw "IBM Plex Mono", monospace; letter-spacing: .2em; color: var(--fog); text-transform: uppercase; }
+    .title { margin: 1.15cqw 0 0; font-size: 3.15cqw; line-height: 1.17; letter-spacing: -.035em; font-weight: 600; }
+    .title em { color: var(--signal); font-style: normal; }
+    .subtitle { margin: 1cqw 0 0; max-width: 70cqw; font-size: 1.32cqw; line-height: 1.55; color: var(--fog); }
+    .brand { margin-top: auto; padding-top: 1.25cqw; border-top: 1px solid var(--line); display: flex; align-items: baseline; justify-content: space-between; color: var(--fog); font: .84cqw "IBM Plex Mono", monospace; letter-spacing: .04em; }
+    .brand strong { color: var(--ink); font-weight: 600; }
+    .progress { position: absolute; bottom: 0; left: 0; width: 100%; height: 4px; background: var(--wash-2); }
+    .progress i { display: block; height: 100%; background: var(--signal); }
+    .edit { display: inline-flex; width: fit-content; margin-top: .9cqw; padding: .38cqw .58cqw; border: 1px solid color-mix(in srgb, var(--signal) 45%, white); background: rgb(255 255 255 / 86%); color: var(--signal); font: 600 .78cqw "IBM Plex Mono", monospace; letter-spacing: .08em; }
+
+    /* 01 Cover: cover option A, reinterpreted on white */
+    .cover { background: #fffdfd; }
+    .cover .pad { padding: 5.2cqw 5.4cqw 4cqw; }
+    .cover .eyebrow { font-size: 1.12cqw; letter-spacing: .24em; }
+    .wordmark { margin: 2.8cqw 0 0; font-family: "Gasoek One", "IBM Plex Sans KR", sans-serif; font-size: 10.2cqw; font-weight: 400; line-height: .94; letter-spacing: -.025em; }
+    .wordmark em { color: var(--signal); font-style: normal; }
+    .cover-sub { margin: 2.2cqw 0 0; max-width: 72cqw; font-size: 1.72cqw; line-height: 1.5; color: var(--fog); font-weight: 300; }
+    .heartbeat { height: 8.2cqw; margin-top: auto; }
+    .heartbeat svg { display: block; width: 100%; height: 100%; }
+    .beat-ghost { fill: none; stroke: var(--line); stroke-width: 1.2; }
+    .beat-line { fill: none; stroke: var(--signal); stroke-width: 2.3; stroke-linejoin: round; stroke-linecap: round; stroke-dasharray: 1400; stroke-dashoffset: 1400; animation: trace 4.2s cubic-bezier(.5,0,.4,1) infinite; }
+    @keyframes trace { 0% { stroke-dashoffset: 1400; } 62% { stroke-dashoffset: 0; } 88% { stroke-dashoffset: 0; opacity: 1; } 100% { stroke-dashoffset: 0; opacity: 0; } }
+
+    /* 02 Query */
+    .query .pad { justify-content: center; }
+    .query .title { max-width: 17ch; margin: 0; font-size: 4.5cqw; line-height: 1.16; }
+    .query .brand { position: absolute; left: 5.7cqw; right: 5.7cqw; bottom: 4.4cqw; }
+
+    /* 03 As-is */
+    .asis-grid { flex: 1; display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; margin-top: 2.4cqw; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+    .source-cell { display: flex; flex-direction: column; justify-content: center; min-width: 0; padding: 1.6cqw 1.55cqw 1.35cqw 0; }
+    .source-cell + .source-cell { padding-left: 1.55cqw; border-left: 1px solid var(--line); }
+    .source-id { margin: 0; font: .8cqw "IBM Plex Mono", monospace; letter-spacing: .13em; color: var(--signal); }
+    .source-cell h3 { margin: .7cqw 0 0; font-size: 1.7cqw; line-height: 1.2; }
+    .micro-flow { margin-top: 1.25cqw; display: grid; grid-template-columns: repeat(3, 1fr); gap: .6cqw; }
+    .micro-flow span { min-width: 0; padding-top: .65cqw; border-top: 2px solid var(--line); color: var(--fog); font-size: .78cqw; line-height: 1.35; }
+    .micro-flow b { display: block; color: var(--ink); font: 500 .75cqw "IBM Plex Mono", monospace; }
+    .micro-flow strong { display: block; margin-top: .18cqw; color: var(--ink); font-size: .9cqw; line-height: 1.25; }
+    .micro-flow small { display: block; margin-top: .22cqw; color: var(--fog); font-size: .72cqw; line-height: 1.35; }
+
+    /* 04 Pain */
+    .pain-layout { display: grid; grid-template-columns: .78fr 1.22fr; gap: 3.6cqw; margin-top: 2.25cqw; flex: 1; align-items: center; }
+    .pain-stat { border-left: 3px solid var(--signal); padding-left: 1.35cqw; }
+    .pain-stat + .pain-stat { margin-top: 2.1cqw; }
+    .pain-stat small { display: block; color: var(--fog); font: .83cqw "IBM Plex Mono", monospace; letter-spacing: .08em; }
+    .pain-stat strong { display: block; margin-top: .35cqw; color: var(--signal); font-family: "Gasoek One", "IBM Plex Sans KR", sans-serif; font-size: 4.4cqw; line-height: 1; font-weight: 400; }
+    .manual-map { position: relative; padding: 1.7cqw 2cqw; border: 1px solid var(--line); background: linear-gradient(135deg, #fff 0%, var(--wash) 100%); }
+    .source-tags { display: grid; grid-template-columns: repeat(2, 1fr); gap: .75cqw; }
+    .source-tags span { padding: .75cqw .85cqw; border: 1px solid var(--line); background: #fff; color: var(--ink); font-size: 1.05cqw; }
+    .join-block { margin: 1cqw 0; padding: .95cqw; border-left: 2px solid var(--signal); background: rgb(224 0 126 / 7%); }
+    .join-block strong { display: block; font-size: 1.25cqw; }
+    .join-block p { margin: .25cqw 0 0; color: var(--fog); font-size: .98cqw; line-height: 1.45; }
+    .pain .title em { display: inline-block; padding: .06cqw .45cqw .14cqw; background: var(--signal); color: #fff; line-height: 1.08; }
+
+    /* 05 Definition */
+    .definition { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+    .key-message { display: flex; align-items: baseline; gap: 1.05cqw; font-family: "Gasoek One", "IBM Plex Sans KR", sans-serif; font-size: 4.7cqw; font-weight: 400; line-height: .96; letter-spacing: -.025em; }
+    .key-message em { color: var(--signal); font-style: normal; }
+    .key-context { margin: .75cqw 0 0; color: var(--fog); font-size: 1.2cqw; line-height: 1.45; }
+    .definition .lead { max-width: none; margin: 1.75cqw 0 0; font-size: 2.2cqw; line-height: 1.35; letter-spacing: -.035em; font-weight: 600; }
+    .definition .lead em { color: var(--signal); font-style: normal; }
+    .catch-grid { display: grid; grid-template-columns: minmax(0, 1fr) 3.1cqw minmax(0, 1fr) 3.1cqw minmax(0, 1fr) 3.1cqw minmax(0, 1fr); align-items: center; margin-top: 2.5cqw; }
+    .catch-cell { min-height: 9.3cqw; padding: 1.05cqw; border: 1px solid var(--line); background: #fff; animation: sequence-card 5.8s ease-in-out infinite; }
+    .catch-cell:nth-of-type(2) { animation-delay: 1.15s; }
+    .catch-cell:nth-of-type(3) { animation-delay: 2.3s; }
+    .catch-cell:nth-of-type(4) { animation-delay: 3.45s; }
+    .flow-link { position: relative; display: block; height: 100%; min-height: 9.3cqw; }
+    .flow-link::before { content: ""; position: absolute; top: 50%; left: .6cqw; right: .2cqw; height: 1px; background: linear-gradient(90deg, var(--line) 0 32%, var(--signal) 47% 53%, var(--line) 68% 100%); background-size: 220% 100%; animation: sequence-flow 2.7s linear infinite; }
+    .flow-link::after { content: ""; position: absolute; top: calc(50% - .38cqw); right: .2cqw; width: .76cqw; height: .76cqw; border-top: 1px solid var(--signal); border-right: 1px solid var(--signal); transform: rotate(45deg); animation: sequence-arrow 2.7s ease-in-out infinite; }
+    .flow-link:nth-of-type(2)::before, .flow-link:nth-of-type(2)::after { animation-delay: .9s; }
+    .flow-link:nth-of-type(3)::before, .flow-link:nth-of-type(3)::after { animation-delay: 1.8s; }
+    .flow-no { display: inline-grid; place-items: center; width: 1.9cqw; height: 1.9cqw; border-radius: 50%; background: var(--wash-2); color: var(--signal); font: 600 .74cqw "IBM Plex Mono", monospace; letter-spacing: .04em; }
+    .catch-cell strong { display: block; margin-top: .78cqw; font-size: 1.35cqw; }
+    .catch-cell span { display: block; margin-top: .45cqw; color: var(--fog); font-size: .98cqw; line-height: 1.4; }
+    .catch-cell:last-child { border-color: var(--signal); background: var(--wash); }
+    .catch-cell:last-child .flow-no { background: var(--signal); color: #fff; }
+    .catch-cell:last-child strong { color: var(--signal); }
+    .catch-cell:nth-of-type(2) { border-color: var(--signal); background: var(--wash); }
+    .catch-cell:nth-of-type(2) .flow-no { background: var(--signal); color: #fff; }
+    .catch-cell:nth-of-type(2) strong { color: var(--signal); }
+
+    /* 06 / 08 Video */
+    .demo .title { font-size: 2.65cqw; }
+    .media-slot { position: relative; height: 37.4cqw; margin-top: 1.5cqw; overflow: hidden; border: 1px solid var(--line); background: #2a1224; }
+    .media-slot img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: 50% 8%; filter: saturate(.55) brightness(.55); }
+    .media-slot video { display: block; width: 100%; height: 100%; object-fit: contain; background: #160d14; }
+    .media-copy { position: absolute; z-index: 1; top: 50%; left: 3.3cqw; width: 42cqw; transform: translateY(-50%); color: #fff; }
+    .media-copy small { display: block; color: rgb(255 255 255 / 66%); font: .85cqw "IBM Plex Mono", monospace; letter-spacing: .14em; }
+    .media-copy strong { display: block; margin-top: 1cqw; font-size: 2.18cqw; line-height: 1.25; }
+    .media-copy span { display: block; margin-top: .85cqw; color: rgb(255 255 255 / 74%); font-size: 1.05cqw; line-height: 1.5; }
+    .media-copy .edit { margin-top: 1.1cqw; }
+    .media-duration { position: absolute; right: 1.5cqw; bottom: 1.25cqw; z-index: 1; padding: .4cqw .65cqw; background: rgb(255 255 255 / 88%); color: var(--signal); font: .8cqw "IBM Plex Mono", monospace; }
+
+    /* 07 Architecture */
+    .architecture { display: grid; grid-template-columns: 1.06fr .94fr; gap: 2.7cqw; margin-top: 1.8cqw; flex: 1; min-height: 0; }
+    .arch-flow { display: flex; flex-direction: column; justify-content: center; gap: .75cqw; }
+    .arch-node { display: grid; grid-template-columns: 8cqw 1fr; gap: 1cqw; padding: .85cqw 1cqw; border: 1px solid var(--line); background: #fff; animation: sequence-card 5.8s ease-in-out infinite; }
+    .arch-node:nth-child(2) { animation-delay: 1.15s; }
+    .arch-node:nth-child(3) { animation-delay: 2.3s; }
+    .arch-node:nth-child(4) { animation-delay: 3.45s; }
+    .arch-node small { color: var(--signal); font: .74cqw "IBM Plex Mono", monospace; letter-spacing: .09em; }
+    .arch-node strong { display: block; font-size: 1.08cqw; }
+    .arch-node span { display: block; margin-top: .15cqw; color: var(--fog); font-size: .89cqw; line-height: 1.35; }
+    .arch-node.is-output { border: 2px solid var(--signal); background: var(--wash); }
+    .arch-node.is-output small, .arch-node.is-output strong { color: var(--signal); }
+    .arch-gif { position: relative; min-height: 0; border: 1px solid var(--line); background: linear-gradient(135deg, #321127, #180b1d); overflow: hidden; }
+    .arch-gif { display: flex; flex-direction: column; justify-content: center; background: #101010; }
+    .arch-gif video { display: block; width: 100%; min-height: 0; flex: 1; object-fit: contain; }
+    .trace-caption { margin: 0; padding: .9cqw 1.1cqw; border-top: 1px solid #333; color: #fff; font-size: .9cqw; line-height: 1.5; }
+    .trace-caption strong { display: block; font-size: 1.12cqw; }
+    .trace-caption span { color: #bbb; }
+    .arch-gif .gif-copy { position: absolute; left: 2cqw; right: 2cqw; bottom: 2cqw; z-index: 1; color: #fff; }
+    .gif-copy strong { display: block; font-size: 1.55cqw; }
+    .gif-copy span { display: block; margin-top: .45cqw; color: rgb(255 255 255 / 72%); font-size: .97cqw; line-height: 1.45; }
+    .gif-copy .edit { background: #fff; }
+
+    /* 09 Outcomes */
+    .outcome-head { display: flex; justify-content: space-between; align-items: end; gap: 2cqw; }
+    .impact-stories { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2.2cqw; margin-top: 2.15cqw; }
+    .impact-story { padding-top: .95cqw; border-top: 3px solid var(--line); }
+    .impact-story:nth-child(2) { border-top-color: var(--signal); }
+    .impact-story h3 { margin: 0; font-size: 1.35cqw; }
+    .impact-compare { display: grid; grid-template-columns: 1fr 2.3cqw 1fr; align-items: center; gap: .45cqw; margin-top: 1.4cqw; }
+    .impact-compare small { display: block; color: var(--fog); font: .7cqw "IBM Plex Mono", monospace; letter-spacing: .08em; }
+    .impact-compare strong { display: block; margin-top: .35cqw; font-size: 1.75cqw; line-height: 1.15; }
+    .impact-compare .before { color: var(--fog); }
+    .impact-compare .after { color: var(--signal); }
+    .impact-turn { display: grid; place-items: center; align-self: stretch; color: var(--signal); font-size: 2.25cqw; line-height: 1; text-align: center; }
+    .impact-story > p { margin: .8cqw 0 0; color: var(--fog); font-size: .92cqw; line-height: 1.42; }
+    .outcomes .pad { justify-content: flex-start; }
+    .outcomes .impact-stories { position: absolute; top: 50%; left: 5.7cqw; right: 5.7cqw; margin: 0; transform: translateY(-50%); }
+    @keyframes sequence-card { 0%, 18%, 100% { border-color: var(--line); box-shadow: none; transform: translateY(0); } 7%, 12% { border-color: color-mix(in srgb, var(--signal) 62%, var(--line)); box-shadow: 0 .4cqw 1.1cqw rgb(224 0 126 / 12%); transform: translateY(-.18cqw); } }
+    @keyframes sequence-flow { from { background-position: 180% 50%; } to { background-position: -40% 50%; } }
+    @keyframes sequence-arrow { 0%, 100% { opacity: .55; } 50% { opacity: 1; filter: drop-shadow(0 0 .25cqw rgb(224 0 126 / 42%)); } }
+
+    /* 10 Screens */
+    .analysis-split { display: grid; grid-template-columns: 1fr 1fr; gap: 2cqw; margin-top: 1.7cqw; flex: 1; min-height: 0; }
+    .analysis-cell { min-width: 0; border: 1px solid var(--line); background: #fff; display: flex; flex-direction: column; overflow: hidden; }
+    .analysis-cell figure { margin: 0; height: 22.5cqw; overflow: hidden; background: #261522; }
+    .analysis-cell figure img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: 50% 7%; }
+    .analysis-cell.topology figure img { object-position: 50% 0; }
+    .analysis-copy { padding: 1cqw 1.2cqw; }
+    .analysis-copy small { color: var(--signal); font: .75cqw "IBM Plex Mono", monospace; letter-spacing: .1em; }
+    .analysis-copy strong { display: block; margin-top: .35cqw; font-size: 1.27cqw; }
+    .analysis-copy p { margin: .42cqw 0 0; color: var(--fog); font-size: .9cqw; line-height: 1.45; }
+
+    /* 10 Service expansion */
+    .expansion .title { font-size: 2.85cqw; }
+    .expansion-media { position: relative; display: grid; flex: 1; min-height: 0; margin-top: 1.55cqw; padding: .45cqw; overflow: hidden; border: 1px solid var(--line); background: #1c1018; place-items: center; }
+    .expansion-media::after { content: ""; position: absolute; z-index: 1; top: 0; left: 0; right: 0; height: 11%; background: linear-gradient(180deg, #1c1018 0 84%, rgb(28 16 24 / 0%) 100%); pointer-events: none; }
+    .expansion-media img { display: block; width: 100%; height: 100%; object-fit: contain; }
+
+    /* 12 Closing */
+    .closing { background: #fffdfd; }
+    .closing .pad { padding: 5.2cqw 5.4cqw 4cqw; }
+    .closing-message { position: relative; display: flex; flex: 1; flex-direction: column; justify-content: center; overflow: hidden; }
+    .closing-message::after { content: "AI"; position: absolute; right: -1.5cqw; bottom: -3.8cqw; color: var(--wash-2); font: 22cqw/.8 "Gasoek One", "IBM Plex Sans KR", sans-serif; }
+    .closing-message small { position: relative; z-index: 1; color: var(--signal); font: .9cqw "IBM Plex Mono", monospace; letter-spacing: .16em; }
+    .closing-message h2 { position: relative; z-index: 1; margin: 1.3cqw 0 0; max-width: 19ch; font-family: "Gasoek One", "IBM Plex Sans KR", sans-serif; font-size: 5.7cqw; font-weight: 400; line-height: 1.05; letter-spacing: -.025em; }
+    .closing-message h2 em { color: var(--signal); font-style: normal; }
+    .closing-message p { position: relative; z-index: 1; margin: 1.35cqw 0 0; color: var(--fog); font-size: 1.25cqw; }
+
+    .hint { position: fixed; bottom: 12px; right: 16px; z-index: 5; color: #837386; font: 10px "IBM Plex Mono", monospace; }
+    @media (prefers-reduced-motion: reduce) { .beat-line, .catch-cell, .flow-link::before, .flow-link::after, .arch-node { animation: none; stroke-dashoffset: 0; } }
+    @media print { @page { size: 16in 9in; margin: 0; } body { overflow: visible; background: #fff; } .toolbar,.nav,.hint { display: none; } .stage { position: static; width: auto; height: auto; transform: none !important; } .frame { display: block; position: relative; width: 16in; height: 9in; break-after: page; } .slide { width: 16in; height: 9in; } }
+  </style>
+</head>
+<body>
+  <nav class="toolbar" aria-label="프레젠테이션 제어"><button id="full">FULL</button><button id="print">PRINT</button></nav>
+  <button id="prev" class="nav" aria-label="이전 슬라이드">←</button>
+  <button id="next" class="nav" aria-label="다음 슬라이드">→</button>
+
+  <main class="stage" id="stage">
+    <section class="frame active" id="slide-1">
+      <article class="slide cover" aria-label="1번 슬라이드 표지">
+        <div class="pad">
+          <p class="eyebrow">AI Agent Hackathon · 2026.09 · TEAM 네박자</p>
+          <h1 class="wordmark">시그널을<br />캐치하는<br /><em>캐치캐치</em></h1>
+          <p class="cover-sub">여러군데 흩어진 고객 행동을 하나로 잇고 시그널을 찾아내는 Customer Signal Catcher</p>
+          <div class="heartbeat" aria-hidden="true"><svg viewBox="0 0 1200 74" preserveAspectRatio="none"><path class="beat-ghost" d="M0 37 H1200" /><path class="beat-line" d="M0 37 H340 L360 37 L372 12 L388 62 L402 24 L414 37 L436 37 L448 30 L460 44 L472 37 H700 L716 37 L728 8 L744 66 L758 20 L770 37 H1200" /></svg></div>
+        </div>
+        <div class="progress"><i style="width:10%"></i></div>
+      </article>
+    </section>
+
+    <section class="frame" id="slide-2">
+      <article class="slide query" aria-label="2번 슬라이드 질의">
+        <span class="slide-no">02 / 12</span>
+        <div class="pad">
+          <h2 class="title">부가서비스 관련 인입이 왜 늘었을까?</h2>
+        </div>
+        <div class="progress"><i style="width:20%"></i></div>
+      </article>
+    </section>
+
+    <section class="frame" id="slide-3">
+      <article class="slide" aria-label="3번 슬라이드 기존 분석 방식">
+        <span class="slide-no">03 / 12</span>
+        <div class="pad">
+          <p class="eyebrow">AS-IS · 기획자의 데이터 분석</p>
+          <h2 class="title">고객 문제를 알기 위해<br />각각 확인해야 했습니다</h2>
+          <div class="asis-grid">
+            <section class="source-cell">
+              <p class="source-id">SOURCE 01 · AI SEARCH</p><h3>AI 검색 데이터</h3>
+              <div class="micro-flow">
+                <span><b>01</b><strong>키워드 탐색</strong><small>검색어를 확인</small></span>
+                <span><b>02</b><strong>결과 추출</strong><small>기간·고객 조건 설정</small></span>
+                <span><b>03</b><strong>의미 해석</strong><small>고객이 찾은 항목 읽기</small></span>
+              </div>
+            </section>
+            <section class="source-cell">
+              <p class="source-id">SOURCE 02 · VOC</p><h3>VOC · 상담 이력</h3>
+              <div class="micro-flow">
+                <span><b>01</b><strong>문의 조회</strong><small>부가서비스 문의 검색</small></span>
+                <span><b>02</b><strong>사례 선별</strong><small>상담 유형·처리 결과</small></span>
+                <span><b>03</b><strong>원인 분류</strong><small>막힌 지점 따로 확인</small></span>
+              </div>
+            </section>
+            <section class="source-cell">
+              <p class="source-id">SOURCE 03 · CRM</p><h3>가입 · 청구 정보</h3>
+              <div class="micro-flow">
+                <span><b>01</b><strong>고객 조회</strong><small>가입·청구 정보 확인</small></span>
+                <span><b>02</b><strong>조건 필터</strong><small>상품 상태·고객 키 정리</small></span>
+                <span><b>03</b><strong>상태 확인</strong><small>고객 맥락 따로 해석</small></span>
+              </div>
+            </section>
+          </div>
+        </div>
+        <div class="progress"><i style="width:30%"></i></div>
+      </article>
+    </section>
+
+    <section class="frame" id="slide-4">
+      <article class="slide pain" aria-label="4번 슬라이드 문제점">
+        <span class="slide-no">04 / 12</span>
+        <div class="pad">
+          <p class="eyebrow">PAIN POINT · 수작업에 보이지 않는 인사이트</p>
+          <h2 class="title">데이터 하나로는 보이지 않는 고객 행동을<br /><em>사람이 매번 결합</em>하고 해석합니다</h2>
+          <div class="pain-layout">
+            <div>
+              <div class="pain-stat"><small>1건당 분석 시간</small><strong>4~6시간</strong></div>
+              <div class="pain-stat"><small>반복 빈도</small><strong>월 2~3회</strong></div>
+            </div>
+            <div>
+              <div class="manual-map">
+                <div class="source-tags"><span>검색이력</span><span>GA 행동로그</span><span>VOC · 상담이력</span><span>가입 · 청구정보</span></div>
+                <div class="join-block"><strong>개별 추출 → 수작업 결합 → 해석</strong><p>데이터를 함께 봐야만 고객의 행동 패턴과 신호가 의미를 갖습니다.</p></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="progress"><i style="width:40%"></i></div>
+      </article>
+    </section>
+
+    <section class="frame" id="slide-5">
+      <article class="slide" aria-label="5번 슬라이드 캐치캐치 정의">
+        <span class="slide-no">05 / 12</span>
+        <div class="pad">
+          <p class="eyebrow">CATCHCATCH · 고객 여정 확장</p>
+          <div class="definition">
+            <div class="key-message"><span>문제의</span><em>핵심</em></div>
+            <p class="key-context">고객의 여정은 연결되어 있지만, 분석 도구는 흩어져 있습니다</p>
+            <p class="lead">캐치캐치는 질문 하나로 고객 여정을 <em>시그널</em>로 전환하는 에이전트</p>
+            <div class="catch-grid">
+              <div class="catch-cell"><b class="flow-no">01</b><strong>Source 확장</strong><span>검색 · 앱 · VOC · 가입</span></div>
+              <i class="flow-link" aria-hidden="true"></i>
+              <div class="catch-cell"><b class="flow-no">02</b><strong>고객 연결</strong><span>채널 사이 행동 결합</span></div>
+              <i class="flow-link" aria-hidden="true"></i>
+              <div class="catch-cell"><b class="flow-no">03</b><strong>여정 복원</strong><span>멈춘 지점과 재탐색</span></div>
+              <i class="flow-link" aria-hidden="true"></i>
+              <div class="catch-cell"><b class="flow-no">04</b><strong>결과 분석 및 검증</strong><span>행동 분석 및 인사이트 검증</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="progress"><i style="width:50%"></i></div>
+      </article>
+    </section>
+
+    <section class="frame" id="slide-6">
+      <article class="slide demo" aria-label="6번 슬라이드 앞단 시연">
+        <span class="slide-no">06 / 12</span>
+        <div class="pad">
+          <p class="eyebrow">DEMO 01 · FRONTEND</p>
+          <h2 class="title"><em>진짜</em> 고객 여정을 <em>전체</em>로 확장해 봅니다</h2>
+          <div class="media-slot">
+            <video controls muted playsinline preload="metadata" poster="/presentation/media/scene-01-poster.jpg" aria-label="장면 1: 질문부터 고객 여정과 근거 확인까지, 2배속, 1분 0.5초">
+              <source src="/presentation/media/scene-01-2x.mp4" type="video/mp4" />
+              <a href="/presentation/media/scene-01-2x.mp4">장면 1 영상 열기</a>
+            </video>
+          </div>
+        </div>
+        <div class="progress"><i style="width:60%"></i></div>
+      </article>
+    </section>
+
+    <section class="frame" id="slide-7">
+      <article class="slide" aria-label="7번 슬라이드 아키텍처 및 백단 실행">
+        <span class="slide-no">07 / 12</span>
+        <div class="pad">
+          <p class="eyebrow">ORCHESTRATION · BACKEND TRACE</p>
+          <h2 class="title">질문을 해석하고, Source를 고르고,<br /><em>근거까지 남기는</em> 실행 과정</h2>
+          <div class="architecture">
+            <div class="arch-flow">
+              <div class="arch-node"><small>01 · INTENT</small><div><strong>자연어 질문 해석</strong><span>관찰하려는 고객 상황과 기간, 행동 조건을 정리합니다.</span></div></div>
+              <div class="arch-node is-source"><small>02 · SOURCE</small><div><strong>관련 데이터 Source 선택</strong><span>검색, 앱 행동, VOC, 가입·청구정보에서 필요한 근거를 찾습니다.</span></div></div>
+              <div class="arch-node"><small>03 · AGENTS</small><div><strong>후보 발견과 재측정</strong><span>고객 단위로 연결하고, 후보를 같은 기준으로 다시 계산합니다.</span></div></div>
+              <div class="arch-node is-output"><small>04 · OUTPUT</small><div><strong>근거가 있는 분석 결과와 시그널 정의</strong><span>사람이 반복 관찰할 항목만 등록할 수 있게 제안합니다.</span></div></div>
+            </div>
+            <div class="arch-gif">
+              <video controls muted loop playsinline preload="metadata" poster="/presentation/media/langfuse-trace-poster.jpg" aria-label="시연과 동일한 실행의 Langfuse 트레이스, 8초 반복 영상">
+                <source src="/presentation/media/langfuse-trace.mp4" type="video/mp4" />
+                <a href="/presentation/media/langfuse-trace.mp4">Langfuse 트레이스 영상 열기</a>
+              </video>
+              <p class="trace-caption"><strong>실행 Trace / Langfuse</strong><span>시연과 동일한 실행의 에이전트와 도구 호출 234개<br />실행 트리 → 타임라인 → Source와 분석 결과 확인</span></p>
+            </div>
+          </div>
+        </div>
+        <div class="progress"><i style="width:70%"></i></div>
+      </article>
+    </section>
+
+    <section class="frame" id="slide-8">
+      <article class="slide demo" aria-label="8번 슬라이드 뒷단 시연">
+        <span class="slide-no">08 / 12</span>
+        <div class="pad">
+          <p class="eyebrow">DEMO 02 · SIGNAL MONITORING</p>
+          <h2 class="title">필요한 시그널은 계속 지켜보고 다시 캐치합니다</h2>
+          <div class="media-slot">
+            <video controls muted playsinline preload="metadata" poster="/presentation/media/scene-02-poster.jpg" aria-label="장면 2: 시그널 등록부터 알림과 지표 추적까지, 2배속, 51.5초">
+              <source src="/presentation/media/scene-02-2x.mp4" type="video/mp4" />
+              <a href="/presentation/media/scene-02-2x.mp4">장면 2 영상 열기</a>
+            </video>
+          </div>
+        </div>
+        <div class="progress"><i style="width:80%"></i></div>
+      </article>
+    </section>
+
+    <section class="frame" id="slide-9">
+      <article class="slide outcomes" aria-label="9번 슬라이드 기대 효과와 확장성">
+        <span class="slide-no">09 / 12</span>
+        <div class="pad">
+          <div class="outcome-head"><div><p class="eyebrow">EXPECTED IMPACT · SCALE</p><h2 class="title">반복 분석은 줄고, 관찰은 매일 이어집니다</h2></div></div>
+          <div class="impact-stories">
+            <article class="impact-story">
+              <h3>반복 분석 공수</h3>
+              <div class="impact-compare">
+                <div class="before"><small>BEFORE</small><strong>월 8~18시간</strong></div>
+                <i class="impact-turn" aria-hidden="true">→</i>
+                <div class="after"><small>AFTER</small><strong>추출·결합 0시간</strong></div>
+              </div>
+              <p>등록 후 결과 검토만 수행</p>
+            </article>
+            <article class="impact-story">
+              <h3>시그널 재측정</h3>
+              <div class="impact-compare">
+                <div class="before"><small>BEFORE</small><strong>월 2~3회</strong></div>
+                <i class="impact-turn" aria-hidden="true">→</i>
+                <div class="after"><small>AFTER</small><strong>일 1회</strong></div>
+              </div>
+              <p>월 최대 30회 자동 측정</p>
+            </article>
+            <article class="impact-story">
+              <h3>동일 기준 재현</h3>
+              <div class="impact-compare">
+                <div class="before"><small>BEFORE</small><strong>조건 재작성</strong></div>
+                <i class="impact-turn" aria-hidden="true">→</i>
+                <div class="after"><small>AFTER</small><strong>정의 1개 고정</strong></div>
+              </div>
+              <p>기간별 비교와 일별 이력 축적</p>
+            </article>
+          </div>
+        </div>
+        <div class="progress"><i style="width:90%"></i></div>
+      </article>
+    </section>
+
+    <section class="frame" id="slide-10">
+      <article class="slide expansion" aria-label="10번 슬라이드 서비스 이용 고객 확대">
+        <span class="slide-no">10 / 12</span>
+        <div class="pad">
+          <p class="eyebrow">SERVICE SCALE · CUSTOMER EXPANSION</p>
+          <h2 class="title">하나의 서비스, <em>전사 고객 의사결정 플랫폼</em>으로</h2>
+          <div class="expansion-media"><img src="/presentation/images/image_page_10_3.png" alt="고객 시그널 캐처를 활용하는 앱 기획자, 고객센터 상담사, 도메인별 사업 담당자, 전략팀" /></div>
+        </div>
+        <div class="progress"><i style="width:91.7%"></i></div>
+      </article>
+    </section>
+    <section class="frame" id="slide-11">
+      <article class="slide" aria-label="11번 슬라이드 분석 과정 화면">
+        <span class="slide-no">11 / 12</span>
+        <div class="pad">
+          <p class="eyebrow">ANALYSIS EVIDENCE · TWO VIEWS</p>
+          <h2 class="title">신뢰할 수 있는 결과를 확인할 수 있습니다</h2>
+          <div class="analysis-split">
+            <section class="analysis-cell"><figure><img src="/presentation/images/img_page_10_1.png" alt="캐치캐치 에이전트 대화 화면" /></figure><div class="analysis-copy"><small>AGENT CONVERSATION</small><strong>에이전트가 어떤 단서를 따라갔는지</strong><p>대화형 실행 기록에서 탐색, 조사, 검증, 정리 에이전트의 역할과 결과를 확인합니다.</p></div></section>
+            <section class="analysis-cell topology"><figure><img src="/presentation/images/presentation-.png" alt="캐치캐치 분석 토폴로지 화면" /></figure><div class="analysis-copy"><small>TRACE TOPOLOGY</small><strong>어떤 Source와 작업이 연결됐는지</strong><p>실행 토폴로지와 근거 레코드에서 Source 호출, 후보 검증, 결과 생성의 흐름을 확인합니다.</p></div></section>
+          </div>
+        </div>
+        <div class="progress"><i style="width:100%"></i></div>
+      </article>
+    </section>
+    <section class="frame" id="slide-12">
+      <article class="slide closing" aria-label="12번 슬라이드 마무리">
+        <span class="slide-no">12 / 12</span>
+        <div class="pad">
+          <div class="closing-message">
+            <small>CATCHCATCH · CLOSING MESSAGE</small>
+            <h2>AI는 사람의<br /><em>결정을 도와줍니다</em></h2>
+            <p>사람은 더 나은 판단에 집중하고, AI는 그 판단을 위한 근거를 찾습니다.</p>
+          </div>
+        </div>
+        <div class="progress"><i style="width:100%"></i></div>
+      </article>
+    </section>
+  </main>
+  <p class="hint"><span id="count">01 / 12</span> · ← → 이동 · F 전체화면</p>
+  <script>
+    (() => {
+      const stage = document.getElementById('stage'); const frames = [...document.querySelectorAll('.frame')]; const prev = document.getElementById('prev'); const next = document.getElementById('next'); const count = document.getElementById('count'); let current = 0;
+      function fit(){ const scale = Math.min(innerWidth / 1280, innerHeight / 720); stage.style.transform = `translate(-50%, -50%) scale(${scale})`; }
+      function show(index){
+        current = Math.max(0, Math.min(frames.length - 1, index));
+        frames.forEach((frame, i) => {
+          const active = i === current;
+          frame.classList.toggle('active', active);
+          frame.querySelectorAll('video').forEach(video => {
+            video.pause();
+            video.currentTime = 0;
+            if (active) video.play().catch(() => { /* Native controls remain available if autoplay is blocked. */ });
+          });
+        });
+        count.textContent = `${String(current+1).padStart(2,'0')} / ${String(frames.length).padStart(2,'0')}`;
+        prev.disabled = current === 0; next.disabled = current === frames.length - 1;
+        history.replaceState(null, '', `#${current+1}`);
+      }
+      function full(){ document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen?.(); }
+      prev.onclick = () => show(current - 1); next.onclick = () => show(current + 1); document.getElementById('full').onclick = full; document.getElementById('print').onclick = () => print();
+      addEventListener('resize', fit); addEventListener('keydown', (e) => { if(e.target.closest('video, input, textarea, select, [contenteditable="true"]') || (e.key === ' ' && e.target.closest('button, a'))) return; if(['ArrowRight','PageDown',' '].includes(e.key)){e.preventDefault();show(current+1)} if(['ArrowLeft','PageUp'].includes(e.key)){e.preventDefault();show(current-1)} if(e.key.toLowerCase()==='f'){e.preventDefault();full()} if(e.key==='Home')show(0); if(e.key==='End')show(frames.length-1); });
+      fit(); const requested = Number(location.hash.slice(1)) - 1; show(Number.isFinite(requested) && requested >= 0 ? requested : 0);
+    })();
+  </script>
+</body>
+</html>
