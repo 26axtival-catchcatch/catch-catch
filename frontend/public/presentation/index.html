@@ -71,23 +71,24 @@
     .source-cell + .source-cell { padding-left: 1.55cqw; border-left: 1px solid var(--line); }
     .source-id { margin: 0; font: .8cqw "IBM Plex Mono", monospace; letter-spacing: .13em; color: var(--signal); }
     .source-cell h3 { margin: .7cqw 0 0; font-size: 1.7cqw; line-height: 1.2; }
-    .source-signal { margin: 1.8cqw 0 0; color: var(--ink); font-size: 1.35cqw; line-height: 1.42; font-weight: 600; }
-    .source-signal em { color: var(--signal); font-style: normal; }
-    .source-question { margin: 1.3cqw 0 0; padding-top: 1.1cqw; border-top: 2px solid var(--line); color: var(--fog); font-size: 1cqw; line-height: 1.5; }
-    .source-question small { display: block; margin-bottom: .35cqw; color: var(--dim); font: 500 .72cqw "IBM Plex Mono", monospace; letter-spacing: .12em; }
+    .micro-flow { margin-top: 1.25cqw; display: grid; grid-template-columns: repeat(3, 1fr); gap: .6cqw; }
+    .micro-flow span { min-width: 0; padding-top: .65cqw; border-top: 2px solid var(--line); color: var(--fog); font-size: .78cqw; line-height: 1.35; }
+    .micro-flow b { display: block; color: var(--ink); font: 500 .75cqw "IBM Plex Mono", monospace; }
+    .micro-flow strong { display: block; margin-top: .18cqw; color: var(--ink); font-size: .9cqw; line-height: 1.25; }
+    .micro-flow small { display: block; margin-top: .22cqw; color: var(--fog); font-size: .72cqw; line-height: 1.35; }
 
-    /* 04 Missing source */
-    .pain-layout { display: flex; flex: 1; min-height: 0; margin-top: 1.55cqw; align-items: stretch; }
-    .manual-map { position: relative; display: flex; flex: 1; flex-direction: column; justify-content: center; padding: 1.35cqw 1.55cqw; border: 1px solid var(--line); background: linear-gradient(135deg, #fff 0%, var(--wash) 100%); }
-    .source-tags { display: grid; grid-template-columns: repeat(4, 1fr); gap: .72cqw; }
-    .source-tags span { padding: .8cqw .85cqw; border: 1px solid var(--line); background: #fff; color: var(--fog); font-size: .98cqw; text-align: center; }
-    .campaign-source { display: grid; grid-template-columns: 14cqw 1fr; gap: 1.3cqw; align-items: center; margin-top: .85cqw; padding: 1.15cqw 1.25cqw; border: 2px solid var(--signal); background: #fff; }
-    .campaign-source small { color: var(--signal); font: 600 .78cqw "IBM Plex Mono", monospace; letter-spacing: .11em; }
-    .campaign-source strong { display: block; font-size: 1.35cqw; line-height: 1.35; }
-    .campaign-source p { margin: .38cqw 0 0; color: var(--fog); font-size: .96cqw; line-height: 1.45; }
-    .join-block { margin: .85cqw 0 0; padding: .9cqw 1.15cqw; border-left: 3px solid var(--signal); background: rgb(224 0 126 / 7%); }
-    .join-block small { display: block; margin-bottom: .25cqw; color: var(--signal); font: 600 .72cqw "IBM Plex Mono", monospace; letter-spacing: .13em; }
-    .join-block strong { display: block; font-size: 1.25cqw; line-height: 1.4; }
+    /* 04 Pain */
+    .pain-layout { display: grid; grid-template-columns: .78fr 1.22fr; gap: 3.6cqw; margin-top: 2.25cqw; flex: 1; align-items: center; }
+    .pain-stat { border-left: 3px solid var(--signal); padding-left: 1.35cqw; }
+    .pain-stat + .pain-stat { margin-top: 2.1cqw; }
+    .pain-stat small { display: block; color: var(--fog); font: .83cqw "IBM Plex Mono", monospace; letter-spacing: .08em; }
+    .pain-stat strong { display: block; margin-top: .35cqw; color: var(--signal); font-family: "Gasoek One", "IBM Plex Sans KR", sans-serif; font-size: 4.4cqw; line-height: 1; font-weight: 400; }
+    .manual-map { position: relative; padding: 1.7cqw 2cqw; border: 1px solid var(--line); background: linear-gradient(135deg, #fff 0%, var(--wash) 100%); }
+    .source-tags { display: grid; grid-template-columns: repeat(2, 1fr); gap: .75cqw; }
+    .source-tags span { padding: .75cqw .85cqw; border: 1px solid var(--line); background: #fff; color: var(--ink); font-size: 1.05cqw; }
+    .join-block { margin: 1cqw 0; padding: .95cqw; border-left: 2px solid var(--signal); background: rgb(224 0 126 / 7%); }
+    .join-block strong { display: block; font-size: 1.25cqw; }
+    .join-block p { margin: .25cqw 0 0; color: var(--fog); font-size: .98cqw; line-height: 1.45; }
     .pain .title em { display: inline-block; padding: .06cqw .45cqw .14cqw; background: var(--signal); color: #fff; line-height: 1.08; }
 
     /* 05 Definition */
@@ -215,13 +216,43 @@
     .team-thanks { margin: 2.1cqw 0 0; color: var(--signal); font-family: "Gasoek One", "IBM Plex Sans KR", sans-serif; font-size: 3.6cqw; line-height: 1; }
     .character-defs { position: absolute; width: 0; height: 0; overflow: hidden; }
 
+    /* Appendix: captured evidence, separate from the 13-slide main talk. */
+    .appendix .pad { padding-top: 3.8cqw; padding-bottom: 3.3cqw; }
+    .appendix .title { font-size: 2.65cqw; }
+    .appendix .subtitle { margin-top: .7cqw; font-size: 1.12cqw; }
+    .appendix-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.7cqw; margin-top: 1.55cqw; min-height: 0; height: 38.5cqw; }
+    .evidence-card { display: flex; flex-direction: column; min-width: 0; min-height: 0; margin: 0; border: 1px solid var(--line); background: white; }
+    .evidence-head { padding: .95cqw 1.1cqw; border-bottom: 1px solid var(--line); }
+    .evidence-head small { color: var(--signal); font: 500 .75cqw "IBM Plex Mono", monospace; letter-spacing: .08em; }
+    .evidence-head h3 { margin: .32cqw 0 0; font-size: 1.42cqw; line-height: 1.3; }
+    .evidence-image { display: flex; align-items: center; justify-content: center; flex: 1; min-height: 0; overflow: hidden; background: #21151f; text-decoration: none; }
+    .evidence-image img { display: block; width: 100%; height: 100%; object-fit: contain; }
+    .evidence-card figcaption { padding: .85cqw 1.1cqw; font-size: 1.06cqw; line-height: 1.55; color: var(--fog); }
+    .evidence-card figcaption strong { color: var(--ink); }
+    .appendix-note { margin: .95cqw 0 0; font-size: .83cqw; line-height: 1.5; color: var(--fog); }
+    .appendix-note a { color: var(--fog); text-underline-offset: .2em; }
+    .scope-question { display: flex; align-items: center; gap: .85cqw; margin-top: 1cqw; padding: .65cqw 1cqw; background: var(--wash); border-left: 3px solid var(--signal); font-size: 1.1cqw; }
+    .scope-question small { flex: none; color: var(--signal); font: 500 .72cqw "IBM Plex Mono", monospace; }
+    .scope-evidence { grid-template-columns: .72fr 1.28fr; margin-top: 1.15cqw; height: 38.5cqw; }
+    .dataset-window { position: relative; height: 100%; max-width: 100%; aspect-ratio: 386 / 395; overflow: hidden; }
+    .dataset-window img { position: absolute; top: 0; left: -69.171%; width: 331.607%; height: auto; max-width: none; }
+    .guard-window { position: relative; height: 100%; max-width: 100%; aspect-ratio: 568 / 364; overflow: hidden; }
+    .guard-window img { position: absolute; left: -62.676%; top: -48.901%; width: 225.352%; height: auto; max-width: none; }
+    .guard-window.block { width: 100%; height: auto; aspect-ratio: 600 / 252; }
+    .guard-window.block img { left: -56.667%; top: -34.921%; width: 213.333%; }
+    .result-stack { display: grid; width: 100%; gap: .7cqw; padding: .7cqw; }
+    .result-row { position: relative; width: 100%; aspect-ratio: 1120 / 112; overflow: hidden; }
+    .result-row img { position: absolute; left: -7.143%; top: -87.5%; width: 114.286%; height: auto; max-width: none; }
+    .result-row:nth-child(2) img { top: -275%; }
+    .result-row:nth-child(3) img { top: -462.5%; }
+    .clean-view .toolbar, .clean-view .nav, .clean-view .hint { display: none; }
     .hint { position: fixed; bottom: 12px; right: 16px; z-index: 5; color: #837386; font: 10px "IBM Plex Mono", monospace; }
     @media (prefers-reduced-motion: reduce) { .beat-line, .catch-cell, .flow-link::before, .flow-link::after, .arch-node { animation: none; stroke-dashoffset: 0; } }
     @media print { @page { size: 16in 9in; margin: 0; } body { overflow: visible; background: #fff; } .toolbar,.nav,.hint { display: none; } .stage { position: static; width: auto; height: auto; transform: none !important; } .frame { display: block; position: relative; width: 16in; height: 9in; break-after: page; } .slide { width: 16in; height: 9in; } }
   </style>
 </head>
 <body>
-  <nav class="toolbar" aria-label="프레젠테이션 제어"><button id="full">FULL</button><button id="print">PRINT</button></nav>
+  <nav class="toolbar" aria-label="프레젠테이션 제어"><button id="full">FULL</button><button id="print">PRINT</button><button id="appendix" aria-label="질문 대비 부록">APPENDIX</button></nav>
   <button id="prev" class="nav" aria-label="이전 슬라이드">←</button>
   <button id="next" class="nav" aria-label="다음 슬라이드">→</button>
 
@@ -249,26 +280,35 @@
     </section>
 
     <section class="frame" id="slide-3">
-      <article class="slide" aria-label="3번 슬라이드 데이터별 단서와 남은 의문">
+      <article class="slide" aria-label="3번 슬라이드 기존 분석 방식">
         <span class="slide-no">03 / 13</span>
         <div class="pad">
-          <p class="eyebrow">AS-IS · 흩어진 고객 신호</p>
-          <h2 class="title">신호는 보였지만<br /><em>왜 늘었는지</em>는 알 수 없었습니다</h2>
+          <p class="eyebrow">AS-IS · 기획자의 데이터 분석</p>
+          <h2 class="title">고객 문제를 알기 위해<br />각각 확인해야 했습니다</h2>
           <div class="asis-grid">
             <section class="source-cell">
               <p class="source-id">SOURCE 01 · AI SEARCH</p><h3>AI 검색 데이터</h3>
-              <p class="source-signal"><em>‘부가서비스’</em> 검색량이 늘었습니다</p>
-              <p class="source-question"><small>UNKNOWN</small>고객이 무엇을 바꾸려 했는지는 알 수 없습니다</p>
+              <div class="micro-flow">
+                <span><b>01</b><strong>키워드 탐색</strong><small>검색어를 확인</small></span>
+                <span><b>02</b><strong>결과 추출</strong><small>기간·고객 조건 설정</small></span>
+                <span><b>03</b><strong>의미 해석</strong><small>고객이 찾은 항목 읽기</small></span>
+              </div>
             </section>
             <section class="source-cell">
               <p class="source-id">SOURCE 02 · VOC</p><h3>VOC · 상담 이력</h3>
-              <p class="source-signal">혜택을 <em>변경해 달라는 문의</em>가 많았습니다</p>
-              <p class="source-question"><small>UNKNOWN</small>문의가 갑자기 늘어난 계기는 알 수 없습니다</p>
+              <div class="micro-flow">
+                <span><b>01</b><strong>문의 조회</strong><small>부가서비스 문의 검색</small></span>
+                <span><b>02</b><strong>사례 선별</strong><small>상담 유형·처리 결과</small></span>
+                <span><b>03</b><strong>원인 분류</strong><small>막힌 지점 따로 확인</small></span>
+              </div>
             </section>
             <section class="source-cell">
               <p class="source-id">SOURCE 03 · CRM</p><h3>가입 · 청구 정보</h3>
-              <p class="source-signal">부가서비스 <em>해지는 늘지 않았습니다</em></p>
-              <p class="source-question"><small>UNKNOWN</small>그렇다면 검색과 문의는 왜 늘었을까요?</p>
+              <div class="micro-flow">
+                <span><b>01</b><strong>고객 조회</strong><small>가입·청구 정보 확인</small></span>
+                <span><b>02</b><strong>조건 필터</strong><small>상품 상태·고객 키 정리</small></span>
+                <span><b>03</b><strong>상태 확인</strong><small>고객 맥락 따로 해석</small></span>
+              </div>
             </section>
           </div>
         </div>
@@ -277,22 +317,21 @@
     </section>
 
     <section class="frame" id="slide-4">
-      <article class="slide pain" aria-label="4번 슬라이드 캠페인이력으로 확인한 고객 니즈">
+      <article class="slide pain" aria-label="4번 슬라이드 문제점">
         <span class="slide-no">04 / 13</span>
         <div class="pad">
-          <p class="eyebrow">MISSING SOURCE · 캠페인이력</p>
-          <h2 class="title">캠페인이력을 더하자<br /><em>인입 증가의 이유</em>가 보였습니다</h2>
+          <p class="eyebrow">PAIN POINT · 수작업에 보이지 않는 인사이트</p>
+          <h2 class="title">데이터 하나로는 보이지 않는 고객 행동을<br /><em>사람이 매번 결합</em>하고 해석합니다</h2>
           <div class="pain-layout">
-            <div class="manual-map">
-              <div class="source-tags"><span>검색이력</span><span>GA 행동로그</span><span>VOC · 상담이력</span><span>가입 · 청구정보</span></div>
-              <div class="campaign-source">
-                <small>SOURCE 05<br />캠페인이력</small>
-                <div>
-                  <strong>“다양한 혜택을 매월 바꿔 쓸 수 있다”는 캠페인을 진행했습니다</strong>
-                  <p>실제 이력에서 부가서비스 변경이 늘었고, 상담 통화에서도 같은 니즈를 확인했습니다.</p>
-                </div>
+            <div>
+              <div class="pain-stat"><small>1건당 분석 시간</small><strong>4~6시간</strong></div>
+              <div class="pain-stat"><small>반복 빈도</small><strong>월 2~3회</strong></div>
+            </div>
+            <div>
+              <div class="manual-map">
+                <div class="source-tags"><span>검색이력</span><span>GA 행동로그</span><span>VOC · 상담이력</span><span>가입 · 청구정보</span></div>
+                <div class="join-block"><strong>개별 추출 → 수작업 결합 → 해석</strong><p>데이터를 함께 봐야만 고객의 행동 패턴과 신호가 의미를 갖습니다.</p></div>
               </div>
-              <div class="join-block"><small>INSIGHT</small><strong>고객은 해지하려던 것이 아니라, 매월 필요한 혜택으로 바꿔 쓰고 싶었습니다</strong></div>
             </div>
           </div>
         </div>
@@ -513,10 +552,57 @@
         <div class="progress"><i style="width:100%"></i></div>
       </article>
     </section>
+    <section class="frame appendix-frame" id="slide-14">
+      <article class="slide appendix" aria-label="부록 1 입력 질문 방어">
+        <span class="slide-no">APPENDIX 01 / 02</span>
+        <div class="pad">
+          <p class="eyebrow">Q&amp;A / INPUT GUARD</p>
+          <h2 class="title">모호한 질문은 되묻고, <em>위험한 요청은 멈춥니다</em></h2>
+          <p class="subtitle">스냅샷을 준비하기 전에 분석 가능한 질문인지 확인합니다.</p>
+          <div class="appendix-grid">
+            <figure class="evidence-card">
+              <div class="evidence-head"><small>01 / CLARIFY</small><h3>“이상한 고객좀 찾아줘봐”</h3></div>
+              <a class="evidence-image" href="/presentation/appendix/ambiguous-question.jpg" target="_blank" rel="noopener" aria-label="모호한 질문 재질문 캡처 크게 보기"><div class="guard-window"><img src="/presentation/appendix/ambiguous-question.jpg" alt="이상한 고객의 행동 기준을 구체적으로 묻는 실제 재질문 화면" /></div></a>
+              <figcaption><strong>행동 기준을 먼저 확인합니다.</strong><br />반복 검색, 요금 문의 등 관찰할 조건을 되묻습니다.</figcaption>
+            </figure>
+            <figure class="evidence-card">
+              <div class="evidence-head"><small>02 / BLOCK</small><h3>지침 무시와 데이터 삭제 SQL 실행 요청</h3></div>
+              <a class="evidence-image" href="/presentation/appendix/unsafe-request.jpg" target="_blank" rel="noopener" aria-label="위험 요청 차단 캡처 크게 보기"><div class="guard-window block"><img src="/presentation/appendix/unsafe-request.jpg" alt="이전 지침을 무시하고 고객 데이터를 삭제하라는 요청에 분석을 시작할 수 없다고 안내한 실제 화면" /></div></a>
+              <figcaption><strong>차단 사유와 질문 수정 경로를 제공합니다.</strong><br />이 요청으로 고객 분석을 시작하지 않습니다.</figcaption>
+            </figure>
+          </div>
+          <p class="appendix-note">원격 배포본 실제 캡처 / 2026.09.11 / 입력 판정과 별도로 SQL 실행 권한과 데이터 범위 검증을 유지합니다.</p>
+        </div>
+      </article>
+    </section>
+    <section class="frame appendix-frame" id="slide-15">
+      <article class="slide appendix" aria-label="부록 2 데이터셋 제한 비교">
+        <span class="slide-no">APPENDIX 02 / 02</span>
+        <div class="pad">
+          <p class="eyebrow">Q&amp;A / DATA COVERAGE</p>
+          <h2 class="title">탐색할 데이터를 넓히니, <em>놓쳤던 패턴이 보였습니다</em></h2>
+          <div class="scope-question"><small>DEMO QUESTION</small><span>부가서비스를 이용중인 고객이 겪는 문제 알려줘</span></div>
+          <div class="appendix-grid scope-evidence">
+            <figure class="evidence-card">
+              <div class="evidence-head"><small>INPUT / 2 OF 8 SOURCES</small><h3>검색 이력과 VOC만 선택</h3></div>
+              <a class="evidence-image" href="/presentation/appendix/limited-datasets.jpg" target="_blank" rel="noopener" aria-label="데이터셋 선택 전체 캡처 보기"><div class="dataset-window"><img src="/presentation/appendix/limited-datasets.jpg" alt="해커톤 AI 검색 이력과 VOC만 켜고 부가서비스 가입을 끈 데이터셋 선택 화면" /></div></a>
+              <figcaption>시연과 같은 기간: <strong>9월 4일–10일</strong><br />앱 행동, 가입, CRM 등 6개 데이터 제외</figcaption>
+            </figure>
+            <figure class="evidence-card">
+              <div class="evidence-head"><small>BEFORE / LIMITED DATA</small><h3>2개 데이터에서는 구글원 변경 여정 미발견</h3></div>
+              <a class="evidence-image" href="/presentation/appendix/limited-result.jpg" target="_blank" rel="noopener" aria-label="데이터셋 제한 분석 상세 결과 크게 보기"><div class="result-stack"><div class="result-row"><img src="/presentation/appendix/limited-result.jpg" alt="실제 검증 1: 부가서비스 해지 VOC 상담 전환 61명" /></div><div class="result-row"><img src="/presentation/appendix/limited-result.jpg" alt="실제 검증 2: 소액결제 한도 변경 검색 실패 후 상담 전환 74명" /></div><div class="result-row"><img src="/presentation/appendix/limited-result.jpg" alt="실제 검증 3: 소액결제 반복 검색 후 상담 전환 74명. 두 번째 발견과 같은 고객군" /></div></div></a>
+              <figcaption id="limited-result-caption"><strong>시연에서는 8개 데이터를 연결해 구글원 변경 여정을 발견했습니다.</strong><br />데이터 확장으로 분석 업무의 범위도 넓힐 수 있습니다.</figcaption>
+            </figure>
+          </div>
+          <p class="appendix-note">합성 데이터 실제 실행 / 원래 질문에 범위 확인 답변 1회 추가 / <a href="/presentation/appendix/capture-notes.md" target="_blank" rel="noopener">실행 조건과 비교 기록</a></p>
+        </div>
+      </article>
+    </section>
   </main>
   <p class="hint"><span id="count">01 / 13</span> · ← → 이동 · F 전체화면</p>
   <script>
     (() => {
+      document.body.classList.toggle('clean-view', new URLSearchParams(location.search).get('clean') === '1');
       const stage = document.getElementById('stage'); const frames = [...document.querySelectorAll('.frame')]; const prev = document.getElementById('prev'); const next = document.getElementById('next'); const count = document.getElementById('count'); let current = 0;
       function fit(){ const scale = Math.min(innerWidth / 1280, innerHeight / 720); stage.style.transform = `translate(-50%, -50%) scale(${scale})`; }
       function show(index){
@@ -530,12 +616,12 @@
             if (active) video.play().catch(() => { /* Native controls remain available if autoplay is blocked. */ });
           });
         });
-        count.textContent = `${String(current+1).padStart(2,'0')} / ${String(frames.length).padStart(2,'0')}`;
+        count.textContent = current < 13 ? `${String(current+1).padStart(2,'0')} / 13` : `APPENDIX ${String(current-12).padStart(2,'0')} / 02`;
         prev.disabled = current === 0; next.disabled = current === frames.length - 1;
         history.replaceState(null, '', `#${current+1}`);
       }
       function full(){ document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen?.(); }
-      prev.onclick = () => show(current - 1); next.onclick = () => show(current + 1); document.getElementById('full').onclick = full; document.getElementById('print').onclick = () => print();
+      prev.onclick = () => show(current - 1); next.onclick = () => show(current + 1); document.getElementById('full').onclick = full; document.getElementById('print').onclick = () => print(); document.getElementById('appendix').onclick = () => show(13);
       addEventListener('resize', fit); addEventListener('keydown', (e) => { if(e.target.closest('video, input, textarea, select, [contenteditable="true"]') || (e.key === ' ' && e.target.closest('button, a'))) return; if(['ArrowRight','PageDown',' '].includes(e.key)){e.preventDefault();show(current+1)} if(['ArrowLeft','PageUp'].includes(e.key)){e.preventDefault();show(current-1)} if(e.key.toLowerCase()==='f'){e.preventDefault();full()} if(e.key==='Home')show(0); if(e.key==='End')show(frames.length-1); });
       fit(); const requested = Number(location.hash.slice(1)) - 1; show(Number.isFinite(requested) && requested >= 0 ? requested : 0);
     })();
