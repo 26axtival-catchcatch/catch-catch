@@ -71,24 +71,23 @@
     .source-cell + .source-cell { padding-left: 1.55cqw; border-left: 1px solid var(--line); }
     .source-id { margin: 0; font: .8cqw "IBM Plex Mono", monospace; letter-spacing: .13em; color: var(--signal); }
     .source-cell h3 { margin: .7cqw 0 0; font-size: 1.7cqw; line-height: 1.2; }
-    .micro-flow { margin-top: 1.25cqw; display: grid; grid-template-columns: repeat(3, 1fr); gap: .6cqw; }
-    .micro-flow span { min-width: 0; padding-top: .65cqw; border-top: 2px solid var(--line); color: var(--fog); font-size: .78cqw; line-height: 1.35; }
-    .micro-flow b { display: block; color: var(--ink); font: 500 .75cqw "IBM Plex Mono", monospace; }
-    .micro-flow strong { display: block; margin-top: .18cqw; color: var(--ink); font-size: .9cqw; line-height: 1.25; }
-    .micro-flow small { display: block; margin-top: .22cqw; color: var(--fog); font-size: .72cqw; line-height: 1.35; }
+    .source-signal { margin: 1.8cqw 0 0; color: var(--ink); font-size: 1.35cqw; line-height: 1.42; font-weight: 600; }
+    .source-signal em { color: var(--signal); font-style: normal; }
+    .source-question { margin: 1.3cqw 0 0; padding-top: 1.1cqw; border-top: 2px solid var(--line); color: var(--fog); font-size: 1cqw; line-height: 1.5; }
+    .source-question small { display: block; margin-bottom: .35cqw; color: var(--dim); font: 500 .72cqw "IBM Plex Mono", monospace; letter-spacing: .12em; }
 
-    /* 04 Pain */
-    .pain-layout { display: grid; grid-template-columns: .78fr 1.22fr; gap: 3.6cqw; margin-top: 2.25cqw; flex: 1; align-items: center; }
-    .pain-stat { border-left: 3px solid var(--signal); padding-left: 1.35cqw; }
-    .pain-stat + .pain-stat { margin-top: 2.1cqw; }
-    .pain-stat small { display: block; color: var(--fog); font: .83cqw "IBM Plex Mono", monospace; letter-spacing: .08em; }
-    .pain-stat strong { display: block; margin-top: .35cqw; color: var(--signal); font-family: "Gasoek One", "IBM Plex Sans KR", sans-serif; font-size: 4.4cqw; line-height: 1; font-weight: 400; }
-    .manual-map { position: relative; padding: 1.7cqw 2cqw; border: 1px solid var(--line); background: linear-gradient(135deg, #fff 0%, var(--wash) 100%); }
-    .source-tags { display: grid; grid-template-columns: repeat(2, 1fr); gap: .75cqw; }
-    .source-tags span { padding: .75cqw .85cqw; border: 1px solid var(--line); background: #fff; color: var(--ink); font-size: 1.05cqw; }
-    .join-block { margin: 1cqw 0; padding: .95cqw; border-left: 2px solid var(--signal); background: rgb(224 0 126 / 7%); }
-    .join-block strong { display: block; font-size: 1.25cqw; }
-    .join-block p { margin: .25cqw 0 0; color: var(--fog); font-size: .98cqw; line-height: 1.45; }
+    /* 04 Missing source */
+    .pain-layout { display: flex; flex: 1; min-height: 0; margin-top: 1.55cqw; align-items: stretch; }
+    .manual-map { position: relative; display: flex; flex: 1; flex-direction: column; justify-content: center; padding: 1.35cqw 1.55cqw; border: 1px solid var(--line); background: linear-gradient(135deg, #fff 0%, var(--wash) 100%); }
+    .source-tags { display: grid; grid-template-columns: repeat(4, 1fr); gap: .72cqw; }
+    .source-tags span { padding: .8cqw .85cqw; border: 1px solid var(--line); background: #fff; color: var(--fog); font-size: .98cqw; text-align: center; }
+    .campaign-source { display: grid; grid-template-columns: 14cqw 1fr; gap: 1.3cqw; align-items: center; margin-top: .85cqw; padding: 1.15cqw 1.25cqw; border: 2px solid var(--signal); background: #fff; }
+    .campaign-source small { color: var(--signal); font: 600 .78cqw "IBM Plex Mono", monospace; letter-spacing: .11em; }
+    .campaign-source strong { display: block; font-size: 1.35cqw; line-height: 1.35; }
+    .campaign-source p { margin: .38cqw 0 0; color: var(--fog); font-size: .96cqw; line-height: 1.45; }
+    .join-block { margin: .85cqw 0 0; padding: .9cqw 1.15cqw; border-left: 3px solid var(--signal); background: rgb(224 0 126 / 7%); }
+    .join-block small { display: block; margin-bottom: .25cqw; color: var(--signal); font: 600 .72cqw "IBM Plex Mono", monospace; letter-spacing: .13em; }
+    .join-block strong { display: block; font-size: 1.25cqw; line-height: 1.4; }
     .pain .title em { display: inline-block; padding: .06cqw .45cqw .14cqw; background: var(--signal); color: #fff; line-height: 1.08; }
 
     /* 05 Definition */
@@ -111,9 +110,9 @@
     .flow-no { display: inline-grid; place-items: center; width: 1.9cqw; height: 1.9cqw; border-radius: 50%; background: var(--wash-2); color: var(--signal); font: 600 .74cqw "IBM Plex Mono", monospace; letter-spacing: .04em; }
     .catch-cell strong { display: block; margin-top: .78cqw; font-size: 1.35cqw; }
     .catch-cell span { display: block; margin-top: .45cqw; color: var(--fog); font-size: .98cqw; line-height: 1.4; }
-    .catch-cell:last-child { border-color: var(--signal); background: var(--wash); }
-    .catch-cell:last-child .flow-no { background: var(--signal); color: #fff; }
-    .catch-cell:last-child strong { color: var(--signal); }
+    .catch-cell:nth-of-type(3) { border-color: var(--signal); background: var(--wash); }
+    .catch-cell:nth-of-type(3) .flow-no { background: var(--signal); color: #fff; }
+    .catch-cell:nth-of-type(3) strong { color: var(--signal); }
     .catch-cell:nth-of-type(2) { border-color: var(--signal); background: var(--wash); }
     .catch-cell:nth-of-type(2) .flow-no { background: var(--signal); color: #fff; }
     .catch-cell:nth-of-type(2) strong { color: var(--signal); }
@@ -198,6 +197,24 @@
     .closing-message h2 em { color: var(--signal); font-style: normal; }
     .closing-message p { position: relative; z-index: 1; margin: 1.35cqw 0 0; color: var(--fog); font-size: 1.25cqw; }
 
+    /* 13 Team outro */
+    .team-outro { --u-black: #22171c; --u-light: #f4f4ee; background: #fffdfd; }
+    .team-outro .pad { padding: 4.5cqw 5.4cqw 4cqw; }
+    .team-outro-grid { display: grid; grid-template-columns: .94fr 1.06fr; gap: 3.8cqw; flex: 1; min-height: 0; align-items: center; }
+    .outro-video { height: 38cqw; overflow: hidden; border: 1px solid var(--line); background: #160d14; box-shadow: 0 1.1cqw 3cqw rgb(58 20 50 / 12%); }
+    .outro-video video { display: block; width: 100%; height: 100%; object-fit: contain; background: #160d14; }
+    .team-closing { min-width: 0; }
+    .team-closing .eyebrow { color: var(--signal); }
+    .team-closing h2 { margin: 1cqw 0 0; font-family: "Gasoek One", "IBM Plex Sans KR", sans-serif; font-size: 3.2cqw; font-weight: 400; line-height: 1.12; letter-spacing: -.02em; }
+    .team-closing h2 em { color: var(--signal); font-style: normal; }
+    .team-lineup { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .55cqw; margin-top: 2.35cqw; }
+    .team-member { min-width: 0; color: var(--character); text-align: center; }
+    .team-avatar { display: grid; place-items: center; width: 7.4cqw; height: 7.4cqw; margin: 0 auto; }
+    .team-avatar svg { display: block; width: 100%; height: 100%; overflow: visible; }
+    .team-member strong { display: block; margin-top: .55cqw; color: var(--ink); font-size: 1.05cqw; font-weight: 600; white-space: nowrap; }
+    .team-thanks { margin: 2.1cqw 0 0; color: var(--signal); font-family: "Gasoek One", "IBM Plex Sans KR", sans-serif; font-size: 3.6cqw; line-height: 1; }
+    .character-defs { position: absolute; width: 0; height: 0; overflow: hidden; }
+
     .hint { position: fixed; bottom: 12px; right: 16px; z-index: 5; color: #837386; font: 10px "IBM Plex Mono", monospace; }
     @media (prefers-reduced-motion: reduce) { .beat-line, .catch-cell, .flow-link::before, .flow-link::after, .arch-node { animation: none; stroke-dashoffset: 0; } }
     @media print { @page { size: 16in 9in; margin: 0; } body { overflow: visible; background: #fff; } .toolbar,.nav,.hint { display: none; } .stage { position: static; width: auto; height: auto; transform: none !important; } .frame { display: block; position: relative; width: 16in; height: 9in; break-after: page; } .slide { width: 16in; height: 9in; } }
@@ -217,107 +234,99 @@
           <p class="cover-sub">여러군데 흩어진 고객 행동을 하나로 잇고 시그널을 찾아내는 Customer Signal Catcher</p>
           <div class="heartbeat" aria-hidden="true"><svg viewBox="0 0 1200 74" preserveAspectRatio="none"><path class="beat-ghost" d="M0 37 H1200" /><path class="beat-line" d="M0 37 H340 L360 37 L372 12 L388 62 L402 24 L414 37 L436 37 L448 30 L460 44 L472 37 H700 L716 37 L728 8 L744 66 L758 20 L770 37 H1200" /></svg></div>
         </div>
-        <div class="progress"><i style="width:10%"></i></div>
+        <div class="progress"><i style="width:7.7%"></i></div>
       </article>
     </section>
 
     <section class="frame" id="slide-2">
       <article class="slide query" aria-label="2번 슬라이드 질의">
-        <span class="slide-no">02 / 12</span>
+        <span class="slide-no">02 / 13</span>
         <div class="pad">
           <h2 class="title">부가서비스 관련 인입이 왜 늘었을까?</h2>
         </div>
-        <div class="progress"><i style="width:20%"></i></div>
+        <div class="progress"><i style="width:15.4%"></i></div>
       </article>
     </section>
 
     <section class="frame" id="slide-3">
-      <article class="slide" aria-label="3번 슬라이드 기존 분석 방식">
-        <span class="slide-no">03 / 12</span>
+      <article class="slide" aria-label="3번 슬라이드 데이터별 단서와 남은 의문">
+        <span class="slide-no">03 / 13</span>
         <div class="pad">
-          <p class="eyebrow">AS-IS · 기획자의 데이터 분석</p>
-          <h2 class="title">고객 문제를 알기 위해<br />각각 확인해야 했습니다</h2>
+          <p class="eyebrow">AS-IS · 흩어진 고객 신호</p>
+          <h2 class="title">신호는 보였지만<br /><em>왜 늘었는지</em>는 알 수 없었습니다</h2>
           <div class="asis-grid">
             <section class="source-cell">
               <p class="source-id">SOURCE 01 · AI SEARCH</p><h3>AI 검색 데이터</h3>
-              <div class="micro-flow">
-                <span><b>01</b><strong>키워드 탐색</strong><small>검색어를 확인</small></span>
-                <span><b>02</b><strong>결과 추출</strong><small>기간·고객 조건 설정</small></span>
-                <span><b>03</b><strong>의미 해석</strong><small>고객이 찾은 항목 읽기</small></span>
-              </div>
+              <p class="source-signal"><em>‘부가서비스’</em> 검색량이 늘었습니다</p>
+              <p class="source-question"><small>UNKNOWN</small>고객이 무엇을 바꾸려 했는지는 알 수 없습니다</p>
             </section>
             <section class="source-cell">
               <p class="source-id">SOURCE 02 · VOC</p><h3>VOC · 상담 이력</h3>
-              <div class="micro-flow">
-                <span><b>01</b><strong>문의 조회</strong><small>부가서비스 문의 검색</small></span>
-                <span><b>02</b><strong>사례 선별</strong><small>상담 유형·처리 결과</small></span>
-                <span><b>03</b><strong>원인 분류</strong><small>막힌 지점 따로 확인</small></span>
-              </div>
+              <p class="source-signal">혜택을 <em>변경해 달라는 문의</em>가 많았습니다</p>
+              <p class="source-question"><small>UNKNOWN</small>문의가 갑자기 늘어난 계기는 알 수 없습니다</p>
             </section>
             <section class="source-cell">
               <p class="source-id">SOURCE 03 · CRM</p><h3>가입 · 청구 정보</h3>
-              <div class="micro-flow">
-                <span><b>01</b><strong>고객 조회</strong><small>가입·청구 정보 확인</small></span>
-                <span><b>02</b><strong>조건 필터</strong><small>상품 상태·고객 키 정리</small></span>
-                <span><b>03</b><strong>상태 확인</strong><small>고객 맥락 따로 해석</small></span>
-              </div>
+              <p class="source-signal">부가서비스 <em>해지는 늘지 않았습니다</em></p>
+              <p class="source-question"><small>UNKNOWN</small>그렇다면 검색과 문의는 왜 늘었을까요?</p>
             </section>
           </div>
         </div>
-        <div class="progress"><i style="width:30%"></i></div>
+        <div class="progress"><i style="width:23.1%"></i></div>
       </article>
     </section>
 
     <section class="frame" id="slide-4">
-      <article class="slide pain" aria-label="4번 슬라이드 문제점">
-        <span class="slide-no">04 / 12</span>
+      <article class="slide pain" aria-label="4번 슬라이드 캠페인이력으로 확인한 고객 니즈">
+        <span class="slide-no">04 / 13</span>
         <div class="pad">
-          <p class="eyebrow">PAIN POINT · 수작업에 보이지 않는 인사이트</p>
-          <h2 class="title">데이터 하나로는 보이지 않는 고객 행동을<br /><em>사람이 매번 결합</em>하고 해석합니다</h2>
+          <p class="eyebrow">MISSING SOURCE · 캠페인이력</p>
+          <h2 class="title">캠페인이력을 더하자<br /><em>인입 증가의 이유</em>가 보였습니다</h2>
           <div class="pain-layout">
-            <div>
-              <div class="pain-stat"><small>1건당 분석 시간</small><strong>4~6시간</strong></div>
-              <div class="pain-stat"><small>반복 빈도</small><strong>월 2~3회</strong></div>
-            </div>
-            <div>
-              <div class="manual-map">
-                <div class="source-tags"><span>검색이력</span><span>GA 행동로그</span><span>VOC · 상담이력</span><span>가입 · 청구정보</span></div>
-                <div class="join-block"><strong>개별 추출 → 수작업 결합 → 해석</strong><p>데이터를 함께 봐야만 고객의 행동 패턴과 신호가 의미를 갖습니다.</p></div>
+            <div class="manual-map">
+              <div class="source-tags"><span>검색이력</span><span>GA 행동로그</span><span>VOC · 상담이력</span><span>가입 · 청구정보</span></div>
+              <div class="campaign-source">
+                <small>SOURCE 05<br />캠페인이력</small>
+                <div>
+                  <strong>“다양한 혜택을 매월 바꿔 쓸 수 있다”는 캠페인을 진행했습니다</strong>
+                  <p>실제 이력에서 부가서비스 변경이 늘었고, 상담 통화에서도 같은 니즈를 확인했습니다.</p>
+                </div>
               </div>
+              <div class="join-block"><small>INSIGHT</small><strong>고객은 해지하려던 것이 아니라, 매월 필요한 혜택으로 바꿔 쓰고 싶었습니다</strong></div>
             </div>
           </div>
         </div>
-        <div class="progress"><i style="width:40%"></i></div>
+        <div class="progress"><i style="width:30.8%"></i></div>
       </article>
     </section>
 
     <section class="frame" id="slide-5">
-      <article class="slide" aria-label="5번 슬라이드 캐치캐치 정의">
-        <span class="slide-no">05 / 12</span>
+      <article class="slide" aria-label="5번 슬라이드 디자인 씽킹 기반 고객 공감과 문제 정의">
+        <span class="slide-no">05 / 13</span>
         <div class="pad">
-          <p class="eyebrow">CATCHCATCH · 고객 여정 확장</p>
+          <p class="eyebrow">DESIGN THINKING · EMPATHIZE &amp; DEFINE</p>
           <div class="definition">
-            <div class="key-message"><span>문제의</span><em>핵심</em></div>
-            <p class="key-context">고객의 여정은 연결되어 있지만, 분석 도구는 흩어져 있습니다</p>
-            <p class="lead">캐치캐치는 질문 하나로 고객 여정을 <em>시그널</em>로 전환하는 에이전트</p>
+            <div class="key-message"><span>고객의</span><em>진짜 문제</em></div>
+            <p class="key-context">흩어진 고객의 말과 행동을 연결하면 표면 신호 뒤의 니즈가 보입니다</p>
+            <p class="lead">캐치캐치는 Design Thinking의 <em>공감과 문제 정의</em>를 데이터로 지원합니다</p>
             <div class="catch-grid">
-              <div class="catch-cell"><b class="flow-no">01</b><strong>Source 확장</strong><span>검색 · 앱 · VOC · 가입</span></div>
+              <div class="catch-cell"><b class="flow-no">01</b><strong>관찰 · Observe</strong><span>여러 채널의 고객 신호 수집</span></div>
               <i class="flow-link" aria-hidden="true"></i>
-              <div class="catch-cell"><b class="flow-no">02</b><strong>고객 연결</strong><span>채널 사이 행동 결합</span></div>
+              <div class="catch-cell"><b class="flow-no">02</b><strong>공감 · Empathize</strong><span>고객별 행동과 맥락 연결</span></div>
               <i class="flow-link" aria-hidden="true"></i>
-              <div class="catch-cell"><b class="flow-no">03</b><strong>여정 복원</strong><span>멈춘 지점과 재탐색</span></div>
+              <div class="catch-cell"><b class="flow-no">03</b><strong>문제 정의 · Define</strong><span>여정 속 핵심 니즈 발견</span></div>
               <i class="flow-link" aria-hidden="true"></i>
-              <div class="catch-cell"><b class="flow-no">04</b><strong>결과 분석 및 검증</strong><span>행동 분석 및 인사이트 검증</span></div>
+              <div class="catch-cell"><b class="flow-no">04</b><strong>검증 · Validate</strong><span>행동 데이터와 VOC 교차 확인</span></div>
             </div>
           </div>
         </div>
-        <div class="progress"><i style="width:50%"></i></div>
+        <div class="progress"><i style="width:38.5%"></i></div>
       </article>
     </section>
 
     <section class="frame" id="slide-6">
       <article class="slide demo" aria-label="6번 슬라이드 앞단 시연">
-        <span class="slide-no">06 / 12</span>
+        <span class="slide-no">06 / 13</span>
         <div class="pad">
           <p class="eyebrow">DEMO 01 · FRONTEND</p>
           <h2 class="title"><em>진짜</em> 고객 여정을 <em>전체</em>로 확장해 봅니다</h2>
@@ -328,13 +337,13 @@
             </video>
           </div>
         </div>
-        <div class="progress"><i style="width:60%"></i></div>
+        <div class="progress"><i style="width:46.2%"></i></div>
       </article>
     </section>
 
     <section class="frame" id="slide-7">
       <article class="slide" aria-label="7번 슬라이드 아키텍처 및 백단 실행">
-        <span class="slide-no">07 / 12</span>
+        <span class="slide-no">07 / 13</span>
         <div class="pad">
           <p class="eyebrow">ORCHESTRATION · BACKEND TRACE</p>
           <h2 class="title">질문을 해석하고, Source를 고르고,<br /><em>근거까지 남기는</em> 실행 과정</h2>
@@ -354,13 +363,13 @@
             </div>
           </div>
         </div>
-        <div class="progress"><i style="width:70%"></i></div>
+        <div class="progress"><i style="width:53.8%"></i></div>
       </article>
     </section>
 
     <section class="frame" id="slide-8">
       <article class="slide demo" aria-label="8번 슬라이드 뒷단 시연">
-        <span class="slide-no">08 / 12</span>
+        <span class="slide-no">08 / 13</span>
         <div class="pad">
           <p class="eyebrow">DEMO 02 · SIGNAL MONITORING</p>
           <h2 class="title">필요한 시그널은 계속 지켜보고 다시 캐치합니다</h2>
@@ -371,13 +380,13 @@
             </video>
           </div>
         </div>
-        <div class="progress"><i style="width:80%"></i></div>
+        <div class="progress"><i style="width:61.5%"></i></div>
       </article>
     </section>
 
     <section class="frame" id="slide-9">
       <article class="slide outcomes" aria-label="9번 슬라이드 기대 효과와 확장성">
-        <span class="slide-no">09 / 12</span>
+        <span class="slide-no">09 / 13</span>
         <div class="pad">
           <div class="outcome-head"><div><p class="eyebrow">EXPECTED IMPACT · SCALE</p><h2 class="title">반복 분석은 줄고, 관찰은 매일 이어집니다</h2></div></div>
           <div class="impact-stories">
@@ -410,24 +419,24 @@
             </article>
           </div>
         </div>
-        <div class="progress"><i style="width:90%"></i></div>
+        <div class="progress"><i style="width:69.2%"></i></div>
       </article>
     </section>
 
     <section class="frame" id="slide-10">
       <article class="slide expansion" aria-label="10번 슬라이드 서비스 이용 고객 확대">
-        <span class="slide-no">10 / 12</span>
+        <span class="slide-no">10 / 13</span>
         <div class="pad">
           <p class="eyebrow">SERVICE SCALE · CUSTOMER EXPANSION</p>
           <h2 class="title">하나의 서비스, <em>전사 고객 의사결정 플랫폼</em>으로</h2>
           <div class="expansion-media"><img src="image_page_10_3 (2).PNG" alt="고객 시그널 캐처를 활용하는 앱 기획자, 고객센터 상담사, 도메인별 사업 담당자, 전략팀" /></div>
         </div>
-        <div class="progress"><i style="width:91.7%"></i></div>
+        <div class="progress"><i style="width:76.9%"></i></div>
       </article>
     </section>
     <section class="frame" id="slide-11">
       <article class="slide" aria-label="11번 슬라이드 분석 과정 화면">
-        <span class="slide-no">11 / 12</span>
+        <span class="slide-no">11 / 13</span>
         <div class="pad">
           <p class="eyebrow">ANALYSIS EVIDENCE · TWO VIEWS</p>
           <h2 class="title">신뢰할 수 있는 결과를 확인할 수 있습니다</h2>
@@ -436,12 +445,12 @@
             <section class="analysis-cell topology"><figure><img src="presentation-.png" alt="캐치캐치 분석 토폴로지 화면" /></figure><div class="analysis-copy"><small>TRACE TOPOLOGY</small><strong>어떤 Source와 작업이 연결됐는지</strong><p>실행 토폴로지와 근거 레코드에서 Source 호출, 후보 검증, 결과 생성의 흐름을 확인합니다.</p></div></section>
           </div>
         </div>
-        <div class="progress"><i style="width:100%"></i></div>
+        <div class="progress"><i style="width:84.6%"></i></div>
       </article>
     </section>
     <section class="frame" id="slide-12">
       <article class="slide closing" aria-label="12번 슬라이드 마무리">
-        <span class="slide-no">12 / 12</span>
+        <span class="slide-no">12 / 13</span>
         <div class="pad">
           <div class="closing-message">
             <small>CATCHCATCH · CLOSING MESSAGE</small>
@@ -449,11 +458,63 @@
             <p>사람은 더 나은 판단에 집중하고, AI는 그 판단을 위한 근거를 찾습니다.</p>
           </div>
         </div>
+        <div class="progress"><i style="width:92.3%"></i></div>
+      </article>
+    </section>
+
+    <section class="frame" id="slide-13">
+      <article class="slide team-outro" aria-label="13번 슬라이드 캐치캐치 탐정단 네박자 팀 소개">
+        <span class="slide-no">13 / 13</span>
+        <div class="pad">
+          <div class="team-outro-grid">
+            <div class="outro-video">
+              <video controls muted loop playsinline preload="metadata" aria-label="캐치캐치 팀 아웃트로 영상">
+                <source src="outro.mp4" type="video/mp4" />
+                <a href="outro.mp4">아웃트로 영상 열기</a>
+              </video>
+            </div>
+            <div class="team-closing">
+              <p class="eyebrow">TEAM 네박자</p>
+              <h2>캐치캐치 탐정단<br /><em>네박자였습니다</em></h2>
+              <svg class="character-defs" aria-hidden="true">
+                <defs>
+                  <g id="catch-character-base">
+                    <ellipse cx="32" cy="58" rx="21" ry="3" fill="currentColor" opacity=".12" />
+                    <path d="M12 48V29C12 15 20 9 32 9s20 6 20 20v19c0 7-9 10-20 10S12 55 12 48Z" fill="currentColor" />
+                    <path d="M19 49v6m26-6v6" stroke="var(--u-black)" stroke-opacity=".18" stroke-width="2" stroke-linecap="round" />
+                    <ellipse cx="20" cy="34" rx="3" ry="1.6" fill="var(--u-light)" opacity=".35" />
+                    <ellipse cx="44" cy="34" rx="3" ry="1.6" fill="var(--u-light)" opacity=".35" />
+                    <g fill="var(--u-black)"><ellipse cx="25" cy="28" rx="1.8" ry="2.4" /><ellipse cx="39" cy="28" rx="1.8" ry="2.4" /></g>
+                  </g>
+                </defs>
+              </svg>
+              <div class="team-lineup">
+                <div class="team-member" style="--character:#ff95c9">
+                  <div class="team-avatar"><svg viewBox="0 0 64 64" fill="none" aria-hidden="true"><use href="#catch-character-base" /><path d="M28 36q4 4 8 0" stroke="var(--u-black)" stroke-width="1.7" stroke-linecap="round" /><path d="M32 10V5M14 28v9h5M50 28v9h-5" stroke="var(--u-light)" stroke-width="2.5" stroke-linecap="round" /><circle cx="32" cy="5" r="3" fill="var(--u-light)" /><path d="m28 47 4-4 4 4-4 4Z" fill="var(--u-light)" opacity=".8" /></svg></div>
+                  <strong>백금정</strong>
+                </div>
+                <div class="team-member" style="--character:#9bd5c4">
+                  <div class="team-avatar"><svg viewBox="0 0 64 64" fill="none" aria-hidden="true"><use href="#catch-character-base" /><path d="M29 37h6" stroke="var(--u-black)" stroke-width="1.7" stroke-linecap="round" /><g stroke="var(--u-black)" stroke-width="1.7"><rect x="17" y="22" width="14" height="12" rx="4" /><rect x="33" y="22" width="14" height="12" rx="4" /><path d="M31 26h2M13 25h4m30 0h4" /></g><path d="M25 46h14M25 50h10" stroke="var(--u-black)" stroke-opacity=".3" stroke-width="1.5" stroke-linecap="round" /></svg></div>
+                  <strong>김주형</strong>
+                </div>
+                <div class="team-member" style="--character:#b5adf1">
+                  <div class="team-avatar"><svg viewBox="0 0 64 64" fill="none" aria-hidden="true"><use href="#catch-character-base" /><path d="M28 36q4 4 8 0" stroke="var(--u-black)" stroke-width="1.7" stroke-linecap="round" /><circle cx="40" cy="28" r="9" fill="var(--u-light)" fill-opacity=".15" stroke="var(--u-black)" stroke-width="2" /><path d="m47 35 8 9" stroke="var(--u-black)" stroke-width="4" stroke-linecap="round" /><path d="M18 19q6-3 10-1" stroke="var(--u-black)" stroke-width="1.5" stroke-linecap="round" /></svg></div>
+                  <strong>김보미</strong>
+                </div>
+                <div class="team-member" style="--character:#e9c896">
+                  <div class="team-avatar"><svg viewBox="0 0 64 64" fill="none" aria-hidden="true"><use href="#catch-character-base" /><path d="M28 36q4 4 8 0" stroke="var(--u-black)" stroke-width="1.7" stroke-linecap="round" /><rect x="34" y="39" width="19" height="19" rx="3" fill="var(--u-light)" /><path d="M38 44h9m-9 4h9m-9 4h5M17 14l9-4" stroke="var(--u-black)" stroke-width="1.5" stroke-linecap="round" /><path d="m48 50 7-11" stroke="var(--u-black)" stroke-width="3" stroke-linecap="round" /></svg></div>
+                  <strong>진창엽</strong>
+                </div>
+              </div>
+              <p class="team-thanks">감사합니다</p>
+            </div>
+          </div>
+        </div>
         <div class="progress"><i style="width:100%"></i></div>
       </article>
     </section>
   </main>
-  <p class="hint"><span id="count">01 / 12</span> · ← → 이동 · F 전체화면</p>
+  <p class="hint"><span id="count">01 / 13</span> · ← → 이동 · F 전체화면</p>
   <script>
     (() => {
       const stage = document.getElementById('stage'); const frames = [...document.querySelectorAll('.frame')]; const prev = document.getElementById('prev'); const next = document.getElementById('next'); const count = document.getElementById('count'); let current = 0;

@@ -12,6 +12,14 @@ for (const [, filename] of html.matchAll(/<img\b[^>]*src="([^"/]+)"/g)) {
   copyFileSync(resolve(root, "ppt", filename), resolve(destination, "images", filename));
   html = html.replaceAll(`src="${filename}"`, `src="/presentation/images/${filename}"`);
 }
+
+mkdirSync(resolve(destination, "media"), { recursive: true });
+for (const [, filename] of html.matchAll(/<source\b[^>]*src="([^"/]+)"/g)) {
+  copyFileSync(resolve(root, "ppt", filename), resolve(destination, "media", filename));
+  html = html.replaceAll(`src="${filename}"`, `src="/presentation/media/${filename}"`);
+  html = html.replaceAll(`href="${filename}"`, `href="/presentation/media/${filename}"`);
+}
+
 html = html.replaceAll("../frontend/public/presentation/", "/presentation/");
 writeFileSync(resolve(destination, "index.html"), html);
-console.log("Synced the presentation HTML and referenced images to frontend/public/presentation.");
+console.log("Synced the presentation HTML and referenced assets to frontend/public/presentation.");
