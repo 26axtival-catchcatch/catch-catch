@@ -1,5 +1,5 @@
 {
-  "slides": 12,
+  "slides": 14,
   "web_path": "/presentation",
   "media": [
     {
@@ -109,5 +109,43 @@
     "pause_on_slide_leave": "passed",
     "trace_full_decode": "passed",
     "verified_at": "2026-09-10T19:01:19.757027+00:00"
+  },
+  "main_slides": 12,
+  "appendix_slides": 2,
+  "appendix": {
+    "web_path": "/presentation/index.html#13",
+    "captured_at": "2026-09-11",
+    "source_url": "https://100.54.240.157/",
+    "baseline_run_id": "14c4a166-47d8-45e2-a63a-b8478667e3f9",
+    "limited_run_id": "aaa2fdb1-954a-4a85-90b5-4b233eb47fe7",
+    "notes": "frontend/public/presentation/appendix/capture-notes.md",
+    "images": [
+      "ambiguous-question.jpg",
+      "unsafe-request.jpg",
+      "limited-datasets.jpg",
+      "limited-result.jpg"
+    ],
+    "previews": [
+      "appendix-01.jpg",
+      "appendix-02.jpg"
+    ],
+    "capture_pixels": [
+      1280,
+      720
+    ],
+    "validation": {
+      "manual_browser": "passed",
+      "images_loaded": "passed",
+      "centered_and_contained": "passed",
+      "production_build": "passed"
+    },
+    "sha256": {
+      "ambiguous-question.jpg": "b75e60a86db7bee5b0f0ff12d92f7b705f505e4ac2d7b2f8eef3bed1d003e673",
+      "unsafe-request.jpg": "00dda1d093cc5a1090689e7b1cb3185dc48367cb7b45a5a507106868e43a2ebf",
+      "limited-datasets.jpg": "c2f6c65c958fe99f250ce5d25b5472d27fec62135a7fcef56a00f33ab60bbe23",
+      "limited-result.jpg": "01e701edffc362bf1a2d35b4f7afef73ed60097749ecd4dd6c94bb67f86c66f7",
+      "appendix-01.jpg": "ac90f2ef90c593537244db44e02dd4554fb91f8d199f2a55f27e61f8288fdd1a",
+      "appendix-02.jpg": "09d46c576df958ede5cd5bdcb43dc2a6fe8cfaf1178410c0445de2e0f2ceb963"
+    }
   }
 }
